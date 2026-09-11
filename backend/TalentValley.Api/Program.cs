@@ -24,6 +24,8 @@ builder.Services.AddScoped<FormacaoService>();
 builder.Services.AddScoped<ExperienciaService>();
 builder.Services.AddScoped<ProjetoService>();
 builder.Services.AddScoped<TrajetoriaService>();
+builder.Services.AddScoped<TalentDiscoveryService>();
+builder.Services.AddScoped<TalentFileService>();
 builder.Services.AddScoped<CatalogSeedService>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);

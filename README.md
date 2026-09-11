@@ -50,7 +50,13 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 7: administrative Rio Pomba Valley formation validation completed. Phase 0–6 behavior remains intact.
+Phase 8: recruiter talent discovery and protected professional-profile access completed. Phase 0–7 behavior remains intact.
+
+Active recruiters can search active students with `GET /api/talentos`, open a complete professional profile at `GET /api/talentos/{slug}`, and read its protected photo, curriculum, and formation certificates through the corresponding `/api/talentos/{slug}/...` routes. Inactive students are hidden as 404 from every slug/file route, and current database state immediately blocks an inactive recruiter even when its existing JWT is still valid.
+
+The search page size is fixed at 10. Supported query groups are `nome`, `cidade`, `uf`, repeated `competenciaIds`, repeated `tiposFormacao`, `formacaoNome`, repeated `statusFormacao`, `rpvVerificado=true`, repeated `disponibilidades`, and repeated `modalidades`. Repeated values use normal ASP.NET Core query-array binding, for example `?competenciaIds=1&competenciaIds=4`; values within a group are OR, while different groups are AND. All supplied education criteria must match the same formation. City matching is trimmed, exact, and SQLite `NOCASE` case-insensitive; name and formation name use normalized substring matching.
+
+Sort modes are `relevancia`, `recentes`, and `nome`. The default is relevance when a real filter is active and recent otherwise. Relevance awards each requested general competency 2 points, each requested project-only competency 1 point, never double-counts the same competency, and awards 1 point per other active filter group. Relevance ties use profile update descending, normalized name, then student ID; recent and name sorting use their documented deterministic name/ID tie-breakers. `rpvVerificado=false` is accepted as no RPV filter; only `true` activates the verified-RPV condition.
 
 Admins have a paginated pending queue at `GET /api/admin/validacoes-rpv`, formation detail and protected certificate access, plus commands to approve, reject, or remove a verification. The state machine is `PENDENTE -> VERIFICADO`, `PENDENTE -> REJEITADO`, and `VERIFICADO -> PENDENTE`; invalid transitions return conflict. Approval requires the referenced physical certificate. Every real transition and its audit entry commit atomically, competing admin actions cannot both succeed, and administrative validation changes only `StatusValidacaoRpv`/`ValidadoEm`—it does not change `Aluno.AtualizadoEm` or `Formacao.AtualizadoEm`.
 
@@ -85,7 +91,7 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
-Recruiter search, recruiter protected file delivery, and frontend screens remain future phases.
+Favorites, comparison, recruiter dashboard, and recruiter frontend screens remain future phases.
 
 ## Authentication configuration
 
