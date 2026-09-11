@@ -6,6 +6,7 @@ using TalentValley.Api.Data;
 using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Domain.Enums;
 using TalentValley.Api.Services;
+using TalentValley.Api.Storage;
 
 namespace TalentValley.Api.Tests;
 
@@ -26,11 +27,19 @@ public sealed class AdminDeletionTests : IDisposable
         await ApiFactory.SetCsrfAsync(admin);
         using var student = factory.Client();
         await ApiFactory.LoginAsync(student, "student@example.test");
+        var storedFiles = new List<(FileCategory Category, string Key)>();
 
         await factory.InScopeAsync(async provider =>
         {
             var db = provider.GetRequiredService<AppDbContext>();
+            var storage = provider.GetRequiredService<IFileStorage>();
             var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
+            aluno.FotoStorageKey = await storage.StoreAsync(FileCategory.Photo,
+                new MemoryStream([0xff, 0xd8, 0xff]), ".jpg");
+            aluno.CurriculoStorageKey = await storage.StoreAsync(FileCategory.Curriculum,
+                new MemoryStream("%PDF-cv"u8.ToArray()), ".pdf");
+            storedFiles.Add((FileCategory.Photo, aluno.FotoStorageKey));
+            storedFiles.Add((FileCategory.Curriculum, aluno.CurriculoStorageKey));
             var competence = await db.Competencias.FirstOrDefaultAsync(x => x.NomeBusca == "c#")
                 ?? new Competencia { Nome = "C#", NomeBusca = "c#" };
             var language = await db.Idiomas.FirstOrDefaultAsync(x => x.NomeBusca == "portugues")
@@ -39,7 +48,11 @@ public sealed class AdminDeletionTests : IDisposable
             aluno.Idiomas.Add(new AlunoIdioma { Idioma = language, Nivel = NivelIdioma.NATIVO });
             aluno.Disponibilidades.Add(new AlunoDisponibilidade { Tipo = TipoDisponibilidade.CLT });
             aluno.Modalidades.Add(new AlunoModalidade { Modalidade = ModalidadeTrabalho.REMOTO });
-            aluno.Formacoes.Add(new Formacao { Id = Guid.NewGuid(), Nome = "Curso", NomeBusca = "curso", Instituicao = "RPV" });
+            var certificateKey = await storage.StoreAsync(FileCategory.Certificate,
+                new MemoryStream("%PDF-proof"u8.ToArray()), ".pdf");
+            storedFiles.Add((FileCategory.Certificate, certificateKey));
+            aluno.Formacoes.Add(new Formacao { Id = Guid.NewGuid(), Nome = "Curso", NomeBusca = "curso",
+                Instituicao = "RPV", CertificadoStorageKey = certificateKey });
             aluno.Experiencias.Add(new Experiencia { Id = Guid.NewGuid(), Empresa = "Empresa", Cargo = "Analista" });
             aluno.Projetos.Add(new Projeto
             {
@@ -68,6 +81,7 @@ public sealed class AdminDeletionTests : IDisposable
         await factory.InScopeAsync(async provider =>
         {
             var db = provider.GetRequiredService<AppDbContext>();
+            var storage = provider.GetRequiredService<IFileStorage>();
             Assert.Equal(failIdentity, await db.Users.AnyAsync(x => x.Id == id));
             Assert.Equal(failIdentity, await db.UserRoles.AnyAsync(x => x.UserId == id));
             Assert.Equal(failIdentity, await db.Alunos.AnyAsync(x => x.UserId == id));
@@ -83,6 +97,8 @@ public sealed class AdminDeletionTests : IDisposable
             Assert.Equal(CatalogSeedService.CompetenciaNames.Length, await db.Competencias.CountAsync());
             Assert.Equal(CatalogSeedService.IdiomaNames.Length, await db.Idiomas.CountAsync());
             Assert.True(await db.Users.AnyAsync(x => x.Id == recruiterId));
+            foreach (var file in storedFiles)
+                Assert.Equal(failIdentity, await storage.ExistsAsync(file.Category, file.Key));
             var audit = await db.Auditorias.OrderBy(x => x.CriadoEm).ToListAsync();
             Assert.Equal(failIdentity ? 1 : 2, audit.Count);
             Assert.All(audit, entry => Assert.Equal(id.ToString(), entry.EntidadeId));

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
 using TalentValley.Api.Services;
+using TalentValley.Api.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,10 @@ builder.Services.AddScoped<AdminAlunoService>();
 builder.Services.AddScoped<AdminRecrutadorService>();
 builder.Services.AddScoped<SlugService>();
 builder.Services.AddScoped<AlunoService>();
+builder.Services.AddScoped<StudentFileService>();
+builder.Services.AddSingleton<FileUploadValidator>();
+builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(StorageOptions.SectionName));
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddScoped<FormacaoService>();
 builder.Services.AddScoped<ExperienciaService>();
 builder.Services.AddScoped<ProjetoService>();

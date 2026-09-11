@@ -5,11 +5,13 @@ using TalentValley.Api.Data;
 using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Domain.Enums;
 using TalentValley.Api.DTOs;
+using TalentValley.Api.Storage;
 
 namespace TalentValley.Api.Services;
 
 public sealed class AdminAlunoService(AppDbContext database, AdminAccountService accounts,
-    UserManager<ApplicationUser> users, SlugService slugs, AuditoriaService audit)
+    UserManager<ApplicationUser> users, SlugService slugs, AuditoriaService audit,
+    IFileStorage storage, ILogger<AdminAlunoService> logger)
 {
     public async Task<AlunoCreatedResponse> CreateAsync(CreateAlunoRequest request)
     {
@@ -67,9 +69,15 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
     public async Task<bool> DeleteAsync(Guid id)
     {
         await using var transaction = await database.Database.BeginTransactionAsync();
-        var aluno = await database.Alunos.Include(x => x.User).SingleOrDefaultAsync(x => x.UserId == id);
+        var aluno = await database.Alunos.Include(x => x.User).Include(x => x.Formacoes)
+            .SingleOrDefaultAsync(x => x.UserId == id);
         if (aluno is null) return false;
         var user = aluno.User;
+        var files = new List<(FileCategory Category, string Key)>();
+        if (aluno.FotoStorageKey is not null) files.Add((FileCategory.Photo, aluno.FotoStorageKey));
+        if (aluno.CurriculoStorageKey is not null) files.Add((FileCategory.Curriculum, aluno.CurriculoStorageKey));
+        files.AddRange(aluno.Formacoes.Where(x => x.CertificadoStorageKey is not null)
+            .Select(x => (FileCategory.Certificate, x.CertificadoStorageKey!)));
         await audit.RecordAsync(AcaoAuditoria.ALUNO_EXCLUIDO, AppRoles.Student, id,
             $"Aluno {user.NomeCompleto} excluído.");
         // Remove the profile first: owned rows/favorites cascade, while its Identity FK is Restrict.
@@ -77,6 +85,15 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         await database.SaveChangesAsync();
         AdminAccountService.RequireSuccess(await users.DeleteAsync(user));
         await transaction.CommitAsync();
+        foreach (var file in files)
+        {
+            try { await storage.DeleteAsync(file.Category, file.Key); }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to clean {Category} file {StorageKey} after student deletion.",
+                    file.Category, file.Key);
+            }
+        }
         return true;
     }
 }

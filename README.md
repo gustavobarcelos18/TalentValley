@@ -50,11 +50,17 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 5: student formations, experiences, projects, and trajectory API completed. Phase 0–4.1 behavior, including authentication, admin account management, and profile timestamp idempotency, remains intact.
+Phase 6: protected local file storage and authenticated student photo, curriculum, and formation-certificate workflows completed. Phase 0–5 behavior remains intact.
+
+Uploaded files are private and are delivered only through active-student authorized API endpoints. Photos accept validated JPEG, PNG, or WebP files up to 5 MB; curricula and certificates accept validated PDFs up to 10 MB. Validation checks size, extension, declared MIME type, and file signature. Curriculum and certificate responses consistently download with safe filenames (`curriculo.pdf` and `certificado.pdf`); photos are inline. Files are never exposed through static-file middleware, and storage keys and physical paths never appear in API responses.
+
+`IFileStorage` keeps application workflows independent of the initial `LocalFileStorage` provider. By default, Development resolves `Storage:RootPath=storage` beneath the API content root and uses the controlled `fotos`, `curriculos`, and `certificados` subdirectories. Deployments must configure `Storage:RootPath` to a persistent mounted volume; container-local ephemeral storage will lose uploads. Uploaded contents are ignored by Git.
+
+Replacement writes a new opaque GUID key, commits the database reference, and only then removes the old file. Deletes clear the database reference first. Changing an RPV formation certificate resets its validation to `PENDENTE` and clears `ValidadoEm`; non-RPV formations keep a null validation state. Successful student deletion cleans all associated physical files after its database/Identity transaction commits.
 
 New student self-service endpoints (all require the active-student policy; student ID is always derived from the authenticated JWT `sub`):
 
-- `GET /api/alunos/me` returns the complete profile aggregate, including full formation, experience, and project DTOs with project technologies; `fotoUrl` stays `null` until protected file delivery exists; storage keys are never exposed.
+- `GET /api/alunos/me` returns the complete profile aggregate, including full formation, experience, and project DTOs with project technologies; `fotoUrl` is `/api/alunos/me/foto` only when a photo exists; storage keys are never exposed.
 - `PUT /api/alunos/me/dados-basicos` updates name/city/UF, refreshes `NomeBusca` on name change, keeps the slug stable, and returns 204.
 - `PUT /api/alunos/me/sobre` updates the bio (trimmed; blank becomes null; max 1500 chars) and returns 204.
 - `PUT /api/alunos/me/contato` updates phone/professional email/URLs (http/https only; 204).
@@ -77,7 +83,7 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
-Uploads, certificate delivery, RPV admin validation, recruiter search, and frontend screens remain future phases.
+RPV admin validation, recruiter search, cross-user protected file delivery, and frontend screens remain future phases.
 
 ## Authentication configuration
 

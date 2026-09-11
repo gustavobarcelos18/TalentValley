@@ -3,10 +3,11 @@ using TalentValley.Api.Data;
 using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Domain.Enums;
 using TalentValley.Api.DTOs;
+using TalentValley.Api.Storage;
 
 namespace TalentValley.Api.Services;
 
-public sealed class FormacaoService(AppDbContext database)
+public sealed class FormacaoService(AppDbContext database, IFileStorage storage, ILogger<FormacaoService> logger)
 {
     public async Task<IReadOnlyCollection<FormacaoResponse>> ListAsync(Guid alunoId) =>
         (await database.Formacoes.AsNoTracking().Where(x => x.AlunoId == alunoId)
@@ -60,10 +61,19 @@ public sealed class FormacaoService(AppDbContext database)
         await using var transaction = await database.Database.BeginTransactionAsync();
         var item = await database.Formacoes.SingleOrDefaultAsync(x => x.AlunoId == alunoId && x.Id == id);
         if (item is null) return false;
+        var certificateKey = item.CertificadoStorageKey;
         database.Formacoes.Remove(item);
         await TouchAsync(alunoId, DateTimeOffset.UtcNow);
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
+        if (certificateKey is not null)
+        {
+            try { await storage.DeleteAsync(FileCategory.Certificate, certificateKey); }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to clean certificate file {StorageKey} after formation deletion.", certificateKey);
+            }
+        }
         return true;
     }
 

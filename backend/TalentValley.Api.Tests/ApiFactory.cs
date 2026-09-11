@@ -17,6 +17,7 @@ using TalentValley.Api.Domain.Enums;
 using TalentValley.Api.DTOs;
 using TalentValley.Api.Email;
 using TalentValley.Api.Services;
+using TalentValley.Api.Storage;
 
 namespace TalentValley.Api.Tests;
 
@@ -25,6 +26,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public const string Password = "TestPassword123"; // Isolated test accounts only.
     private readonly string directory = Path.Combine(Path.GetTempPath(), "TalentValley.Tests", Guid.NewGuid().ToString("N"));
     public string SigningKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    public string StoragePath => Path.Combine(directory, "storage");
     public RecordingEmailSender Emails { get; } = new();
     public Dictionary<string, string?> Overrides { get; } = new();
     public string EnvironmentName { get; init; } = "Development";
@@ -61,6 +63,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = SigningKey, ["Jwt:ExpirationHours"] = "8",
                 ["Frontend:BaseUrl"] = EnvironmentName == "Development" ? "http://localhost:3000" : "https://talent.example",
                 ["BootstrapAdmin:Email"] = "", ["BootstrapAdmin:Password"] = "", ["BootstrapAdmin:Name"] = "",
+                ["Storage:RootPath"] = StoragePath,
                 ["Logging:LogLevel:Default"] = "Error"
             };
             foreach (var setting in Overrides) settings[setting.Key] = setting.Value;

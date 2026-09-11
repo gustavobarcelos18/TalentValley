@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.DTOs;
 using TalentValley.Api.Services;
+using TalentValley.Api.Storage;
 
 namespace TalentValley.Api.Controllers;
 
@@ -10,7 +11,8 @@ namespace TalentValley.Api.Controllers;
 [Route("api/alunos")]
 [Authorize(Policy = AppPolicies.RequireActiveStudent)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class AlunosController(AlunoService alunoService, TrajetoriaService trajetoriaService) : ControllerBase
+public sealed class AlunosController(AlunoService alunoService, TrajetoriaService trajetoriaService,
+    StudentFileService files) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirst("sub")!.Value);
 
@@ -25,6 +27,70 @@ public sealed class AlunosController(AlunoService alunoService, TrajetoriaServic
         return profile is null
             ? Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.")
             : Ok(profile);
+    }
+
+    [HttpPost("me/foto")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5L * 1024 * 1024 + 64 * 1024)]
+    public async Task<IActionResult> UploadPhoto([FromForm] IFormFile? file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await files.UploadPhotoAsync(CurrentUserId, file, cancellationToken);
+            return NoContent();
+        }
+        catch (UploadValidationException ex)
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ex.Message);
+        }
+    }
+
+    [HttpGet("me/foto")]
+    public async Task<IActionResult> GetPhoto(CancellationToken cancellationToken)
+    {
+        var file = await files.OpenPhotoAsync(CurrentUserId, cancellationToken);
+        return file is null
+            ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Resource not found.")
+            : File(file.Content, file.ContentType, enableRangeProcessing: false);
+    }
+
+    [HttpDelete("me/foto")]
+    public async Task<IActionResult> DeletePhoto(CancellationToken cancellationToken)
+    {
+        await files.DeletePhotoAsync(CurrentUserId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("me/curriculo")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10L * 1024 * 1024 + 64 * 1024)]
+    public async Task<IActionResult> UploadCurriculum([FromForm] IFormFile? file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await files.UploadCurriculumAsync(CurrentUserId, file, cancellationToken);
+            return NoContent();
+        }
+        catch (UploadValidationException ex)
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ex.Message);
+        }
+    }
+
+    [HttpGet("me/curriculo")]
+    public async Task<IActionResult> GetCurriculum(CancellationToken cancellationToken)
+    {
+        var file = await files.OpenCurriculumAsync(CurrentUserId, cancellationToken);
+        return file is null
+            ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Resource not found.")
+            : File(file.Content, file.ContentType, "curriculo.pdf", enableRangeProcessing: false);
+    }
+
+    [HttpDelete("me/curriculo")]
+    public async Task<IActionResult> DeleteCurriculum(CancellationToken cancellationToken)
+    {
+        await files.DeleteCurriculumAsync(CurrentUserId, cancellationToken);
+        return NoContent();
     }
 
     [HttpPut("me/dados-basicos")]

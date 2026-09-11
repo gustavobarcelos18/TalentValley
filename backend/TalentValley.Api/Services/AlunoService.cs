@@ -187,7 +187,7 @@ public sealed class AlunoService(AppDbContext database)
     private static MeResponse MapToResponse(Aluno aluno) => new(
         aluno.UserId,
         aluno.Slug,
-        new(aluno.User.NomeCompleto, null, aluno.Cidade, aluno.Uf),
+        new(aluno.User.NomeCompleto, aluno.FotoStorageKey is null ? null : "/api/alunos/me/foto", aluno.Cidade, aluno.Uf),
         new(aluno.Bio),
         new(aluno.Telefone, aluno.EmailProfissional, aluno.LinkedInUrl, aluno.GitHubUrl, aluno.PortfolioUrl),
         aluno.Competencias.OrderBy(x => x.Competencia.NomeBusca)
