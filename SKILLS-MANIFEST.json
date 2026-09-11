@@ -1,0 +1,20 @@
+{
+  "package": "Talent Valley Codex Skills",
+  "files": [
+    ".agents/skills/talent-valley-architecture/SKILL.md",
+    ".agents/skills/talent-valley-architecture/references/approved-architecture.md",
+    ".agents/skills/talent-valley-auth-security/SKILL.md",
+    ".agents/skills/talent-valley-auth-security/references/security-rules.md",
+    ".agents/skills/talent-valley-backend-api/SKILL.md",
+    ".agents/skills/talent-valley-backend-api/references/api-conventions.md",
+    ".agents/skills/talent-valley-database/SKILL.md",
+    ".agents/skills/talent-valley-database/references/schema-rules.md",
+    ".agents/skills/talent-valley-domain-rules/SKILL.md",
+    ".agents/skills/talent-valley-domain-rules/references/mvp-rules.md",
+    ".agents/skills/talent-valley-frontend-ui/SKILL.md",
+    ".agents/skills/talent-valley-frontend-ui/references/approved-ux.md",
+    ".agents/skills/talent-valley-quality-gate/SKILL.md",
+    "AGENTS.md"
+  ],
+  "skill_count": 7
+}

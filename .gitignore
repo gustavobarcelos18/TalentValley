@@ -1,0 +1,30 @@
+# Frontend dependencies and build output
+node_modules/
+.next/
+dist/
+out/
+coverage/
+*.tsbuildinfo
+
+# Backend build output
+bin/
+obj/
+
+# Local configuration and secrets
+.env*
+!.env.example
+*.user
+*.suo
+
+# IDE and operating-system files
+.vs/
+.vscode/
+.DS_Store
+
+# Local backend data
+backend/TalentValley.Api/storage/*
+!backend/TalentValley.Api/Storage/.gitkeep
+!backend/TalentValley.Api/Storage/**/*.cs
+backend/TalentValley.Api/Database/*.db
+backend/TalentValley.Api/Database/*.db-shm
+backend/TalentValley.Api/Database/*.db-wal
