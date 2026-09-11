@@ -50,7 +50,9 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 6: protected local file storage and authenticated student photo, curriculum, and formation-certificate workflows completed. Phase 0–5 behavior remains intact.
+Phase 7: administrative Rio Pomba Valley formation validation completed. Phase 0–6 behavior remains intact.
+
+Admins have a paginated pending queue at `GET /api/admin/validacoes-rpv`, formation detail and protected certificate access, plus commands to approve, reject, or remove a verification. The state machine is `PENDENTE -> VERIFICADO`, `PENDENTE -> REJEITADO`, and `VERIFICADO -> PENDENTE`; invalid transitions return conflict. Approval requires the referenced physical certificate. Every real transition and its audit entry commit atomically, competing admin actions cannot both succeed, and administrative validation changes only `StatusValidacaoRpv`/`ValidadoEm`—it does not change `Aluno.AtualizadoEm` or `Formacao.AtualizadoEm`.
 
 Uploaded files are private and are delivered only through active-student authorized API endpoints. Photos accept validated JPEG, PNG, or WebP files up to 5 MB; curricula and certificates accept validated PDFs up to 10 MB. Validation checks size, extension, declared MIME type, and file signature. Curriculum and certificate responses consistently download with safe filenames (`curriculo.pdf` and `certificado.pdf`); photos are inline. Files are never exposed through static-file middleware, and storage keys and physical paths never appear in API responses.
 
@@ -83,7 +85,7 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
-RPV admin validation, recruiter search, cross-user protected file delivery, and frontend screens remain future phases.
+Recruiter search, recruiter protected file delivery, and frontend screens remain future phases.
 
 ## Authentication configuration
 

@@ -21,7 +21,12 @@ public sealed class AdminEndpointTests : IDisposable
         (HttpMethod.Post, "/api/admin/recrutadores"), (HttpMethod.Get, "/api/admin/recrutadores"),
         (HttpMethod.Get, $"/api/admin/recrutadores/{Id}"),
         (HttpMethod.Post, $"/api/admin/recrutadores/{Id}/bloquear"), (HttpMethod.Post, $"/api/admin/recrutadores/{Id}/reativar"),
-        (HttpMethod.Post, $"/api/admin/usuarios/{Id}/reenviar-ativacao"), (HttpMethod.Get, "/api/admin/auditoria")
+        (HttpMethod.Post, $"/api/admin/usuarios/{Id}/reenviar-ativacao"), (HttpMethod.Get, "/api/admin/auditoria"),
+        (HttpMethod.Get, "/api/admin/validacoes-rpv"), (HttpMethod.Get, $"/api/admin/validacoes-rpv/{Id}"),
+        (HttpMethod.Get, $"/api/admin/validacoes-rpv/{Id}/certificado"),
+        (HttpMethod.Post, $"/api/admin/validacoes-rpv/{Id}/aprovar"),
+        (HttpMethod.Post, $"/api/admin/validacoes-rpv/{Id}/rejeitar"),
+        (HttpMethod.Post, $"/api/admin/validacoes-rpv/{Id}/remover-validacao")
     ];
 
     private async Task<HttpClient> AdminAsync()
@@ -168,6 +173,8 @@ public sealed class AdminEndpointTests : IDisposable
     [InlineData("recrutadores?status=0")]
     [InlineData("recrutadores?status=999")]
     [InlineData("auditoria?page=0")]
+    [InlineData("validacoes-rpv?page=0")]
+    [InlineData("validacoes-rpv?page=2147483647")]
     public async Task Invalid_query_returns_validation_problem(string query)
     {
         using var client = await AdminAsync();
