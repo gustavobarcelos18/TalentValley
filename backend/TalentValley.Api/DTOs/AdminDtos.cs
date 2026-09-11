@@ -58,3 +58,13 @@ public sealed record RecrutadorDetailResponse(Guid Id, string NomeCompleto, stri
     string Cargo, string Telefone, string Cidade, string Uf, StatusRecrutador Status, DateTimeOffset? UltimoAcessoEm);
 public sealed record AuditoriaListItem(Guid Id, AcaoAuditoria Acao, string AdminEmail, string EntidadeTipo,
     string EntidadeId, string Descricao, DateTimeOffset CriadoEm);
+
+public sealed record AdminDashboardCompetenciaItem(int Id, string Nome, int QuantidadeAlunos);
+
+public sealed record AdminDashboardResponse(
+    int AlunosAtivos,
+    int RecrutadoresAtivos,
+    int ValidacoesRpvPendentes,
+    int PerfisAtualizadosUltimos7Dias,
+    int FormacoesRpvVerificadas,
+    IReadOnlyCollection<AdminDashboardCompetenciaItem> CompetenciasMaisUtilizadas);

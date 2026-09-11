@@ -50,7 +50,9 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 9: recruiter favorites, neutral comparison, and recruiter dashboard completed. Phase 0–8 behavior remains intact.
+Phase 10: admin dashboard completed. Phase 0–9 behavior remains intact.
+
+`GET /api/admin/dashboard` requires a current admin session and returns aggregate indicators: active students (`Aluno.Ativo`), active recruiters (`Status == ATIVO`), pending RPV validations (`EhRioPombaValley` formations with `StatusValidacaoRpv == PENDENTE`), and active-student profiles updated in the last 7 days (`Aluno.AtualizadoEm >= UtcNow - 7 days`). It also returns the verified RPV formation count and up to five most-used general competencies among active students, ordered by student count descending, normalized name ascending, and competency ID ascending. RPV administrative validation does not modify `Aluno.AtualizadoEm`, so it never falsely counts as a profile update.
 
 Active recruiters can add and remove favorites idempotently at `POST/DELETE /api/recrutador/favoritos/{slug}` and list their visible favorites, 10 per page, at `GET /api/recrutador/favoritos?page=1`. Existing favorites of blocked students remain stored but hidden and reappear with their original timestamp after reactivation. Talent search and detail responses now include a recruiter-specific `favorito` flag without affecting search ranking or order.
 
@@ -65,6 +67,8 @@ The search page size is fixed at 10. Supported query groups are `nome`, `cidade`
 Sort modes are `relevancia`, `recentes`, and `nome`. The default is relevance when a real filter is active and recent otherwise. Relevance awards each requested general competency 2 points, each requested project-only competency 1 point, never double-counts the same competency, and awards 1 point per other active filter group. Relevance ties use profile update descending, normalized name, then student ID; recent and name sorting use their documented deterministic name/ID tie-breakers. `rpvVerificado=false` is accepted as no RPV filter; only `true` activates the verified-RPV condition.
 
 Admins have a paginated pending queue at `GET /api/admin/validacoes-rpv`, formation detail and protected certificate access, plus commands to approve, reject, or remove a verification. The state machine is `PENDENTE -> VERIFICADO`, `PENDENTE -> REJEITADO`, and `VERIFICADO -> PENDENTE`; invalid transitions return conflict. Approval requires the referenced physical certificate. Every real transition and its audit entry commit atomically, competing admin actions cannot both succeed, and administrative validation changes only `StatusValidacaoRpv`/`ValidadoEm`—it does not change `Aluno.AtualizadoEm` or `Formacao.AtualizadoEm`.
+
+`GET /api/admin/dashboard` requires a current admin session and returns: active students, active recruiters, pending RPV validations, profiles updated in the last 7 days, verified RPV count, and up to five most-used general competencies. Anonymous users receive 401; students and recruiters receive 403.
 
 Uploaded files are private and are delivered only through active-student authorized API endpoints. Photos accept validated JPEG, PNG, or WebP files up to 5 MB; curricula and certificates accept validated PDFs up to 10 MB. Validation checks size, extension, declared MIME type, and file signature. Curriculum and certificate responses consistently download with safe filenames (`curriculo.pdf` and `certificado.pdf`); photos are inline. Files are never exposed through static-file middleware, and storage keys and physical paths never appear in API responses.
 
