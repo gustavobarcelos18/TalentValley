@@ -5,6 +5,7 @@ using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
 using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Domain.Enums;
+using TalentValley.Api.Services;
 
 namespace TalentValley.Api.Tests;
 
@@ -30,8 +31,10 @@ public sealed class AdminDeletionTests : IDisposable
         {
             var db = provider.GetRequiredService<AppDbContext>();
             var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
-            var competence = new Competencia { Nome = "C#", NomeBusca = "c#" };
-            var language = new Idioma { Nome = "Português", NomeBusca = "portugues" };
+            var competence = await db.Competencias.FirstOrDefaultAsync(x => x.NomeBusca == "c#")
+                ?? new Competencia { Nome = "C#", NomeBusca = "c#" };
+            var language = await db.Idiomas.FirstOrDefaultAsync(x => x.NomeBusca == "portugues")
+                ?? new Idioma { Nome = "Português", NomeBusca = "portugues" };
             aluno.Competencias.Add(new AlunoCompetencia { Competencia = competence });
             aluno.Idiomas.Add(new AlunoIdioma { Idioma = language, Nivel = NivelIdioma.NATIVO });
             aluno.Disponibilidades.Add(new AlunoDisponibilidade { Tipo = TipoDisponibilidade.CLT });
@@ -77,8 +80,8 @@ public sealed class AdminDeletionTests : IDisposable
             Assert.Equal(failIdentity, await db.AlunoIdiomas.AnyAsync());
             Assert.Equal(failIdentity, await db.AlunoDisponibilidades.AnyAsync());
             Assert.Equal(failIdentity, await db.AlunoModalidades.AnyAsync());
-            Assert.Single(await db.Competencias.ToListAsync());
-            Assert.Single(await db.Idiomas.ToListAsync());
+            Assert.Equal(CatalogSeedService.CompetenciaNames.Length, await db.Competencias.CountAsync());
+            Assert.Equal(CatalogSeedService.IdiomaNames.Length, await db.Idiomas.CountAsync());
             Assert.True(await db.Users.AnyAsync(x => x.Id == recruiterId));
             var audit = await db.Auditorias.OrderBy(x => x.CriadoEm).ToListAsync();
             Assert.Equal(failIdentity ? 1 : 2, audit.Count);

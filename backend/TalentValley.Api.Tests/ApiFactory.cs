@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -122,6 +124,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         await action(scope.ServiceProvider);
     }
+    // Mirrors the API JSON options: enums are always strings, never integers.
+    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(allowIntegerValues: false) }
+    };
 
     protected override void Dispose(bool disposing)
     {

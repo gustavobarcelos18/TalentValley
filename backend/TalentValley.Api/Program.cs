@@ -13,6 +13,8 @@ builder.Services.AddScoped<AdminAccountService>();
 builder.Services.AddScoped<AdminAlunoService>();
 builder.Services.AddScoped<AdminRecrutadorService>();
 builder.Services.AddScoped<SlugService>();
+builder.Services.AddScoped<AlunoService>();
+builder.Services.AddScoped<CatalogSeedService>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 builder.Services.AddOpenApi();
@@ -26,6 +28,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     // Schema changes are applied explicitly with dotnet ef, never during startup.
     await DatabaseRegistration.InitializeSqliteAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
     await scope.ServiceProvider.GetRequiredService<IdentityBootstrap>().InitializeAsync();
+    await scope.ServiceProvider.GetRequiredService<CatalogSeedService>().InitializeAsync();
 }
 
 if (app.Environment.IsDevelopment())

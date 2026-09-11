@@ -50,7 +50,19 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 2: authentication and security foundation completed. Identity login/session/logout, activation, password recovery, cookie JWT authentication, current-account authorization, antiforgery, restricted Development CORS, and isolated backend tests are implemented. Roles are bootstrapped at startup; an optional Development admin is the only account bootstrap. Business APIs and frontend authentication are deferred. Phase 1 entities, SQLite configuration, and `InitialCreate` remain unchanged.
+Phase 4: student profile core API completed. Phase 2 authentication/security and Phase 3 admin account management remain intact.
+
+New student self-service endpoints (all require the active-student policy; student ID is always derived from the authenticated JWT `sub`):
+
+- `GET /api/alunos/me` returns the complete profile aggregate for the future Meu Perfil page. `formacoes`, `experiencias`, and `projetos` return stored data only (their mutation APIs arrive in later phases); `fotoUrl` stays `null` until protected file delivery exists; storage keys are never exposed.
+- `PUT /api/alunos/me/dados-basicos` updates name/city/UF, refreshes `NomeBusca` on name change, keeps the slug stable, and returns 204.
+- `PUT /api/alunos/me/sobre` updates the bio (trimmed; blank becomes null; max 1500 chars) and returns 204.
+- `PUT /api/alunos/me/contato` updates phone/professional email/URLs (http/https only; 204).
+- `PUT /api/alunos/me/competencias` full-replaces the student's competencies by catalog ID (unknown IDs → 400).
+- `PUT /api/alunos/me/idiomas` full-replaces languages with string enum levels (BASICO–NATIVO; unknown IDs/duplicates → 400).
+- `PUT /api/alunos/me/disponibilidade` full-replaces availability and work modalities (string enums; unknown values → 400).
+
+Catalog endpoints: `GET /api/competencias?search=rea` and `GET /api/idiomas` return controlled, alphabetically ordered catalogs (filtering runs in SQL). Catalogs are seeded idempotently at startup with normalized `NomeBusca`; they never expose IDs to hardcode and never duplicate existing rows. Meaningful mutations set `Aluno.AtualizadoEm`; idempotent requests do not.
 
 ## Authentication configuration
 
