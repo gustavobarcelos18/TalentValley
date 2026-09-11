@@ -228,6 +228,16 @@ public sealed class AdminDashboardTests : IDisposable
     }
 
     [Fact]
+    public async Task Profile_updated_near_7_day_boundary_counts()
+    {
+        await CreateStudentAsync("Boundary Student", "boundary", active: true,
+            updatedAt: DateTimeOffset.UtcNow.AddDays(-7).Add(TimeSpan.FromMinutes(10)));
+
+        var dashboard = await GetDashboardAsync();
+        Assert.Equal(1, dashboard.PerfisAtualizadosUltimos7Dias);
+    }
+
+    [Fact]
     public async Task Inactive_profile_is_excluded_even_when_recently_updated()
     {
         await CreateStudentAsync("Inactive Recent", "inactive-recent", active: false, updatedAt: DateTimeOffset.UtcNow.AddDays(-1));

@@ -23,7 +23,7 @@ public sealed class AdminDashboardService(AppDbContext database)
         var updatedInLast7Days = await database.Database.SqlQuery<int>($"""
             SELECT COUNT(*) AS "Value"
             FROM "Alunos" AS a
-            WHERE a."Ativo" = 1 AND a."AtualizadoEm" > {cutoff}
+            WHERE a."Ativo" = 1 AND a."AtualizadoEm" >= {cutoff}
             """).SingleAsync(cancellationToken);
 
         var verifiedRpv = await database.Formacoes.AsNoTracking()
