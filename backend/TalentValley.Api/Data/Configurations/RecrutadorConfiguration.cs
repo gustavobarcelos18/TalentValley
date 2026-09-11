@@ -11,6 +11,7 @@ public sealed class RecrutadorConfiguration : IEntityTypeConfiguration<Recrutado
         builder.HasKey(x => x.UserId);
 
         builder.Property(x => x.Empresa).IsRequired().HasMaxLength(150);
+        builder.Property(x => x.EmpresaBusca).IsRequired().HasMaxLength(150);
 
         builder.Property(x => x.Cargo).IsRequired().HasMaxLength(120);
 

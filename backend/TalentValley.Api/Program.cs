@@ -1,10 +1,18 @@
+using System.Text.Json.Serialization;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
 using TalentValley.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditoriaService>();
+builder.Services.AddScoped<AdminAccountService>();
+builder.Services.AddScoped<AdminAlunoService>();
+builder.Services.AddScoped<AdminRecrutadorService>();
+builder.Services.AddScoped<SlugService>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 builder.Services.AddOpenApi();

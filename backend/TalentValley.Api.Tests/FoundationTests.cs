@@ -138,7 +138,8 @@ public sealed class FoundationTests
         {
             var db = provider.GetRequiredService<AppDbContext>();
             Assert.False(db.Database.HasPendingModelChanges());
-            Assert.Single(await db.Database.GetAppliedMigrationsAsync());
+            var migrations = await db.Database.GetAppliedMigrationsAsync();
+            Assert.Equal(["20260911102241_InitialCreate", "20260911122211_AdminAccountProvisioning"], migrations);
             await db.Database.OpenConnectionAsync();
             await using var command = db.Database.GetDbConnection().CreateCommand();
             command.CommandText = "PRAGMA journal_mode;";

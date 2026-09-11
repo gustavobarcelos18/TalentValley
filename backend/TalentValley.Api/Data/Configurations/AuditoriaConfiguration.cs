@@ -19,6 +19,10 @@ public sealed class AuditoriaConfiguration : IEntityTypeConfiguration<Auditoria>
         builder.Property(x => x.Descricao).IsRequired().HasMaxLength(500);
 
         builder.Property(x => x.Acao).HasConversion<string>();
+        // SQLite can order UTC DateTime values in SQL; the domain retains DateTimeOffset.
+        builder.Property(x => x.CriadoEm).HasConversion(
+            value => value.UtcDateTime,
+            value => new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)));
 
         // EntidadeId is a snapshot, never a foreign key to the audited target.
         builder.HasOne(x => x.AdminUser).WithMany()

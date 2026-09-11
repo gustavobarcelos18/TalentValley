@@ -132,8 +132,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
 public sealed class RecordingEmailSender : IEmailSender
 {
+    public Func<string, string, Task>? ActivationDelivery { get; set; }
     public List<(string Email, string Link)> Activations { get; } = [];
     public List<(string Email, string Link)> Resets { get; } = [];
-    public Task SendActivationLinkAsync(string email, string link) { Activations.Add((email, link)); return Task.CompletedTask; }
+    public async Task SendActivationLinkAsync(string email, string link)
+    {
+        if (ActivationDelivery is not null) await ActivationDelivery(email, link);
+        lock (Activations) Activations.Add((email, link));
+    }
     public Task SendPasswordResetLinkAsync(string email, string link) { Resets.Add((email, link)); return Task.CompletedTask; }
 }
