@@ -12,13 +12,15 @@ namespace TalentValley.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class TalentosController(TalentDiscoveryService talents, TalentFileService files) : ControllerBase
 {
+    private Guid CurrentUserId => Guid.Parse(User.FindFirst("sub")!.Value);
+
     [HttpGet]
     public async Task<ActionResult<PaginatedResponse<TalentListItem>>> Search(
         [FromQuery] TalentSearchQuery query, CancellationToken cancellationToken)
     {
         try
         {
-            return Ok(await talents.SearchAsync(query, cancellationToken));
+            return Ok(await talents.SearchAsync(CurrentUserId, query, cancellationToken));
         }
         catch (InvalidTalentQueryException exception)
         {
@@ -29,7 +31,7 @@ public sealed class TalentosController(TalentDiscoveryService talents, TalentFil
     [HttpGet("{slug}")]
     public async Task<ActionResult<TalentProfileResponse>> Get(string slug, CancellationToken cancellationToken)
     {
-        var response = await talents.GetBySlugAsync(slug, cancellationToken);
+        var response = await talents.GetBySlugAsync(CurrentUserId, slug, cancellationToken);
         return response is null ? NotFoundProblem() : Ok(response);
     }
 

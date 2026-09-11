@@ -59,6 +59,7 @@ public sealed record TalentListItem(
     TalentFormationPreview? FormacaoPrincipal,
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
     IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
+    bool Favorito,
     DateTimeOffset AtualizadoEm);
 
 public sealed record TalentContactResponse(
@@ -125,4 +126,33 @@ public sealed record TalentProfileResponse(
     IReadOnlyCollection<TalentExperienceResponse> Experiencias,
     IReadOnlyCollection<TalentProjectResponse> Projetos,
     TalentCurriculumResponse Curriculo,
+    bool Favorito,
     DateTimeOffset AtualizadoEm);
+
+public sealed record FavoriteTalentResponse(DateTimeOffset FavoritadoEm, TalentListItem Talento);
+
+public sealed record TalentCommonResponse(
+    IReadOnlyCollection<TalentCompetencyResponse> Competencias,
+    IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
+    IReadOnlyCollection<ModalidadeTrabalho> Modalidades);
+
+public sealed record TalentComparisonResponse(
+    TalentProfileResponse TalentoA,
+    TalentCommonResponse EmComum,
+    TalentProfileResponse TalentoB);
+
+public sealed record RecruiterDashboardIndicatorsResponse(
+    int PerfisAtualizadosDesdeUltimoAcesso,
+    int NovosAlunosDesdeUltimoAcesso,
+    int Favoritos);
+
+public sealed record RecruiterDashboardResponse(
+    DateTimeOffset? DesdeUltimoAcesso,
+    RecruiterDashboardIndicatorsResponse Indicadores,
+    IReadOnlyCollection<FavoriteTalentResponse> FavoritosRecentes);
+
+public sealed class FavoriteListQuery
+{
+    [Range(1, int.MaxValue / 10)]
+    public int Page { get; init; } = 1;
+}

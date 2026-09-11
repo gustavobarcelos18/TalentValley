@@ -15,7 +15,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
     private const int PageSize = 10;
 
     public async Task<PaginatedResponse<TalentListItem>> SearchAsync(
-        TalentSearchQuery request, CancellationToken cancellationToken)
+        Guid recruiterId, TalentSearchQuery request, CancellationToken cancellationToken)
     {
         var normalized = Normalize(request);
         await ValidateCompetenciesAsync(normalized.CompetencyIds, cancellationToken);
@@ -32,26 +32,36 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         if (pageIds.Count == 0)
             return new([], normalized.Page, PageSize, totalItems, TotalPages(totalItems));
 
-        var students = await FullQuery().Where(x => pageIds.Contains(x.UserId)).ToListAsync(cancellationToken);
+        var students = await PreviewQuery().Where(x => pageIds.Contains(x.UserId)).ToListAsync(cancellationToken);
+        var favoriteIds = await database.Favoritos.AsNoTracking()
+            .Where(x => x.RecrutadorId == recruiterId && pageIds.Contains(x.AlunoId))
+            .Select(x => x.AlunoId).ToListAsync(cancellationToken);
+        var favorites = favoriteIds.ToHashSet();
         var byId = students.ToDictionary(x => x.UserId);
-        var items = pageIds.Select(id => MapListItem(byId[id])).ToList();
+        var items = pageIds.Select(id => MapListItem(byId[id], favorites.Contains(id))).ToList();
         return new(items, normalized.Page, PageSize, totalItems, TotalPages(totalItems));
     }
 
-    public async Task<TalentProfileResponse?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
+    public async Task<TalentProfileResponse?> GetBySlugAsync(
+        Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
         var student = await FullQuery().SingleOrDefaultAsync(
             x => x.Ativo && x.Slug == slug, cancellationToken);
-        return student is null ? null : MapProfile(student);
+        if (student is null) return null;
+        var favorite = await database.Favoritos.AsNoTracking()
+            .AnyAsync(x => x.RecrutadorId == recruiterId && x.AlunoId == student.UserId, cancellationToken);
+        return MapProfile(student, favorite);
     }
 
-    private IQueryable<Aluno> FullQuery() => database.Alunos.AsNoTracking().AsSplitQuery()
+    internal IQueryable<Aluno> PreviewQuery() => database.Alunos.AsNoTracking().AsSplitQuery()
         .Include(x => x.User)
         .Include(x => x.Competencias).ThenInclude(x => x.Competencia)
-        .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
         .Include(x => x.Disponibilidades)
         .Include(x => x.Modalidades)
-        .Include(x => x.Formacoes)
+        .Include(x => x.Formacoes);
+
+    internal IQueryable<Aluno> FullQuery() => PreviewQuery()
+        .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
         .Include(x => x.Experiencias)
         .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia);
 
@@ -244,7 +254,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
     private static string CertificateUrl(Aluno student, Formacao formation) =>
         $"/api/talentos/{student.Slug}/formacoes/{formation.Id}/certificado";
 
-    private static TalentListItem MapListItem(Aluno x)
+    internal static TalentListItem MapListItem(Aluno x, bool favorite)
     {
         var principal = x.Formacoes.SingleOrDefault(f => f.Principal);
         return new(x.UserId, x.Slug, x.User.NomeCompleto,
@@ -254,10 +264,11 @@ public sealed class TalentDiscoveryService(AppDbContext database)
             principal is null ? null : new(principal.Tipo, principal.Nome, principal.Instituicao, IsVerified(principal)),
             x.Disponibilidades.OrderBy(d => d.Tipo).Select(d => d.Tipo).ToList(),
             x.Modalidades.OrderBy(m => m.Modalidade).Select(m => m.Modalidade).ToList(),
+            favorite,
             x.AtualizadoEm);
     }
 
-    private static TalentProfileResponse MapProfile(Aluno x) => new(
+    internal static TalentProfileResponse MapProfile(Aluno x, bool favorite) => new(
         x.UserId, x.Slug, x.User.NomeCompleto, x.FotoStorageKey is null ? null : PhotoUrl(x),
         x.Cidade, x.Uf,
         new(x.Telefone, x.EmailProfissional, x.LinkedInUrl, x.GitHubUrl, x.PortfolioUrl),
@@ -282,6 +293,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
                 p.Competencias.OrderBy(c => c.Competencia.NomeBusca).ThenBy(c => c.CompetenciaId)
                     .Select(c => new TalentCompetencyResponse(c.CompetenciaId, c.Competencia.Nome)).ToList())).ToList(),
         new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : CurriculumUrl(x)),
+        favorite,
         x.AtualizadoEm);
 
     private sealed record NormalizedQuery(

@@ -50,7 +50,13 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 8: recruiter talent discovery and protected professional-profile access completed. Phase 0–7 behavior remains intact.
+Phase 9: recruiter favorites, neutral comparison, and recruiter dashboard completed. Phase 0–8 behavior remains intact.
+
+Active recruiters can add and remove favorites idempotently at `POST/DELETE /api/recrutador/favoritos/{slug}` and list their visible favorites, 10 per page, at `GET /api/recrutador/favoritos?page=1`. Existing favorites of blocked students remain stored but hidden and reappear with their original timestamp after reactivation. Talent search and detail responses now include a recruiter-specific `favorito` flag without affecting search ranking or order.
+
+`GET /api/recrutador/comparar?slugs=a&slugs=b` requires exactly two distinct active talents, preserves request order, and returns both complete professional profiles plus deterministic intersections of general competencies, availability, and modalities. It is factual only: no winner, score, recommendation, persistence, or project-only competency intersection.
+
+`GET /api/recrutador/dashboard` returns only profiles updated since the previous login, new active student accounts since that boundary, the current recruiter's visible favorite count, and up to five recent visible favorites. The boundary is `LoginAnteriorEm`; dashboard reads it without mutation. On first login the boundary is null and both since-last-access counters are zero.
 
 Active recruiters can search active students with `GET /api/talentos`, open a complete professional profile at `GET /api/talentos/{slug}`, and read its protected photo, curriculum, and formation certificates through the corresponding `/api/talentos/{slug}/...` routes. Inactive students are hidden as 404 from every slug/file route, and current database state immediately blocks an inactive recruiter even when its existing JWT is still valid.
 
@@ -91,7 +97,7 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
-Favorites, comparison, recruiter dashboard, and recruiter frontend screens remain future phases.
+Recruiter frontend screens and the admin dashboard remain future phases.
 
 ## Authentication configuration
 
