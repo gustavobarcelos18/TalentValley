@@ -14,6 +14,10 @@ builder.Services.AddScoped<AdminAlunoService>();
 builder.Services.AddScoped<AdminRecrutadorService>();
 builder.Services.AddScoped<SlugService>();
 builder.Services.AddScoped<AlunoService>();
+builder.Services.AddScoped<FormacaoService>();
+builder.Services.AddScoped<ExperienciaService>();
+builder.Services.AddScoped<ProjetoService>();
+builder.Services.AddScoped<TrajetoriaService>();
 builder.Services.AddScoped<CatalogSeedService>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);

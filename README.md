@@ -50,11 +50,11 @@ For browser requests from `http://localhost:3000`, run the API with `--launch-pr
 
 ## Current phase
 
-Phase 4: student profile core API completed. Phase 2 authentication/security and Phase 3 admin account management remain intact.
+Phase 5: student formations, experiences, projects, and trajectory API completed. Phase 0–4.1 behavior, including authentication, admin account management, and profile timestamp idempotency, remains intact.
 
 New student self-service endpoints (all require the active-student policy; student ID is always derived from the authenticated JWT `sub`):
 
-- `GET /api/alunos/me` returns the complete profile aggregate for the future Meu Perfil page. `formacoes`, `experiencias`, and `projetos` return stored data only (their mutation APIs arrive in later phases); `fotoUrl` stays `null` until protected file delivery exists; storage keys are never exposed.
+- `GET /api/alunos/me` returns the complete profile aggregate, including full formation, experience, and project DTOs with project technologies; `fotoUrl` stays `null` until protected file delivery exists; storage keys are never exposed.
 - `PUT /api/alunos/me/dados-basicos` updates name/city/UF, refreshes `NomeBusca` on name change, keeps the slug stable, and returns 204.
 - `PUT /api/alunos/me/sobre` updates the bio (trimmed; blank becomes null; max 1500 chars) and returns 204.
 - `PUT /api/alunos/me/contato` updates phone/professional email/URLs (http/https only; 204).
@@ -63,6 +63,21 @@ New student self-service endpoints (all require the active-student policy; stude
 - `PUT /api/alunos/me/disponibilidade` full-replaces availability and work modalities (string enums; unknown values → 400).
 
 Catalog endpoints: `GET /api/competencias?search=rea` and `GET /api/idiomas` return controlled, alphabetically ordered catalogs (filtering runs in SQL). Catalogs are seeded idempotently at startup with normalized `NomeBusca`; they never expose IDs to hardcode and never duplicate existing rows. Meaningful mutations set `Aluno.AtualizadoEm`; idempotent requests do not.
+
+Phase 5 endpoints (same active-student policy, JWT `sub` ownership, and CSRF protection):
+
+- `GET/POST /api/alunos/me/formacoes`, `PUT/DELETE /api/alunos/me/formacoes/{id}`.
+- `GET/POST /api/alunos/me/experiencias`, `PUT/DELETE /api/alunos/me/experiencias/{id}`.
+- `GET/POST /api/alunos/me/projetos`, `PUT/DELETE /api/alunos/me/projetos/{id}`.
+- `GET /api/alunos/me/trajetoria` combines formations and experiences, excluding projects. Ordering is current/ongoing first, start date descending, item kind (FORMACAO before EXPERIENCIA), then ID ascending. Formation status `EM_ANDAMENTO` and experience `Atual` determine current items.
+
+Creates return 201 with a DTO, updates 200 with a DTO, and deletes 204. Unknown or not-owned IDs return the same 404. Invalid input returns a problem 400. Student requests cannot set owner IDs, validation state, or storage keys. Calendar dates use `DateOnly`; completed formations require an end date. Current experiences/projects clear the end date. Real changes update resource and student timestamps; normalized no-op PUTs preserve both.
+
+At most one formation is principal; selecting a new principal atomically unsets the previous one. Unsetting/deleting the principal allows zero, without promotion. RPV formations start `PENDENTE`; relevant student edits reset verified/rejected validation to `PENDENTE` and clear `ValidadoEm`. Principal-only changes retain validation. Non-RPV formations use `StatusValidacaoRpv = null` (validation does not apply), including when RPV is turned off. Responses expose only `possuiCertificado`, never its storage key. The new `FormationOptionalWorkload` migration makes `CargaHoraria` nullable; provided values must be positive.
+
+Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
+
+Uploads, certificate delivery, RPV admin validation, recruiter search, and frontend screens remain future phases.
 
 ## Authentication configuration
 
@@ -124,7 +139,7 @@ dotnet ef migrations has-pending-model-changes --project backend/TalentValley.Ap
 git diff --check
 ```
 
-Tests run the actual Identity/JWT/antiforgery pipeline with a separate temporary SQLite database per test, apply `InitialCreate` explicitly during test setup, and clean up afterward. They never use the developer database. Test-only policy probe endpoints are loaded solely by the test host.
+Tests run the actual Identity/JWT/antiforgery pipeline with a separate temporary SQLite database per test, apply migrations explicitly during test setup, and clean up afterward. They never use the developer database. Test-only policy probe endpoints are loaded solely by the test host.
 
 ## Database migrations
 

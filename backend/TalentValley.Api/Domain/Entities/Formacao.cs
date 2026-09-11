@@ -13,7 +13,7 @@ public class Formacao
     public string Instituicao { get; set; } = string.Empty;
     public DateOnly DataInicio { get; set; }
     public DateOnly? DataFim { get; set; }
-    public int CargaHoraria { get; set; }
+    public int? CargaHoraria { get; set; }
     public StatusFormacao Status { get; set; }
     public bool Principal { get; set; }
     public bool EhRioPombaValley { get; set; }

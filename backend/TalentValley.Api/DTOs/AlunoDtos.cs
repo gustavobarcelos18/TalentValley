@@ -28,11 +28,6 @@ public sealed record CurriculoResponse(bool PossuiCurriculo, string? NomeArquivo
 public sealed record CompetenciaResponse(int Id, string Nome);
 public sealed record AlunoIdiomaResponse(int IdiomaId, string Nome, NivelIdioma Nivel);
 
-// Placeholder response types for future phases; currently always empty.
-public sealed record FormacaoResponse(Guid Id, TipoFormacao Tipo, string Nome, string Instituicao);
-public sealed record ExperienciaResponse(Guid Id, string Empresa, string Cargo, TipoExperiencia Tipo);
-public sealed record ProjetoResponse(Guid Id, int Ordem, string Nome, string Descricao);
-
 // Catalog responses
 public sealed record CatalogoCompetenciaResponse(int Id, string Nome);
 public sealed record CatalogoIdiomaResponse(int Id, string Nome);

@@ -24,7 +24,7 @@ public sealed class AlunoService(AppDbContext database)
             .Include(x => x.Modalidades)
             .Include(x => x.Formacoes)
             .Include(x => x.Experiencias)
-            .Include(x => x.Projetos)
+            .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia)
             .SingleOrDefaultAsync(x => x.UserId == userId);
 
         return aluno is null ? null : MapToResponse(aluno);
@@ -197,11 +197,11 @@ public sealed class AlunoService(AppDbContext database)
         aluno.Disponibilidades.OrderBy(x => x.Tipo).Select(x => x.Tipo).ToList(),
         aluno.Modalidades.OrderBy(x => x.Modalidade).Select(x => x.Modalidade).ToList(),
         aluno.Formacoes.OrderBy(x => x.CriadoEm)
-            .Select(x => new FormacaoResponse(x.Id, x.Tipo, x.Nome, x.Instituicao)).ToList(),
+            .Select(TrajetoriaMapping.Map).ToList(),
         aluno.Experiencias.OrderByDescending(x => x.DataInicio)
-            .Select(x => new ExperienciaResponse(x.Id, x.Empresa, x.Cargo, x.Tipo)).ToList(),
+            .Select(TrajetoriaMapping.Map).ToList(),
         aluno.Projetos.OrderBy(x => x.Ordem)
-            .Select(x => new ProjetoResponse(x.Id, x.Ordem, x.Nome, x.Descricao)).ToList(),
+            .Select(TrajetoriaMapping.Map).ToList(),
         new(aluno.CurriculoStorageKey is not null, null),
         aluno.AtualizadoEm);
 }

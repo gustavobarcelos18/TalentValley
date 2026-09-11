@@ -10,9 +10,13 @@ namespace TalentValley.Api.Controllers;
 [Route("api/alunos")]
 [Authorize(Policy = AppPolicies.RequireActiveStudent)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class AlunosController(AlunoService alunoService) : ControllerBase
+public sealed class AlunosController(AlunoService alunoService, TrajetoriaService trajetoriaService) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirst("sub")!.Value);
+
+    [HttpGet("me/trajetoria")]
+    public async Task<ActionResult<IReadOnlyCollection<TrajetoriaItemResponse>>> GetTrajetoria() =>
+        Ok(await trajetoriaService.ListAsync(CurrentUserId));
 
     [HttpGet("me")]
     public async Task<ActionResult<MeResponse>> GetProfile()
