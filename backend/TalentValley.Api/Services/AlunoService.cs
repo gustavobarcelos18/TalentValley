@@ -33,8 +33,15 @@ public sealed class AlunoService(AppDbContext database)
     public async Task UpdateDadosBasicosAsync(Guid userId, UpdateDadosBasicosRequest request)
     {
         var aluno = await LoadAsync(userId);
+        var nomeBusca = NameNormalizer.Normalize(request.NomeCompleto);
+        if (aluno.User.NomeCompleto == request.NomeCompleto &&
+            aluno.User.NomeBusca == nomeBusca &&
+            aluno.Cidade == request.Cidade &&
+            aluno.Uf == request.Uf)
+            return;
+
         aluno.User.NomeCompleto = request.NomeCompleto;
-        aluno.User.NomeBusca = NameNormalizer.Normalize(request.NomeCompleto);
+        aluno.User.NomeBusca = nomeBusca;
         aluno.Cidade = request.Cidade;
         aluno.Uf = request.Uf;
         Touch(aluno);
@@ -54,6 +61,13 @@ public sealed class AlunoService(AppDbContext database)
     {
         ValidateContactUrls(request);
         var aluno = await LoadAsync(userId);
+        if (aluno.Telefone == request.Telefone &&
+            aluno.EmailProfissional == request.EmailProfissional &&
+            aluno.LinkedInUrl == request.LinkedInUrl &&
+            aluno.GitHubUrl == request.GitHubUrl &&
+            aluno.PortfolioUrl == request.PortfolioUrl)
+            return;
+
         aluno.Telefone = request.Telefone;
         aluno.EmailProfissional = request.EmailProfissional;
         aluno.LinkedInUrl = request.LinkedInUrl;

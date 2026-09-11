@@ -101,5 +101,71 @@ public sealed class AlunoProfileCatalogTests : IDisposable
         });
     }
 
+    [Fact]
+    public async Task UpdateContato_idempotent_request_preserves_atualizadoEm_and_real_change_advances_it()
+    {
+        var (client, id) = await StudentWithIdAsync();
+        var request = new
+        {
+            telefone = "(32) 99999-0000",
+            emailProfissional = "maria.profissional@example.com",
+            linkedinUrl = "https://linkedin.com/in/maria",
+            githubUrl = "https://github.com/maria",
+            portfolioUrl = "https://maria.dev"
+        };
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/contato", request)).StatusCode);
+
+        DateTimeOffset changedAt = DateTimeOffset.MinValue;
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
+            changedAt = aluno.AtualizadoEm;
+            Assert.Equal("(32) 99999-0000", aluno.Telefone);
+            Assert.Equal("maria.profissional@example.com", aluno.EmailProfissional);
+            Assert.Equal("https://linkedin.com/in/maria", aluno.LinkedInUrl);
+            Assert.Equal("https://github.com/maria", aluno.GitHubUrl);
+            Assert.Equal("https://maria.dev", aluno.PortfolioUrl);
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/contato", request)).StatusCode);
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
+            Assert.Equal(changedAt, aluno.AtualizadoEm);
+            Assert.Equal("(32) 99999-0000", aluno.Telefone);
+            Assert.Equal("maria.profissional@example.com", aluno.EmailProfissional);
+            Assert.Equal("https://linkedin.com/in/maria", aluno.LinkedInUrl);
+            Assert.Equal("https://github.com/maria", aluno.GitHubUrl);
+            Assert.Equal("https://maria.dev", aluno.PortfolioUrl);
+
+            aluno.AtualizadoEm = changedAt.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/contato", new
+            {
+                request.telefone,
+                request.emailProfissional,
+                request.linkedinUrl,
+                githubUrl = "https://github.com/maria-updated",
+                request.portfolioUrl
+            })).StatusCode);
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
+            Assert.True(aluno.AtualizadoEm > changedAt.AddMinutes(-1));
+            Assert.Equal("https://github.com/maria-updated", aluno.GitHubUrl);
+        });
+    }
+
     public void Dispose() => factory.Dispose();
 }

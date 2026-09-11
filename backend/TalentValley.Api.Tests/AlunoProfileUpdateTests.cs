@@ -106,27 +106,63 @@ public sealed class AlunoProfileUpdateTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateDadosBasicos_atualizadoEm_changes_on_real_mutation()
+    public async Task UpdateDadosBasicos_idempotent_request_preserves_atualizadoEm_and_real_change_advances_it()
     {
         var (client, id) = await StudentWithIdAsync();
-        DateTimeOffset before = DateTimeOffset.MinValue;
-        await factory.InScopeAsync(async provider =>
-        {
-            var db = provider.GetRequiredService<AppDbContext>();
-            before = (await db.Alunos.SingleAsync(x => x.UserId == id)).AtualizadoEm;
-        });
-        await Task.Delay(10);
-        await client.PutAsJsonAsync("/api/alunos/me/dados-basicos", new
+        var request = new
         {
             nomeCompleto = "Novo Nome",
             cidade = "Nova Cidade",
             uf = "SP"
-        });
+        };
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/dados-basicos", request)).StatusCode);
+
+        DateTimeOffset changedAt = DateTimeOffset.MinValue;
         await factory.InScopeAsync(async provider =>
         {
             var db = provider.GetRequiredService<AppDbContext>();
-            var after = (await db.Alunos.SingleAsync(x => x.UserId == id)).AtualizadoEm;
-            Assert.True(after > before);
+            var aluno = await db.Alunos.Include(x => x.User).SingleAsync(x => x.UserId == id);
+            changedAt = aluno.AtualizadoEm;
+            Assert.Equal("Novo Nome", aluno.User.NomeCompleto);
+            Assert.Equal("novo nome", aluno.User.NomeBusca);
+            Assert.Equal("Nova Cidade", aluno.Cidade);
+            Assert.Equal("SP", aluno.Uf);
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/dados-basicos", request)).StatusCode);
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.Include(x => x.User).SingleAsync(x => x.UserId == id);
+            Assert.Equal(changedAt, aluno.AtualizadoEm);
+            Assert.Equal("Novo Nome", aluno.User.NomeCompleto);
+            Assert.Equal("novo nome", aluno.User.NomeBusca);
+            Assert.Equal("Nova Cidade", aluno.Cidade);
+            Assert.Equal("SP", aluno.Uf);
+
+            aluno.AtualizadoEm = changedAt.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/dados-basicos", new
+            {
+                nomeCompleto = "Outro Nome",
+                cidade = "Nova Cidade",
+                uf = "SP"
+            })).StatusCode);
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.Include(x => x.User).SingleAsync(x => x.UserId == id);
+            Assert.True(aluno.AtualizadoEm > changedAt.AddMinutes(-1));
+            Assert.Equal("Outro Nome", aluno.User.NomeCompleto);
+            Assert.Equal("outro nome", aluno.User.NomeBusca);
         });
     }
 
