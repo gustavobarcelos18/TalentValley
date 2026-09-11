@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TalentValley.Api.Tests/TalentValley.Api.Tests.csproj" />
+  <Project Path="TalentValley.Api/TalentValley.Api.csproj" />
+</Solution>

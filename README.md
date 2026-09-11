@@ -14,7 +14,9 @@ talent-valley/
 |-- .agents/                  Repository skills
 |-- frontend/                 Next.js application
 `-- backend/
-    `-- TalentValley.Api/     ASP.NET Core Web API
+    |-- TalentValley.Api/     ASP.NET Core Web API
+    |-- TalentValley.Api.Tests/ Identity/security integration tests
+    `-- TalentValley.slnx     Backend solution
 ```
 
 ## Prerequisites
@@ -38,16 +40,79 @@ Open `http://localhost:3000`.
 ```bash
 cd backend/TalentValley.Api
 dotnet restore
+# Configure secrets and apply the migration below before first startup.
 dotnet run --launch-profile https
 ```
 
 In Development, the OpenAPI document is available at `https://localhost:7102/openapi/v1.json`.
 
-For future local secrets, use `dotnet user-secrets`; do not place secrets in committed configuration files.
+For browser requests from `http://localhost:3000`, run the API with `--launch-profile http` at `http://localhost:5087` so both use the same scheme with SameSite=Lax cookies. The HTTPS profile remains available for API tools or an HTTPS frontend (configure its origin accordingly). HTTPS redirection remains enabled; the HTTP-only Development profile has no HTTPS endpoint to redirect to.
 
 ## Current phase
 
-Phase 1: database foundation completed. The backend includes the MVP entities, Identity persistence, SQLite configuration, and the `InitialCreate` migration. Authentication flows and business features remain for later phases; no data is seeded.
+Phase 2: authentication and security foundation completed. Identity login/session/logout, activation, password recovery, cookie JWT authentication, current-account authorization, antiforgery, restricted Development CORS, and isolated backend tests are implemented. Roles are bootstrapped at startup; an optional Development admin is the only account bootstrap. Business APIs and frontend authentication are deferred. Phase 1 entities, SQLite configuration, and `InitialCreate` remain unchanged.
+
+## Authentication configuration
+
+Run from the repository root in PowerShell. Generate a random signing key locally; never commit it:
+
+```powershell
+$jwtBytes = New-Object byte[] 32
+$jwtRandom = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$jwtRandom.GetBytes($jwtBytes)
+$jwtRandom.Dispose()
+$jwtKey = [Convert]::ToBase64String($jwtBytes)
+dotnet user-secrets set 'Jwt:SigningKey' $jwtKey --project backend/TalentValley.Api
+Remove-Variable jwtKey, jwtBytes, jwtRandom
+```
+
+`Jwt:SigningKey` must be Base64 encoding at least 32 cryptographically random bytes. Missing, short, or repetitive keys fail startup in every environment. Development configuration supplies `Jwt:Issuer=TalentValley.Api`, `Jwt:Audience=TalentValley.Frontend`, `Jwt:ExpirationHours=8`, and `Frontend:BaseUrl=http://localhost:3000`. Lifetime must be greater than 0 and at most 24 hours. Outside Development, supply the issuer, audience, signing key, frontend HTTPS origin, and connection string through deployment configuration/secrets. CORS only permits the configured Development origin with credentials; Production uses same-origin routing.
+
+Identity requires a unique email and passwords with at least 8 characters, uppercase, lowercase, and a digit; symbols are optional. Five failed password attempts lock sign-in for 15 minutes. Accounts require activation/email confirmation before sign-in. Successful login shifts `UltimoLoginEm` into `LoginAnteriorEm` and records the current UTC time.
+
+JWTs use HS256, validated issuer/audience/signature/lifetime, and 30 seconds of clock skew. Identity claims are only `sub`, `role`, and `name`, alongside standard issuer/audience/lifetime metadata. JWTs are read exclusively from `tv_access`: HttpOnly, SameSite=Lax, Path=/, Secure outside Development, with expiration matching the JWT. They are never returned in JSON. Logout deletes the browser cookie; this MVP has no refresh tokens or JWT revocation list.
+
+`RequireAdmin`, `RequireActiveStudent`, and `RequireActiveRecruiter` verify current role membership. Student/recruiter policies also read `Aluno.Ativo` / `Recrutador.Status=ATIVO` from the database on each protected request. The default and fallback policies apply the same current-account check. Blocking an account or removing its role invalidates protected access immediately, including `/api/auth/me`.
+
+### Optional Development admin
+
+Configure all three settings to enable bootstrap. Choose a local password satisfying the policy; this example prompts for it instead of putting a credential in the command history:
+
+```powershell
+dotnet user-secrets set 'BootstrapAdmin:Email' 'admin@example.test' --project backend/TalentValley.Api
+dotnet user-secrets set 'BootstrapAdmin:Name' 'Local Administrator' --project backend/TalentValley.Api
+$bootstrapPassword = Read-Host 'Local admin password' -AsSecureString
+$bootstrapCredential = New-Object System.Net.NetworkCredential('', $bootstrapPassword)
+dotnet user-secrets set 'BootstrapAdmin:Password' $bootstrapCredential.Password --project backend/TalentValley.Api
+Remove-Variable bootstrapPassword, bootstrapCredential
+```
+
+Missing/incomplete settings log an informational skip and startup continues (a valid JWT key and migrated DB are still required). Bootstrap runs only in Development, is idempotent, normalizes `NomeBusca`, and never resets an existing admin password or promotes an existing non-admin. No student/recruiter/demo accounts are seeded. Remove the bootstrap password secret after the initial account is created if bootstrap is no longer needed.
+
+### API and antiforgery request flow
+
+1. Fetch `GET /api/auth/csrf` with `credentials: 'include'`. It returns `{ "token": "..." }` for JavaScript and sets a separate HttpOnly antiforgery cookie. Keep the request token in memory.
+2. Send that token in `X-XSRF-TOKEN`, with credentials, on all POST/PUT/PATCH/DELETE API requests, including login, logout, activation, forgot-password, and reset-password. Missing/invalid antiforgery returns a generic 400 problem response. GET/HEAD/OPTIONS do not require a request token.
+3. Login with `{ "email": "...", "senha": "..." }` at `POST /api/auth/login`. The response has `usuario` and `destinoInicial`: `/meu-perfil`, `/recrutador`, or `/admin`. Login errors are 400 validation, generic 401 credentials, 403 blocked access, or 423 lockout.
+4. Fetch a new CSRF token after login and after logout because antiforgery tokens are bound to the current identity. Use `GET /api/auth/me` for `{ id, nome, email, role }` and `POST /api/auth/logout` to clear the session (204). Blocked or expired sessions can still obtain a CSRF token and log out.
+
+`POST /api/auth/activate-account` accepts `{ email, token, senha }`; `POST /api/auth/forgot-password` accepts `{ email }`; `POST /api/auth/reset-password` accepts `{ email, token, novaSenha }`. Activation/reset return 204 or a generic 400 and do not log in. Forgot-password returns the same generic 202 for eligible, missing, or unactivated accounts. Malformed requests still receive standard validation problems.
+
+`AccountTokenService` generates activation tokens/links for an existing admin-created user and can send them through `IEmailSender`; no admin creation endpoint exists yet. Links target `${Frontend:BaseUrl}/ativar-conta` and `/redefinir-senha` with URL-encoded `email` and `token`. Activation tokens use a dedicated Identity purpose; reset uses Identity password-reset tokens. Both use Identity's default Data Protection token lifetime (one day) and are invalidated after successful use. Activation sets the first password and confirms email atomically. Unactivated accounts cannot use reset as an activation shortcut.
+
+The Development sender logs the destination email and full activation/reset URL in the API console; no external provider is needed. It never logs passwords or JWTs. Outside Development, the placeholder sender logs an explicit error and throws on attempted delivery. Forgot-password handles that known delivery error after logging it and preserves its generic 202 to prevent enumeration; it does not claim delivery succeeded. A production email implementation and persistent Data Protection keys must be configured for deployment.
+
+## Backend checks
+
+```powershell
+dotnet restore backend/TalentValley.slnx
+dotnet build backend/TalentValley.slnx --no-restore
+dotnet test backend/TalentValley.slnx --no-build
+dotnet ef migrations has-pending-model-changes --project backend/TalentValley.Api
+git diff --check
+```
+
+Tests run the actual Identity/JWT/antiforgery pipeline with a separate temporary SQLite database per test, apply `InitialCreate` explicitly during test setup, and clean up afterward. They never use the developer database. Test-only policy probe endpoints are loaded solely by the test host.
 
 ## Database migrations
 
