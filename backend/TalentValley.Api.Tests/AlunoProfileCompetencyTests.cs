@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
+using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Domain.Enums;
 using TalentValley.Api.DTOs;
+using TalentValley.Api.Services;
 
 namespace TalentValley.Api.Tests;
 
@@ -28,7 +30,57 @@ public sealed class AlunoProfileCompetencyTests : IDisposable
         using var client = await StudentClientAsync();
         var items = await client.GetFromJsonAsync<List<CatalogoCompetenciaResponse>>("/api/competencias");
         Assert.NotNull(items);
-        Assert.True(items!.Count >= 13);
+        Assert.Equal(CatalogSeedService.CompetenciaNames.Length, items!.Count);
+    }
+
+    [Fact]
+    public async Task Competencias_catalog_seed_is_complete_idempotent_and_preserves_existing_records()
+    {
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var seed = provider.GetRequiredService<CatalogSeedService>();
+            var existing = new Competencia
+            {
+                Nome = "Existing competency", NomeBusca = NameNormalizer.Normalize("Existing competency")
+            };
+            db.Competencias.Add(existing);
+            await db.SaveChangesAsync();
+            var existingId = existing.Id;
+
+            await seed.InitializeAsync();
+            var countAfterFirstRun = await db.Competencias.CountAsync();
+            await seed.InitializeAsync();
+
+            Assert.Equal(countAfterFirstRun, await db.Competencias.CountAsync());
+            Assert.Equal(existingId, (await db.Competencias.SingleAsync(x => x.Nome == existing.Nome)).Id);
+            var configured = await db.Competencias.Select(x => x.NomeBusca).ToListAsync();
+            Assert.All(CatalogSeedService.CompetenciaNames,
+                name => Assert.Contains(NameNormalizer.Normalize(name), configured));
+        });
+    }
+
+    [Fact]
+    public void Configured_competency_names_have_unique_normalized_search_keys()
+    {
+        var normalized = CatalogSeedService.CompetenciaNames.Select(NameNormalizer.Normalize).ToList();
+
+        Assert.Equal(normalized.Count, normalized.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Competencias_catalog_contains_representative_categories()
+    {
+        using var client = await StudentClientAsync();
+        var items = (await client.GetFromJsonAsync<List<CatalogoCompetenciaResponse>>("/api/competencias"))!;
+        var names = items.Select(x => x.Nome).ToHashSet();
+
+        var required = new[]
+        {
+            "C#", "ASP.NET Core", "React", "PostgreSQL", "Docker", "GitHub Actions", "xUnit",
+            "Machine Learning", "Flutter", "Clean Architecture", "OWASP", "Figma"
+        };
+        Assert.All(required, name => Assert.Contains(name, names));
     }
 
     [Fact]
@@ -37,8 +89,16 @@ public sealed class AlunoProfileCompetencyTests : IDisposable
         using var client = await StudentClientAsync();
         var items = await client.GetFromJsonAsync<List<CatalogoCompetenciaResponse>>("/api/competencias?search=react");
         Assert.NotNull(items);
-        Assert.Single(items!);
-        Assert.Equal("React", items[0].Nome);
+        Assert.Contains(items!, item => item.Nome == "React");
+    }
+
+    [Fact]
+    public async Task Competencias_search_is_case_insensitive()
+    {
+        using var client = await StudentClientAsync();
+        var items = await client.GetFromJsonAsync<List<CatalogoCompetenciaResponse>>("/api/competencias?search=ReAcT");
+
+        Assert.Contains(items!, item => item.Nome == "React");
     }
 
     [Fact]
@@ -60,12 +120,12 @@ public sealed class AlunoProfileCompetencyTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, catalogResponse.StatusCode);
         var items = await catalogResponse.Content.ReadFromJsonAsync<List<CatalogoCompetenciaResponse>>();
         Assert.NotNull(items);
-        Assert.True(items!.Count >= 13);
+        Assert.Equal(CatalogSeedService.CompetenciaNames.Length, items!.Count);
 
         var searchResponse = await client.GetAsync("/api/competencias?search=react");
         Assert.Equal(HttpStatusCode.OK, searchResponse.StatusCode);
         var matches = await searchResponse.Content.ReadFromJsonAsync<List<CatalogoCompetenciaResponse>>();
-        Assert.Equal("React", Assert.Single(matches!).Nome);
+        Assert.Contains(matches!, item => item.Nome == "React");
     }
 
     [Theory]
