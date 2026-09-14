@@ -25,8 +25,10 @@ export function FavoriteButton({ slug, name, favorite, onChange, onUnavailable }
       if (favorite) await removeFavorite(slug); else await addFavorite(slug);
       onChange(!favorite);
     } catch (reason) {
-      if (reason instanceof ApiError && reason.status === 404) onUnavailable?.();
-      else setError(getApiErrorMessage(reason, "NÃ£o foi possÃ­vel atualizar os favoritos."));
+      if (reason instanceof ApiError && reason.status === 404) {
+        if (onUnavailable) onUnavailable();
+        else setError("Este perfil não está mais disponível.");
+      } else setError(getApiErrorMessage(reason, "Não foi possível atualizar os favoritos."));
     } finally { setLoading(false); }
   }
 
@@ -36,7 +38,7 @@ export function FavoriteButton({ slug, name, favorite, onChange, onUnavailable }
       onClick={(event) => { event.preventDefault(); event.stopPropagation(); void toggle(); }} disabled={loading}
       aria-label={`${action}: ${name}`} aria-busy={loading}
       startIcon={loading ? <CircularProgress size={16} /> : favorite ? <FavoriteOutlined /> : <FavoriteBorderOutlined />}>
-      {loading ? "Atualizandoâ€¦" : action}
+      {loading ? "Atualizando…" : action}
     </Button>
     {error && <Typography role="alert" variant="caption" color="error">{error}</Typography>}
   </>;
