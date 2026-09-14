@@ -68,15 +68,64 @@ export async function apiMutation<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  if (csrfToken) {
-    headers["X-XSRF-TOKEN"] = csrfToken;
+  return sendMutation<T>(method, path, {
+    headers: withCsrfHeader(headers),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  }, allowAntiforgeryRetry);
+}
+
+// Multipart mutation helper (file uploads). The browser must build the multipart
+// boundary itself, so no Content-Type header is set here. CSRF semantics are the
+// same as JSON mutations: header token, credentials included, one retry when the
+// antiforgery pair is stale.
+export async function apiUpload<T = void>(
+  path: string,
+  formData: FormData,
+  allowAntiforgeryRetry = true
+): Promise<T> {
+  return sendMutation<T>("POST", path, {
+    headers: withCsrfHeader({ Accept: "application/json" }),
+    body: formData,
+  }, allowAntiforgeryRetry);
+}
+
+// Downloads a protected file (photo, curriculum) with credentials and returns its
+// bytes so the caller can render or hand it off through an object URL.
+export async function apiDownload(path: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/octet-stream, application/pdf, image/*",
+    },
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
   }
 
+  return response.blob();
+}
+
+function withCsrfHeader(headers: Record<string, string>): Record<string, string> {
+  const requestHeaders = { ...headers };
+  if (csrfToken) {
+    requestHeaders["X-XSRF-TOKEN"] = csrfToken;
+  }
+  return requestHeaders;
+}
+
+async function sendMutation<T>(
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  path: string,
+  init: RequestInit,
+  allowAntiforgeryRetry: boolean
+): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     credentials: "include",
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    ...init,
+    // Build this immediately before every attempt. A retry has a new token.
+    headers: withCsrfHeader({ ...(init.headers as Record<string, string>) }),
   });
 
   if (!response.ok) {
@@ -90,7 +139,7 @@ export async function apiMutation<T>(
       error.problem?.title === "Invalid antiforgery token."
     ) {
       await fetchCsrfToken();
-      return apiMutation<T>(method, path, body, false);
+      return sendMutation<T>(method, path, init, false);
     }
 
     throw error;
@@ -103,10 +152,22 @@ export async function apiMutation<T>(
   return (await response.json()) as T;
 }
 
+// Friendly error text: prefer the backend ProblemDetails title, otherwise the
+// caller-provided fallback message.
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    return error.problem?.title ?? error.message ?? fallback;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
 async function parseError(response: Response): Promise<ApiError> {
   const contentType = response.headers.get("content-type") ?? "";
 
-  if (contentType.includes("application/json")) {
+  if (contentType.includes("json")) {
     try {
       const problem = (await response.json()) as ProblemDetails;
       const message = problem.title ?? `Erro na requisição (${response.status})`;
