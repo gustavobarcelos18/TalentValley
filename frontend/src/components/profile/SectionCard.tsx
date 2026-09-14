@@ -48,7 +48,7 @@ export function SectionCard({
         </IconButton>
       </Stack>
       <Box sx={{ mt: 2 }}>
-        {isEmpty ? (
+        {isEmpty && (
           <Stack spacing={1.5}>
             {emptyMessage && (
               <Typography variant="body2" color="text.secondary">
@@ -66,9 +66,8 @@ export function SectionCard({
               </Button>
             )}
           </Stack>
-        ) : (
-          children
         )}
+        <Box sx={isEmpty ? { display: "none" } : undefined}>{children}</Box>
       </Box>
     </Paper>
   );
