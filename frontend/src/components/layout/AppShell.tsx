@@ -29,11 +29,12 @@ interface NavItem {
   href: string;
 }
 
-// Internal navigation per role. Only the student destination exists for now;
-// recruiter and admin phases will wire their own items.
 const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ALUNO: [{ label: "Meu perfil", href: "/meu-perfil" }],
-  RECRUTADOR: [],
+  RECRUTADOR: [
+    { label: "Visão geral", href: "/recrutador" },
+    { label: "Explorar talentos", href: "/recrutador/talentos" },
+  ],
   ADMIN: [],
 };
 
@@ -88,6 +89,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   function isActive(item: NavItem): boolean {
+    if (item.href === "/recrutador") return pathname === item.href;
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 

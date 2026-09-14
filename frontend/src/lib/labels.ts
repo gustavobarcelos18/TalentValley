@@ -2,7 +2,10 @@ import type { UserRole } from "@/types/auth";
 import type {
   ModalidadeTrabalho,
   NivelIdioma,
+  StatusFormacao,
   TipoDisponibilidade,
+  TipoExperiencia,
+  TipoFormacao,
 } from "@/types/student";
 
 // Friendly Portuguese labels for backend enum values. The exact backend values
@@ -34,6 +37,25 @@ export const NIVEL_IDIOMA_LABELS: Record<NivelIdioma, string> = {
   AVANCADO: "Avançado",
   FLUENTE: "Fluente",
   NATIVO: "Nativo",
+};
+
+export const TIPO_FORMACAO_LABELS: Record<TipoFormacao, string> = {
+  CURSO_LIVRE: "Curso livre",
+  TECNICO: "Técnico",
+  TECNOLOGO: "Tecnólogo",
+  GRADUACAO: "Graduação",
+  POS_GRADUACAO: "Pós-graduação",
+};
+
+export const STATUS_FORMACAO_LABELS: Record<StatusFormacao, string> = {
+  EM_ANDAMENTO: "Em andamento",
+  CONCLUIDO: "Concluído",
+  TRANCADO: "Trancado",
+};
+
+export const TIPO_EXPERIENCIA_LABELS: Record<TipoExperiencia, string> = {
+  PROFISSIONAL: "Profissional",
+  ESTAGIO: "Estágio",
 };
 
 export const DISPONIBILIDADE_OPCOES = Object.keys(DISPONIBILIDADE_LABELS) as TipoDisponibilidade[];
