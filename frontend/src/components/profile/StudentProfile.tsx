@@ -18,10 +18,10 @@ import { CurriculoSection } from "./CurriculoSection";
 import { IdiomasSection } from "./IdiomasSection";
 import { ProfileHeader } from "./ProfileHeader";
 import { SobreSection } from "./SobreSection";
+import { TrajetoriaSection } from "./TrajetoriaSection";
+import { ProjetosSection } from "./ProjetosSection";
 
-// Real student profile page content. Order follows the approved UX: header,
-// about, competencies, availability/modalities, contact, languages, curriculum.
-// Trajectory/projects sections are not part of this phase.
+// Real student profile page content follows the approved professional profile order.
 export function StudentProfile() {
   const { profile, loading, error, refresh } = useStudentProfile();
   const [message, setMessage] = useState<string | null>(null);
@@ -58,9 +58,11 @@ export function StudentProfile() {
           <DadosBasicosSection profile={profile} onChanged={refresh} notify={notify} />
           <SobreSection profile={profile} onChanged={refresh} notify={notify} />
           <CompetenciasSection profile={profile} onChanged={refresh} notify={notify} />
+          <TrajetoriaSection profile={profile} onChanged={refresh} notify={notify} />
+          <ProjetosSection profile={profile} onChanged={refresh} notify={notify} />
+          <IdiomasSection profile={profile} onChanged={refresh} notify={notify} />
           <DisponibilidadeSection profile={profile} onChanged={refresh} notify={notify} />
           <ContatoSection profile={profile} onChanged={refresh} notify={notify} />
-          <IdiomasSection profile={profile} onChanged={refresh} notify={notify} />
           <CurriculoSection profile={profile} onChanged={refresh} notify={notify} />
         </Stack>
       )}

@@ -107,6 +107,54 @@ export interface ProjetoResponse {
   atualizadoEm: string;
 }
 
+export interface FormacaoRequest {
+  tipo: TipoFormacao;
+  nome: string;
+  instituicao: string;
+  dataInicio: string;
+  dataFim: string | null;
+  cargaHoraria: number | null;
+  status: StatusFormacao;
+  principal: boolean;
+  ehRioPombaValley: boolean;
+}
+
+export interface ExperienciaRequest {
+  empresa: string;
+  cargo: string;
+  tipo: TipoExperiencia;
+  dataInicio: string;
+  dataFim: string | null;
+  atual: boolean;
+  descricao: string | null;
+}
+
+export interface ProjetoRequest {
+  ordem: number;
+  nome: string;
+  dataInicio: string;
+  dataFim: string | null;
+  emAndamento: boolean;
+  descricao: string;
+  demoUrl: string | null;
+  repositorioUrl: string | null;
+  competenciaIds: number[];
+}
+
+export type TipoItemTrajetoria = "FORMACAO" | "EXPERIENCIA";
+
+export interface TrajetoriaItemResponse {
+  tipoItem: TipoItemTrajetoria;
+  id: string;
+  titulo: string;
+  subtitulo: string;
+  dataInicio: string;
+  dataFim: string | null;
+  atual: boolean;
+  formacao: FormacaoResponse | null;
+  experiencia: ExperienciaResponse | null;
+}
+
 export interface MeResponse {
   id: string;
   slug: string;
