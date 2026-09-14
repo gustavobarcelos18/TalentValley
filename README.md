@@ -86,7 +86,7 @@ New student self-service endpoints (all require the active-student policy; stude
 - `PUT /api/alunos/me/idiomas` full-replaces languages with string enum levels (BASICO–NATIVO; unknown IDs/duplicates → 400).
 - `PUT /api/alunos/me/disponibilidade` full-replaces availability and work modalities (string enums; unknown values → 400).
 
-Catalog endpoints: `GET /api/competencias?search=rea` and `GET /api/idiomas` return controlled, alphabetically ordered catalogs (filtering runs in SQL). Catalogs are seeded idempotently at startup with normalized `NomeBusca`; they never expose IDs to hardcode and never duplicate existing rows. Meaningful mutations set `Aluno.AtualizadoEm`; idempotent requests do not.
+The competency catalog at `GET /api/competencias?search=rea` is available to active students and active recruiters; `GET /api/idiomas` remains an active-student catalog. Both return controlled, alphabetically ordered catalogs (filtering runs in SQL). Catalogs are seeded idempotently at startup with normalized `NomeBusca`; they never expose IDs to hardcode and never duplicate existing rows. Meaningful mutations set `Aluno.AtualizadoEm`; idempotent requests do not.
 
 Phase 5 endpoints (same active-student policy, JWT `sub` ownership, and CSRF protection):
 

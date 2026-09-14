@@ -86,6 +86,8 @@ public static class SecurityRegistration
             options.AddPolicy(AppPolicies.RequireAdmin, p => p.RequireAuthenticatedUser().AddRequirements(new ActiveAccountRequirement(AppRoles.Admin)));
             options.AddPolicy(AppPolicies.RequireActiveStudent, p => p.RequireAuthenticatedUser().AddRequirements(new ActiveAccountRequirement(AppRoles.Student)));
             options.AddPolicy(AppPolicies.RequireActiveRecruiter, p => p.RequireAuthenticatedUser().AddRequirements(new ActiveAccountRequirement(AppRoles.Recruiter)));
+            options.AddPolicy(AppPolicies.RequireActiveStudentOrRecruiter, p => p.RequireAuthenticatedUser()
+                .RequireRole(AppRoles.Student, AppRoles.Recruiter).AddRequirements(new ActiveAccountRequirement()));
         });
         services.AddScoped<IAuthorizationHandler, ActiveAccountHandler>();
         services.AddScoped<AccountAccess>();

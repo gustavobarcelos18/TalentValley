@@ -8,7 +8,7 @@ namespace TalentValley.Api.Controllers;
 
 [ApiController]
 [Route("api/competencias")]
-[Authorize(Policy = AppPolicies.RequireActiveStudent)]
+[Authorize(Policy = AppPolicies.RequireActiveStudentOrRecruiter)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class CompetenciasController(AlunoService alunoService) : ControllerBase
 {
