@@ -124,6 +124,18 @@ export interface FavoriteTalent {
   talento: TalentListItem;
 }
 
+export interface TalentCommon {
+  competencias: TalentCompetency[];
+  disponibilidades: TipoDisponibilidade[];
+  modalidades: ModalidadeTrabalho[];
+}
+
+export interface TalentComparison {
+  talentoA: TalentProfile;
+  emComum: TalentCommon;
+  talentoB: TalentProfile;
+}
+
 export interface RecruiterDashboard {
   desdeUltimoAcesso: string | null;
   indicadores: {

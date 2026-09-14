@@ -1,8 +1,10 @@
-import { apiGet } from "@/lib/api";
+import { apiGet, apiMutation } from "@/lib/api";
 import type { CatalogoCompetenciaResponse } from "@/types/student";
 import type {
   PaginatedResponse,
+  FavoriteTalent,
   RecruiterDashboard,
+  TalentComparison,
   TalentListItem,
   TalentProfile,
   TalentSearchFilters,
@@ -44,4 +46,23 @@ export function fetchTalent(slug: string): Promise<TalentProfile> {
 
 export function fetchRecruiterCompetencies(): Promise<CatalogoCompetenciaResponse[]> {
   return apiGet<CatalogoCompetenciaResponse[]>("/api/competencias");
+}
+
+export function fetchFavorites(page: number): Promise<PaginatedResponse<FavoriteTalent>> {
+  return apiGet<PaginatedResponse<FavoriteTalent>>(`/api/recrutador/favoritos?page=${page}`);
+}
+
+export function addFavorite(slug: string): Promise<void> {
+  return apiMutation<void>("POST", `/api/recrutador/favoritos/${encodeURIComponent(slug)}`);
+}
+
+export function removeFavorite(slug: string): Promise<void> {
+  return apiMutation<void>("DELETE", `/api/recrutador/favoritos/${encodeURIComponent(slug)}`);
+}
+
+export function fetchTalentComparison(slugs: readonly [string, string]): Promise<TalentComparison> {
+  const params = new URLSearchParams();
+  params.append("slugs", slugs[0]);
+  params.append("slugs", slugs[1]);
+  return apiGet<TalentComparison>(`/api/recrutador/comparar?${params}`);
 }

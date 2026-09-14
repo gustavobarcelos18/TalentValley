@@ -17,6 +17,7 @@ import type { CatalogoCompetenciaResponse } from "@/types/student";
 import type { PaginatedResponse, TalentListItem, TalentSearchFilters, TalentSort } from "@/types/recruiter";
 import { TalentCard } from "./TalentCard";
 import { TalentFilters } from "./TalentFilters";
+import { ComparisonBar } from "./ComparisonBar";
 
 export function TalentDiscoveryView() {
   const searchParams = useSearchParams();
@@ -33,6 +34,7 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
   const [resultVersion, setResultVersion] = useState(0);
   const [competencies, setCompetencies] = useState<CatalogoCompetenciaResponse[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null); const [catalogVersion, setCatalogVersion] = useState(0);
+  const [selected, setSelected] = useState<TalentListItem[]>([]); const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
 
   const navigate = useCallback((filters: TalentSearchFilters) => {
     const query = talentSearchParams(filters).toString(); router.push(`${pathname}${query ? `?${query}` : ""}`);
@@ -73,6 +75,17 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
   ].filter((label): label is string => Boolean(label));
   const filters = <TalentFilters value={draft} onChange={setDraft} onApply={apply} onClear={clear} competencies={competencies}
     catalogError={catalogError} retryCatalog={retryCatalog} />;
+  function updateFavorite(id: string, favorite: boolean) {
+    setResult((currentResult) => currentResult ? { ...currentResult, items: currentResult.items.map((item) => item.id === id ? { ...item, favorito: favorite } : item) } : currentResult);
+  }
+  function updateSelection(talent: TalentListItem, checked: boolean) {
+    setSelectionMessage(null);
+    if (checked) {
+      if (selected.some((item) => item.id === talent.id)) return;
+      if (selected.length === 2) { setSelectionMessage("A comparação permite selecionar apenas dois talentos."); return; }
+      setSelected((items) => [...items, talent]);
+    } else setSelected((items) => items.filter((item) => item.id !== talent.id));
+  }
 
   return <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 } }}><Stack spacing={2.5}>
     <Box><Typography component="h1" variant="h4">Explorar talentos</Typography><Typography color="text.secondary" sx={{ mt: .5 }}>Encontre perfis profissionais usando os critérios disponíveis.</Typography></Box>
@@ -92,8 +105,9 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
       </Paper>
       <Stack spacing={2} sx={{ minWidth: 0 }}>
         {error && <Alert severity="error" action={<Button color="inherit" onClick={retryResults}>Tentar novamente</Button>}>{error}</Alert>}
+        <ComparisonBar selected={selected} message={selectionMessage} />
         {loading ? [1, 2, 3].map((item) => <Skeleton key={item} variant="rounded" height={190} />)
-          : result && result.items.length > 0 ? result.items.map((talent) => <TalentCard key={talent.id} talent={talent} />)
+          : result && result.items.length > 0 ? result.items.map((talent) => <TalentCard key={talent.id} talent={talent} onFavoriteChange={(favorite) => updateFavorite(talent.id, favorite)} comparisonSelected={selected.some((item) => item.id === talent.id)} onComparisonChange={(checked) => updateSelection(talent, checked)} />)
           : !error && <Paper elevation={0} sx={{ p: 5, border: 1, borderColor: "divider", textAlign: "center" }}><SearchOffOutlined color="action" sx={{ fontSize: 48 }} />
             <Typography variant="h6" sx={{ mt: 1 }}>Nenhum talento encontrado</Typography><Typography color="text.secondary" sx={{ mt: .5 }}>Tente ajustar os critérios da busca.</Typography>
             {hasTalentFilters(initial) && <Button onClick={clear} sx={{ mt: 2 }}>Limpar filtros</Button>}</Paper>}

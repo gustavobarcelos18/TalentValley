@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Chip, Paper, Stack, Typography } from "@mui/material";
+import { Button, Checkbox, Chip, FormControlLabel, Paper, Stack, Typography } from "@mui/material";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
-import FavoriteOutlined from "@mui/icons-material/FavoriteOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import VerifiedOutlined from "@mui/icons-material/VerifiedOutlined";
 import { DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import type { TalentListItem } from "@/types/recruiter";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
+import { FavoriteButton } from "./FavoriteButton";
 
-export function TalentCard({ talent }: { talent: TalentListItem }) {
+export function TalentCard({ talent, onFavoriteChange, comparisonSelected, onComparisonChange }: { talent: TalentListItem; onFavoriteChange?: (favorite: boolean) => void; comparisonSelected?: boolean; onComparisonChange?: (selected: boolean) => void }) {
   return (
     <Paper component="article" elevation={0} sx={{ p: { xs: 2, sm: 2.5 }, border: 1, borderColor: "divider" }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5}>
@@ -19,7 +19,6 @@ export function TalentCard({ talent }: { talent: TalentListItem }) {
           <Stack spacing={1} sx={{ minWidth: 0, flex: 1 }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
               <Typography component="h2" variant="h6">{talent.nomeCompleto}</Typography>
-              {talent.favorito && <FavoriteOutlined color="error" fontSize="small" aria-label="Talento favoritado" />}
             </Stack>
             <Stack direction="row" spacing={.5} sx={{ alignItems: "center" }}>
               <PlaceOutlined fontSize="small" color="action" />
@@ -40,10 +39,11 @@ export function TalentCard({ talent }: { talent: TalentListItem }) {
             </Stack>
           </Stack>
         </Stack>
-        <Button component={Link} href={`/recrutador/talentos/${talent.slug}`} endIcon={<ArrowForwardOutlined />}
-          aria-label={`Abrir perfil de ${talent.nomeCompleto}`} sx={{ alignSelf: { xs: "stretch", sm: "center" }, flexShrink: 0 }}>
-          Ver perfil
-        </Button>
+        <Stack spacing={.5} sx={{ alignSelf: { xs: "stretch", sm: "center" }, flexShrink: 0 }}>
+          {onFavoriteChange && <FavoriteButton slug={talent.slug} name={talent.nomeCompleto} favorite={talent.favorito} onChange={onFavoriteChange} />}
+          {onComparisonChange !== undefined && <FormControlLabel control={<Checkbox checked={Boolean(comparisonSelected)} onChange={(event) => onComparisonChange(event.target.checked)} />} label="Comparar" />}
+          <Button component={Link} href={`/recrutador/talentos/${talent.slug}`} endIcon={<ArrowForwardOutlined />} aria-label={`Abrir perfil de ${talent.nomeCompleto}`}>Ver perfil</Button>
+        </Stack>
       </Stack>
     </Paper>
   );

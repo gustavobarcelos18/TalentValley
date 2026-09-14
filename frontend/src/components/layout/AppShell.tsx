@@ -34,6 +34,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   RECRUTADOR: [
     { label: "Visão geral", href: "/recrutador" },
     { label: "Explorar talentos", href: "/recrutador/talentos" },
+    { label: "Favoritos", href: "/recrutador/favoritos" },
   ],
   ADMIN: [],
 };

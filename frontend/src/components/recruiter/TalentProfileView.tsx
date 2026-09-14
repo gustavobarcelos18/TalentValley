@@ -23,6 +23,7 @@ import {
 import type { TalentExperience, TalentFormation, TalentProfile } from "@/types/recruiter";
 import { ProtectedFileButton } from "./ProtectedFileButton";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
+import { FavoriteButton } from "./FavoriteButton";
 
 export function TalentProfileView({ slug }: { slug: string }) {
   const [profile, setProfile] = useState<TalentProfile | null>(null);
@@ -47,7 +48,7 @@ export function TalentProfileView({ slug }: { slug: string }) {
   return <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 } }}><Stack spacing={2.5}>
     <Button component={Link} href="/recrutador/talentos" startIcon={<ArrowBackOutlined />} sx={{ alignSelf: "flex-start" }}>Voltar para talentos</Button>
     {fileError && <Alert severity="error" onClose={() => setFileError(null)}>{fileError}</Alert>}
-    <ProfileHeader profile={profile} onFileError={setFileError} />
+    <ProfileHeader profile={profile} onFileError={setFileError} onFavoriteChange={(favorite) => setProfile((current) => current ? { ...current, favorito: favorite } : current)} onUnavailable={() => setNotFound(true)} />
     <Section title="Sobre"><Typography color={profile.bio ? "text.primary" : "text.secondary"}>{profile.bio || "Este talento ainda não informou uma apresentação profissional."}</Typography></Section>
     <Section title="Competências gerais">{profile.competencias.length ? <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{profile.competencias.map((item) => <Chip key={item.id} label={item.nome} />)}</Stack> : <Empty />}</Section>
     <TrajectorySection formations={profile.formacoes} experiences={profile.experiencias} onFileError={setFileError} />
@@ -71,7 +72,7 @@ export function TalentProfileView({ slug }: { slug: string }) {
   </Stack></Container>;
 }
 
-function ProfileHeader({ profile, onFileError }: { profile: TalentProfile; onFileError: (message: string) => void }) {
+function ProfileHeader({ profile, onFileError, onFavoriteChange, onUnavailable }: { profile: TalentProfile; onFileError: (message: string) => void; onFavoriteChange: (favorite: boolean) => void; onUnavailable: () => void }) {
   return <Paper component="header" elevation={0} sx={{ p: { xs: 2.5, sm: 3.5 }, border: 1, borderColor: "divider" }}>
     <Stack direction={{ xs: "column", sm: "row" }} spacing={3} sx={{ alignItems: { xs: "center", sm: "flex-start" } }}>
       <ProtectedTalentPhoto path={profile.fotoUrl} name={profile.nomeCompleto} size={112} />
@@ -80,6 +81,7 @@ function ProfileHeader({ profile, onFileError }: { profile: TalentProfile; onFil
         <Stack direction="row" spacing={.5} sx={{ alignItems: "center" }}><PlaceOutlined color="action" /><Typography color="text.secondary">{[profile.cidade, profile.uf].filter(Boolean).join(" / ") || "Localização não informada"}</Typography></Stack>
         <Typography variant="caption" color="text.secondary">Atualizado em {formatUpdatedAt(profile.atualizadoEm)}</Typography>
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", justifyContent: { xs: "center", sm: "flex-start" } }}>
+          <FavoriteButton slug={profile.slug} name={profile.nomeCompleto} favorite={profile.favorito} onChange={onFavoriteChange} onUnavailable={onUnavailable} />
           {profile.contato.emailProfissional && <Button component="a" href={`mailto:${profile.contato.emailProfissional}`} startIcon={<EmailOutlined />}>E-mail</Button>}
           {profile.contato.linkedInUrl && <ExternalButton href={profile.contato.linkedInUrl} label="LinkedIn" icon={<LinkedIn />} />}
           {profile.curriculo.possuiCurriculo && profile.curriculo.url && <ProtectedFileButton path={profile.curriculo.url} label="Abrir CV" onError={onFileError} />}
