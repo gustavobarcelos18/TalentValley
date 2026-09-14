@@ -95,6 +95,15 @@ export const talentValleyTheme = createTheme({
         size: "small",
       },
     },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          "&&:not(.MuiDialogContent-dividers)": {
+            paddingTop: 24,
+          },
+        },
+      },
+    },
     MuiPaper: {
       styleOverrides: {
         root: {

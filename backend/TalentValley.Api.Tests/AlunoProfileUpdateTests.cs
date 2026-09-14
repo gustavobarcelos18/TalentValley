@@ -52,6 +52,53 @@ public sealed class AlunoProfileUpdateTests : IDisposable
         });
     }
 
+    [Theory]
+    [InlineData("Ana123 Silva")]
+    [InlineData("Ana! Silva")]
+    [InlineData("Ana 😊 Silva")]
+    public async Task UpdateDadosBasicos_invalid_name_characters_are_rejected(string name)
+    {
+        using var client = await StudentClientAsync();
+        var response = await client.PutAsJsonAsync("/api/alunos/me/dados-basicos", new
+        {
+            nomeCompleto = name,
+            cidade = "Leopoldina",
+            uf = "MG"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Rio Pomba123")]
+    [InlineData("Rio! Pomba")]
+    [InlineData("Rio 😊 Pomba")]
+    public async Task UpdateDadosBasicos_invalid_city_characters_are_rejected(string city)
+    {
+        using var client = await StudentClientAsync();
+        var response = await client.PutAsJsonAsync("/api/alunos/me/dados-basicos", new
+        {
+            nomeCompleto = "Ana Silva",
+            cidade = city,
+            uf = "MG"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Apaixonado pela área 😊")]
+    [InlineData("Gosto de programar 👩‍💻")]
+    [InlineData("Orgulho do Brasil 🇧🇷")]
+    [InlineData("Nota importante 1️⃣")]
+    public async Task UpdateSobre_emojis_are_rejected(string bio)
+    {
+        using var client = await StudentClientAsync();
+        var response = await client.PutAsJsonAsync("/api/alunos/me/sobre", new { bio });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Fact]
     public async Task UpdateDadosBasicos_name_does_not_change_slug()
     {

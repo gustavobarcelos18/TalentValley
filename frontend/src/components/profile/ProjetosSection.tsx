@@ -7,12 +7,18 @@ import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import OpenInNewOutlined from "@mui/icons-material/OpenInNewOutlined";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
+import { formatDateInput, parseDateInput } from "@/lib/format";
 import { createProjeto, deleteProjeto, fetchCompetenciaCatalog, fetchProjetos, updateProjeto } from "@/lib/student";
 import type { CatalogoCompetenciaResponse, ProjetoRequest, ProjetoResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
 import type { SectionProps } from "./sectionProps";
 
-function validUrl(value: string | null) { if (!value) return true; try { const url = new URL(value); return url.protocol === "http:" || url.protocol === "https:"; } catch { return false; } }
+function validUrl(value: string | null) { if (!value?.trim()) return true; try { const url = new URL(value.trim()); return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname); } catch { return false; } }
+function maskProjectDate(value: string) { const digits = value.replace(/\D/g, "").slice(0, 8); return digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}` : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits; }
+function sanitizeProjectName(value: string) { return value.replace(/[^\p{L}\p{N}\s#.,'’"()_+\-/&:]/gu, "").slice(0, 200); }
+const emojiPattern = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
+const keycapPattern = /[#*0-9]\uFE0F?\u20E3/gu;
+function sanitizeLinkInput(value: string) { return value.replace(keycapPattern, "").replace(emojiPattern, ""); }
 
 export function ProjetosSection({ onChanged, notify }: SectionProps) {
   const [projects, setProjects] = useState<ProjetoResponse[] | null>(null); const [error, setError] = useState<string | null>(null); const [editor, setEditor] = useState<ProjetoResponse | "new" | null>(null); const [deleting, setDeleting] = useState<ProjetoResponse | null>(null);
@@ -28,5 +34,56 @@ export function ProjetosSection({ onChanged, notify }: SectionProps) {
 }
 function BoxTitle() { return <Stack><Typography component="h2" variant="h6">Projetos em destaque</Typography><Typography variant="body2" color="text.secondary">Selecione até dois projetos.</Typography></Stack>; }
 function ProjectCard({ project, onEdit, onDelete }: { project: ProjetoResponse; onEdit: () => void; onDelete: () => void }) { return <Stack spacing={1} sx={{ p: 2, border: 1, borderColor: "divider", borderRadius: 2 }}><Stack direction="row" sx={{ justifyContent: "space-between", gap: 1 }}><Stack><Typography variant="overline">Projeto em destaque {project.ordem}</Typography><Typography sx={{ fontWeight: 700 }}>{project.nome}</Typography></Stack><Stack direction="row"><IconButton aria-label={`Editar ${project.nome}`} onClick={onEdit}><EditOutlined /></IconButton><IconButton color="error" aria-label={`Excluir ${project.nome}`} onClick={onDelete}><DeleteOutlined /></IconButton></Stack></Stack><Typography variant="body2">{project.descricao}</Typography><Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>{project.competencias.map((item) => <Chip key={item.id} label={item.nome} size="small" />)}</Stack><Stack direction="row" spacing={1}>{project.demoUrl && <Button size="small" component="a" href={project.demoUrl} target="_blank" rel="noreferrer" endIcon={<OpenInNewOutlined />}>Demo</Button>}{project.repositorioUrl && <Button size="small" component="a" href={project.repositorioUrl} target="_blank" rel="noreferrer" endIcon={<OpenInNewOutlined />}>Repositório</Button>}</Stack></Stack>; }
-function ProjectForm({ project, occupied, onClose, onSaved }: { project?: ProjetoResponse; occupied: number[]; onClose: () => void; onSaved: () => void }) { const [data, setData] = useState<ProjetoRequest>(project ? { ordem: project.ordem, nome: project.nome, dataInicio: project.dataInicio, dataFim: project.dataFim, emAndamento: project.emAndamento, descricao: project.descricao, demoUrl: project.demoUrl, repositorioUrl: project.repositorioUrl, competenciaIds: project.competencias.map((item) => item.id) } : { ordem: occupied.includes(1) ? 2 : 1, nome: "", dataInicio: "", dataFim: null, emAndamento: false, descricao: "", demoUrl: null, repositorioUrl: null, competenciaIds: [] }); const [catalog, setCatalog] = useState<CatalogoCompetenciaResponse[]>([]); const [catalogError, setCatalogError] = useState(false); const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null); useEffect(() => { fetchCompetenciaCatalog().then(setCatalog).catch(() => setCatalogError(true)); }, []); const set = <K extends keyof ProjetoRequest,>(key: K, value: ProjetoRequest[K]) => setData((p) => ({ ...p, [key]: value })); const submit = async (e: FormEvent) => { e.preventDefault(); if (!data.nome || !data.dataInicio || !data.descricao || data.descricao.length > 1000 || (data.dataFim && data.dataFim < data.dataInicio) || !validUrl(data.demoUrl) || !validUrl(data.repositorioUrl)) { setError("Revise os campos obrigatórios, as datas, a descrição e os links HTTP/HTTPS."); return; } setSaving(true); try { if (project) { await updateProjeto(project.id, { ...data, dataFim: data.emAndamento ? null : data.dataFim }); } else { await createProjeto({ ...data, dataFim: data.emAndamento ? null : data.dataFim }); } onSaved(); } catch (e) { setError(e instanceof ApiError && e.status === 409 ? "Você já possui dois projetos em destaque." : getApiErrorMessage(e, "Não foi possível salvar o projeto.")); } finally { setSaving(false); } }; const selected = catalog.filter((item) => data.competenciaIds.includes(item.id)); return <FormDialog title={project ? "Editar projeto" : "Adicionar projeto"} onClose={onClose} onSubmit={submit} saving={saving} error={error}><Stack spacing={2}>{catalogError && <Alert severity="warning">Não foi possível carregar o catálogo de tecnologias.</Alert>}<TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", e.target.value)} /><TextField select label="Posição" value={data.ordem} onChange={(e) => set("ordem", Number(e.target.value))}><MenuItem value={1}>Destaque 1</MenuItem><MenuItem value={2}>Destaque 2</MenuItem></TextField><Stack direction={{ xs: "column", sm: "row" }} spacing={2}><TextField required type="date" label="Início" value={data.dataInicio} onChange={(e) => set("dataInicio", e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /><TextField disabled={data.emAndamento} type="date" label="Término" value={data.dataFim ?? ""} onChange={(e) => set("dataFim", e.target.value || null)} slotProps={{ inputLabel: { shrink: true } }} /></Stack><FormControlLabel control={<Switch checked={data.emAndamento} onChange={(e) => setData((p) => ({ ...p, emAndamento: e.target.checked, dataFim: e.target.checked ? null : p.dataFim }))} />} label="Projeto em andamento" /><TextField required multiline minRows={4} label="Descrição" value={data.descricao} onChange={(e) => set("descricao", e.target.value)} helperText={`${data.descricao.length}/1000`} slotProps={{ htmlInput: { maxLength: 1000 } }} /><TextField label="Link da demo" value={data.demoUrl ?? ""} onChange={(e) => set("demoUrl", e.target.value || null)} /><TextField label="Link do repositório" value={data.repositorioUrl ?? ""} onChange={(e) => set("repositorioUrl", e.target.value || null)} /><Autocomplete multiple options={catalog} value={selected} onChange={(_, value) => set("competenciaIds", value.map((item) => item.id))} getOptionLabel={(item) => item.nome} isOptionEqualToValue={(a, b) => a.id === b.id} renderInput={(params) => <TextField {...params} label="Tecnologias" placeholder="Buscar tecnologia" />} /></Stack></FormDialog>; }
+function ProjectForm({ project, occupied, onClose, onSaved }: { project?: ProjetoResponse; occupied: number[]; onClose: () => void; onSaved: () => void }) {
+  const [data, setData] = useState<ProjetoRequest>(project ? { ordem: project.ordem, nome: project.nome, dataInicio: formatDateInput(project.dataInicio), dataFim: formatDateInput(project.dataFim), emAndamento: project.emAndamento, descricao: project.descricao, demoUrl: project.demoUrl, repositorioUrl: project.repositorioUrl, competenciaIds: project.competencias.map((item) => item.id) } : { ordem: occupied.includes(1) ? 2 : 1, nome: "", dataInicio: "", dataFim: null, emAndamento: false, descricao: "", demoUrl: null, repositorioUrl: null, competenciaIds: [] });
+  const [catalog, setCatalog] = useState<CatalogoCompetenciaResponse[]>([]);
+  const [catalogError, setCatalogError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { fetchCompetenciaCatalog().then(setCatalog).catch(() => setCatalogError(true)); }, []);
+  const set = <K extends keyof ProjetoRequest,>(key: K, value: ProjetoRequest[K]) => setData((p) => ({ ...p, [key]: value }));
+  const setDate = (key: "dataInicio" | "dataFim", value: string) => { const masked = maskProjectDate(value); set(key, (masked || (key === "dataInicio" ? "" : null)) as ProjetoRequest[typeof key]); };
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const nome = data.nome.trim();
+    const descricao = data.descricao.trim();
+    const demoUrl = data.demoUrl?.trim() || null;
+    const repositorioUrl = data.repositorioUrl?.trim() || null;
+    const dataInicio = parseDateInput(data.dataInicio);
+    const dataFim = data.dataFim ? parseDateInput(data.dataFim) : null;
+    if (!nome || nome.length > 200 || !dataInicio || (!data.emAndamento && data.dataFim && !dataFim) || !descricao || descricao.length > 1000 || (dataFim && dataFim < dataInicio) || !validUrl(demoUrl) || !validUrl(repositorioUrl) || data.competenciaIds.some((id, index) => data.competenciaIds.indexOf(id) !== index)) {
+      setError("Revise nome, datas, descrição, tecnologias e links. Os links devem começar com http:// ou https://.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const request = { ...data, nome, descricao, demoUrl, repositorioUrl, dataInicio, dataFim: data.emAndamento ? null : dataFim };
+      if (project) await updateProjeto(project.id, request);
+      else await createProjeto(request);
+      onSaved();
+    } catch (e) {
+      setError(e instanceof ApiError && e.status === 409 ? "Você já possui dois projetos em destaque." : getApiErrorMessage(e, "Não foi possível salvar o projeto."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const selected = catalog.filter((item) => data.competenciaIds.includes(item.id));
+  const demoUrlInvalid = Boolean(data.demoUrl?.trim()) && !validUrl(data.demoUrl);
+  const repositorioUrlInvalid = Boolean(data.repositorioUrl?.trim()) && !validUrl(data.repositorioUrl);
+  return <FormDialog title={project ? "Editar projeto" : "Adicionar projeto"} onClose={onClose} onSubmit={submit} saving={saving} error={error}><Stack spacing={2}>
+    {catalogError && <Alert severity="warning">Não foi possível carregar o catálogo de tecnologias.</Alert>}
+    <TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", sanitizeProjectName(e.target.value))} helperText={`${data.nome.length}/200`} />
+    <TextField select label="Posição" value={data.ordem} onChange={(e) => set("ordem", Number(e.target.value))}><MenuItem value={1}>Destaque 1</MenuItem><MenuItem value={2}>Destaque 2</MenuItem></TextField>
+    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+      <TextField required type="text" label="Início" value={data.dataInicio ?? ""} onChange={(e) => setDate("dataInicio", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} />
+      <TextField disabled={data.emAndamento} type="text" label="Término" value={data.dataFim ?? ""} onChange={(e) => setDate("dataFim", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} />
+    </Stack>
+    <FormControlLabel control={<Switch checked={data.emAndamento} onChange={(e) => setData((p) => ({ ...p, emAndamento: e.target.checked, dataFim: e.target.checked ? null : p.dataFim }))} />} label="Projeto em andamento" />
+    <TextField required multiline minRows={4} label="Descrição" value={data.descricao} onChange={(e) => set("descricao", e.target.value.slice(0, 1000))} helperText={`${data.descricao.length}/1000`} slotProps={{ htmlInput: { maxLength: 1000 } }} />
+    <TextField label="Link da demo" type="url" value={data.demoUrl ?? ""} onChange={(e) => set("demoUrl", sanitizeLinkInput(e.target.value).slice(0, 2048) || null)} error={demoUrlInvalid} helperText={demoUrlInvalid ? "Informe um link completo começando com http:// ou https://." : "Opcional. Use um endereço HTTP ou HTTPS."} slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }} />
+    <TextField label="Link do repositório" type="url" value={data.repositorioUrl ?? ""} onChange={(e) => set("repositorioUrl", sanitizeLinkInput(e.target.value).slice(0, 2048) || null)} error={repositorioUrlInvalid} helperText={repositorioUrlInvalid ? "Informe um link completo começando com http:// ou https://." : "Opcional. Use um endereço HTTP ou HTTPS."} slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }} />
+    <Autocomplete multiple options={catalog} value={selected} onChange={(_, value) => set("competenciaIds", value.map((item) => item.id))} getOptionLabel={(item) => item.nome} isOptionEqualToValue={(a, b) => a.id === b.id} renderInput={(params) => <TextField {...params} label="Tecnologias" placeholder="Buscar tecnologia" />} />
+  </Stack></FormDialog>;
+}
 function ProjectDelete({ project, onClose, onDeleted }: { project: ProjetoResponse | null; onClose: () => void; onDeleted: () => void }) { const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null); const remove = async () => { if (!project) return; setSaving(true); try { await deleteProjeto(project.id); onDeleted(); } catch (e) { setError(getApiErrorMessage(e, "Não foi possível remover o projeto.")); } finally { setSaving(false); } }; return <Dialog open={project !== null} onClose={onClose} aria-labelledby="delete-project-title"><DialogTitle id="delete-project-title">Excluir projeto?</DialogTitle><DialogContent>{error && <Alert severity="error">{error}</Alert>}<Typography>Você removerá “{project?.nome}”.</Typography></DialogContent><DialogActions><Button onClick={onClose} disabled={saving}>Cancelar</Button><Button color="error" variant="contained" onClick={() => void remove()} disabled={saving}>Excluir</Button></DialogActions></Dialog>; }

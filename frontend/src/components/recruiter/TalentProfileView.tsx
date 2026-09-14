@@ -15,7 +15,7 @@ import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import VerifiedOutlined from "@mui/icons-material/VerifiedOutlined";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { fetchTalent } from "@/lib/recruiter";
-import { formatUpdatedAt } from "@/lib/format";
+import { formatDate, formatUpdatedAt } from "@/lib/format";
 import {
   DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, NIVEL_IDIOMA_LABELS, STATUS_FORMACAO_LABELS,
   TIPO_EXPERIENCIA_LABELS, TIPO_FORMACAO_LABELS,
@@ -130,8 +130,7 @@ function ContactSection({ profile }: { profile: TalentProfile }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) { return <Paper component="section" elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, border: 1, borderColor: "divider" }}><Typography component="h2" variant="h6" sx={{ mb: 2 }}>{title}</Typography>{children}</Paper>; }
 function Empty({ text = "Nenhuma informação cadastrada." }: { text?: string }) { return <Typography variant="body2" color="text.secondary">{text}</Typography>; }
 function ExternalButton({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) { return <Button component="a" href={href} target="_blank" rel="noreferrer" startIcon={icon} endIcon={!icon ? <LanguageOutlined /> : undefined}>{label}</Button>; }
-function period(start: string, end: string | null, current: boolean): string { return `${monthYear(start)} — ${current ? "Atual" : end ? monthYear(end) : "Não informado"}`; }
-function monthYear(value: string): string { const [year, month] = value.split("-").map(Number); return new Intl.DateTimeFormat("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year!, month! - 1, 1))); }
+function period(start: string, end: string | null, current: boolean): string { return `${formatDate(start)} — ${current ? "Atual" : end ? formatDate(end) : "Não informado"}`; }
 
 function StatePage({ title }: { title: string }) { return <Container maxWidth="sm" sx={{ py: 8 }}><Paper elevation={0} sx={{ p: 4, border: 1, borderColor: "divider", textAlign: "center" }}><Typography variant="h5">{title}</Typography><Button component={Link} href="/recrutador/talentos" startIcon={<ArrowBackOutlined />} sx={{ mt: 2 }}>Voltar para talentos</Button></Paper></Container>; }
 function ProfileLoading() { return <Container maxWidth="lg" sx={{ py: 4 }}><Stack spacing={2}>{[150, 140, 180, 260].map((height, index) => <Skeleton key={index} variant="rounded" height={height} />)}</Stack></Container>; }

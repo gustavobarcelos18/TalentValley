@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
+import { sanitizeCityName, sanitizePersonName, validateCityName, validatePersonName } from "@/lib/validation";
 import { updateDadosBasicos } from "@/lib/student";
 import type { DadosBasicosResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
@@ -80,21 +81,17 @@ interface DadosBasicosFormProps {
 }
 
 function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
-  const [nome, setNome] = useState(dados.nomeCompleto);
-  const [cidade, setCidade] = useState(dados.cidade ?? "");
+  const [nome, setNome] = useState(() => sanitizePersonName(dados.nomeCompleto));
+  const [cidade, setCidade] = useState(() => sanitizeCityName(dados.cidade ?? ""));
   const [uf, setUf] = useState(dados.uf ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function validate(): string | null {
-    const trimmedNome = nome.trim();
-    if (trimmedNome.length < 3 || trimmedNome.length > 150) {
-      return "O nome completo deve ter entre 3 e 150 caracteres.";
-    }
-    const trimmedCidade = cidade.trim();
-    if (trimmedCidade.length < 2 || trimmedCidade.length > 120) {
-      return "A cidade deve ter entre 2 e 120 caracteres.";
-    }
+    const nameError = validatePersonName(nome);
+    if (nameError) return nameError;
+    const cityError = validateCityName(cidade);
+    if (cityError) return cityError;
     if (!uf) {
       return "Selecione a UF.";
     }
@@ -143,19 +140,23 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
           id="dados-nome"
           label="Nome completo"
           value={nome}
-          onChange={(e) => setNome(e.target.value)}
+          onChange={(e) => setNome(sanitizePersonName(e.target.value))}
           required
           fullWidth
           disabled={saving}
+          slotProps={{ htmlInput: { maxLength: 150 } }}
+          helperText="Somente letras e espaços."
         />
         <TextField
           id="dados-cidade"
           label="Cidade"
           value={cidade}
-          onChange={(e) => setCidade(e.target.value)}
+          onChange={(e) => setCidade(sanitizeCityName(e.target.value))}
           required
           fullWidth
           disabled={saving}
+          slotProps={{ htmlInput: { maxLength: 120 } }}
+          helperText="Somente letras e espaços."
         />
         <TextField
           id="dados-uf"

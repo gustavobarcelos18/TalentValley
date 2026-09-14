@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Dialog, Stack, TextField, Typography } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
+import { sanitizeBio } from "@/lib/validation";
 import { updateSobre } from "@/lib/student";
 import { FormDialog } from "./FormDialog";
 import { SectionCard } from "./SectionCard";
@@ -67,7 +68,7 @@ interface SobreFormProps {
 }
 
 function SobreForm({ bio, onClose, onSaved }: SobreFormProps) {
-  const [value, setValue] = useState(bio ?? "");
+  const [value, setValue] = useState(() => sanitizeBio(bio ?? ""));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +101,7 @@ function SobreForm({ bio, onClose, onSaved }: SobreFormProps) {
         id="sobre-bio"
         label="Sobre você"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => setValue(sanitizeBio(e.target.value))}
         multiline
         rows={7}
         fullWidth

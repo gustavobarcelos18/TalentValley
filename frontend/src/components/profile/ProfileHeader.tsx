@@ -30,12 +30,31 @@ const PHOTO_ACCEPTED_TYPES = new Set([
   "image/webp",
 ]);
 
-function validatePhoto(file: File): string | null {
-  if (!PHOTO_ACCEPTED_TYPES.has(file.type)) {
+async function validatePhoto(file: File): Promise<string | null> {
+  const extension = file.name.toLowerCase().split(".").pop();
+  const expectedType = extension === "jpg" || extension === "jpeg"
+    ? "image/jpeg"
+    : extension === "png" ? "image/png" : extension === "webp" ? "image/webp" : null;
+  if (!expectedType || !PHOTO_ACCEPTED_TYPES.has(expectedType)) {
     return "Use uma foto nos formatos JPEG, PNG ou WebP.";
+  }
+  if (file.type !== expectedType) {
+    return "O formato informado não corresponde ao arquivo de imagem selecionado.";
+  }
+  if (file.size === 0) {
+    return "O arquivo de imagem está vazio.";
   }
   if (file.size > PHOTO_MAX_BYTES) {
     return "A foto deve ter no máximo 5 MB.";
+  }
+  const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const validSignature = expectedType === "image/jpeg"
+    ? header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+    : expectedType === "image/png"
+      ? header.length >= 8 && header.subarray(0, 8).join(",") === "137,80,78,71,13,10,26,10"
+      : header.length >= 12 && header.subarray(0, 4).join("") === "RIFF" && header.subarray(8, 12).join("") === "WEBP";
+  if (!validSignature) {
+    return "O arquivo selecionado não é uma imagem JPEG, PNG ou WebP válida.";
   }
   return null;
 }
@@ -54,12 +73,12 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
     inputRef.current?.click();
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
 
-    const validation = validatePhoto(file);
+    const validation = await validatePhoto(file);
     if (validation) {
       setError(validation);
       return;

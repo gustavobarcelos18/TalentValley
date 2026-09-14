@@ -25,3 +25,40 @@ export function validateEmail(email: string): string | null {
   }
   return null;
 }
+
+export function sanitizePersonName(value: string): string {
+  return value.replace(/[^\p{L} ]/gu, "").slice(0, 150);
+}
+
+export function sanitizeCityName(value: string): string {
+  return value.replace(/[^\p{L} ]/gu, "").slice(0, 120);
+}
+
+export function validatePersonName(value: string): string | null {
+  const name = value.trim();
+  if (name.length < 3 || name.length > 150) {
+    return "O nome completo deve ter entre 3 e 150 caracteres.";
+  }
+  if (!/^[\p{L} ]+$/u.test(name)) {
+    return "Use somente letras e espaços no nome completo.";
+  }
+  return null;
+}
+
+export function validateCityName(value: string): string | null {
+  const city = value.trim();
+  if (city.length < 2 || city.length > 120) {
+    return "A cidade deve ter entre 2 e 120 caracteres.";
+  }
+  if (!/^[\p{L} ]+$/u.test(city)) {
+    return "Use somente letras e espaços no nome da cidade.";
+  }
+  return null;
+}
+
+const emojiPattern = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
+const keycapPattern = /[#*0-9]\uFE0F?\u20E3/gu;
+
+export function sanitizeBio(value: string): string {
+  return value.replace(keycapPattern, "").replace(emojiPattern, "").slice(0, 1500);
+}

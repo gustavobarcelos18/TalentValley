@@ -24,10 +24,34 @@ import type { SectionProps } from "./sectionProps";
 function isValidHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname);
   } catch {
     return false;
   }
+}
+
+const emojiPattern = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
+const keycapPattern = /[#*0-9]\uFE0F?\u20E3/gu;
+function sanitizeLinkInput(value: string): string {
+  return value.replace(keycapPattern, "").replace(emojiPattern, "");
+}
+
+function sanitizeEmailInput(value: string): string {
+  return value.replace(/[^\w.!#$%&'*+/=?^_`{|}~@-]/g, "");
+}
+
+function maskBrazilianPhone(value: string): string {
+  let digits = value.replace(/\D/g, "");
+  if (value.trim().startsWith("+55") || (digits.length > 11 && digits.startsWith("55"))) digits = digits.slice(2);
+  digits = digits.slice(0, 11);
+  if (!digits) return "";
+
+  const areaCode = digits.slice(0, 2);
+  const subscriber = digits.slice(2);
+  if (digits.length <= 2) return `+55 (${areaCode}`;
+  if (subscriber.length <= 4) return `+55 (${areaCode}) ${subscriber}`;
+  const splitAt = subscriber.length > 8 ? 5 : 4;
+  return `+55 (${areaCode}) ${subscriber.slice(0, splitAt)}-${subscriber.slice(splitAt)}`;
 }
 
 export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
@@ -128,19 +152,23 @@ interface ContatoFormProps {
 }
 
 function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
-  const [telefone, setTelefone] = useState(contato.telefone ?? "");
+  const [telefone, setTelefone] = useState(maskBrazilianPhone(contato.telefone ?? ""));
   const [email, setEmail] = useState(contato.emailProfissional ?? "");
   const [linkedin, setLinkedin] = useState(contato.linkedInUrl ?? "");
   const [github, setGithub] = useState(contato.gitHubUrl ?? "");
   const [portfolio, setPortfolio] = useState(contato.portfolioUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const trimmedEmail = email.trim();
+  const emailInvalid = Boolean(trimmedEmail) && Boolean(validateEmail(trimmedEmail));
+  const linkedinInvalid = Boolean(linkedin.trim()) && !isValidHttpUrl(linkedin.trim());
+  const githubInvalid = Boolean(github.trim()) && !isValidHttpUrl(github.trim());
+  const portfolioInvalid = Boolean(portfolio.trim()) && !isValidHttpUrl(portfolio.trim());
 
   function validate(): string | null {
     if (telefone.trim().length > 20) {
       return "O telefone deve ter no máximo 20 caracteres.";
     }
-    const trimmedEmail = email.trim();
     if (trimmedEmail) {
       const emailError = validateEmail(trimmedEmail);
       if (emailError) {
@@ -201,47 +229,63 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           id="contato-telefone"
           label="Telefone"
           value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
+          onChange={(e) => setTelefone(maskBrazilianPhone(e.target.value))}
           fullWidth
           disabled={saving}
+          placeholder="+55 (11) 91234-5678"
+          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 20 } }}
           helperText="Opcional, até 20 caracteres."
         />
         <TextField
           id="contato-email"
           label="E-mail profissional"
-          type="email"
+          type="text"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setEmail(sanitizeEmailInput(e.target.value).slice(0, 254))}
           fullWidth
           disabled={saving}
-          helperText="Diferente do e-mail de login. Opcional."
+          error={emailInvalid}
+          helperText={emailInvalid ? "Informe um e-mail válido." : "Diferente do e-mail de login. Opcional."}
+          slotProps={{ htmlInput: { maxLength: 254, inputMode: "email", autoCapitalize: "none" } }}
         />
         <TextField
           id="contato-linkedin"
           label="LinkedIn"
           value={linkedin}
-          onChange={(e) => setLinkedin(e.target.value)}
+          onChange={(e) => setLinkedin(sanitizeLinkInput(e.target.value))}
           placeholder="https://www.linkedin.com/in/seu-perfil"
           fullWidth
           disabled={saving}
+          type="url"
+          error={linkedinInvalid}
+          helperText={linkedinInvalid ? "Informe uma URL completa iniciada por http:// ou https://." : "Opcional. Use uma URL HTTP ou HTTPS."}
+          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }}
         />
         <TextField
           id="contato-github"
           label="GitHub"
           value={github}
-          onChange={(e) => setGithub(e.target.value)}
+          onChange={(e) => setGithub(sanitizeLinkInput(e.target.value))}
           placeholder="https://github.com/seu-usuario"
           fullWidth
           disabled={saving}
+          type="url"
+          error={githubInvalid}
+          helperText={githubInvalid ? "Informe uma URL completa iniciada por http:// ou https://." : "Opcional. Use uma URL HTTP ou HTTPS."}
+          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }}
         />
         <TextField
           id="contato-portfolio"
           label="Portfólio"
           value={portfolio}
-          onChange={(e) => setPortfolio(e.target.value)}
+          onChange={(e) => setPortfolio(sanitizeLinkInput(e.target.value))}
           placeholder="https://seu-portfolio.com"
           fullWidth
           disabled={saving}
+          type="url"
+          error={portfolioInvalid}
+          helperText={portfolioInvalid ? "Informe uma URL completa iniciada por http:// ou https://." : "Opcional. Use uma URL HTTP ou HTTPS."}
+          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }}
         />
       </Stack>
     </FormDialog>

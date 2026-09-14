@@ -22,14 +22,22 @@ import type { SectionProps } from "./sectionProps";
 
 const CURRICULO_MAX_BYTES = 10 * 1024 * 1024;
 
-function validatePdf(file: File): string | null {
-  const isPdf =
-    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-  if (!isPdf) {
+async function validatePdf(file: File): Promise<string | null> {
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
     return "Envie um arquivo PDF.";
+  }
+  if (file.type && file.type !== "application/pdf") {
+    return "O arquivo selecionado não é um PDF válido.";
+  }
+  if (file.size === 0) {
+    return "O arquivo PDF está vazio.";
   }
   if (file.size > CURRICULO_MAX_BYTES) {
     return "O currículo deve ter no máximo 10 MB.";
+  }
+  const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  if (signature.length !== 5 || new TextDecoder().decode(signature) !== "%PDF-") {
+    return "O arquivo selecionado não é um PDF válido.";
   }
   return null;
 }
@@ -51,33 +59,32 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
     inputRef.current?.click();
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
 
-    const validation = validatePdf(file);
-    if (validation) {
-      setError(validation);
-      return;
-    }
-
     setError(null);
     setUploading(true);
-    uploadStudentCurriculum(file)
-      .then(() => {
-        onChanged();
-        notify("Currículo enviado.");
-      })
-      .catch((err) => {
-        setError(
-          getApiErrorMessage(
-            err,
-            "Não foi possível enviar o currículo. Tente novamente."
-          )
-        );
-      })
-      .finally(() => setUploading(false));
+    try {
+      const validation = await validatePdf(file);
+      if (validation) {
+        setError(validation);
+        return;
+      }
+      await uploadStudentCurriculum(file);
+      onChanged();
+      notify("Currículo enviado.");
+    } catch (err) {
+      setError(
+        getApiErrorMessage(
+          err,
+          "Não foi possível enviar o currículo. Tente novamente."
+        )
+      );
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleDownload() {

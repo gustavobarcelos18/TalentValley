@@ -38,9 +38,9 @@ public sealed class UpdateDadosBasicosRequest
     private string nomeCompleto = string.Empty;
     private string cidade = string.Empty;
     private string? uf = null;
-    [Required, StringLength(150, MinimumLength = 3)]
+    [Required, StringLength(150, MinimumLength = 3), RegularExpression(@"^[\p{L} ]+$")]
     public string NomeCompleto { get => nomeCompleto; init => nomeCompleto = value?.Trim() ?? string.Empty; }
-    [Required, StringLength(120, MinimumLength = 2)]
+    [Required, StringLength(120, MinimumLength = 2), RegularExpression(@"^[\p{L} ]+$")]
     public string Cidade { get => cidade; init => cidade = value?.Trim() ?? string.Empty; }
     [Required, RegularExpression("^[A-Z]{2}$")]
     public string? Uf { get => uf; init => uf = string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant(); }
@@ -49,7 +49,7 @@ public sealed class UpdateDadosBasicosRequest
 public sealed class UpdateSobreRequest
 {
     private string? bio = null;
-    [StringLength(1500)]
+    [StringLength(1500), NoEmoji]
     public string? Bio { get => bio; init => bio = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
 }
 

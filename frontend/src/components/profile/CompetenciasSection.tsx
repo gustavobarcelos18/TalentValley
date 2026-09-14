@@ -157,11 +157,15 @@ function CompetenciasForm({ selecionadas, onClose, onSaved }: CompetenciasFormPr
           renderInput={(params) => (
             <TextField
               {...params}
+              slotProps={{
+                ...params.slotProps,
+                htmlInput: {
+                  ...params.slotProps.htmlInput,
+                  value: params.slotProps.htmlInput.value ?? "",
+                },
+              }}
               label="Competências"
               placeholder="Buscar competência"
-              slotProps={{
-                htmlInput: { "aria-label": "Buscar competência" },
-              }}
             />
           )}
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Autocomplete, Checkbox, Chip, Dialog, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Autocomplete, Checkbox, Chip, Dialog, Stack, TextField, Typography } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   DISPONIBILIDADE_LABELS,
@@ -161,20 +161,19 @@ function DisponibilidadeForm({ disponibilidades, modalidades, onClose, onSaved }
               {...params}
               label="Disponibilidade"
               placeholder="Tipos de vaga"
-              slotProps={{ htmlInput: { "aria-label": "Disponibilidade" } }}
             />
           )}
           renderOption={(props, option) => {
             const { key, ...rest } = props;
             return (
-              <MenuItem key={key} {...rest} value={option}>
+              <li key={key} {...rest}>
                 <Checkbox
                   checked={dispSelecionadas.includes(option)}
                   size="small"
                   sx={{ mr: 1 }}
                 />
                 {DISPONIBILIDADE_LABELS[option]}
-              </MenuItem>
+              </li>
             );
           }}
         />
@@ -190,22 +189,19 @@ function DisponibilidadeForm({ disponibilidades, modalidades, onClose, onSaved }
               {...params}
               label="Modalidade de trabalho"
               placeholder="Presencial, híbrido ou remoto"
-              slotProps={{
-                htmlInput: { "aria-label": "Modalidade de trabalho" },
-              }}
             />
           )}
           renderOption={(props, option) => {
             const { key, ...rest } = props;
             return (
-              <MenuItem key={key} {...rest} value={option}>
+              <li key={key} {...rest}>
                 <Checkbox
                   checked={modSelecionadas.includes(option)}
                   size="small"
                   sx={{ mr: 1 }}
                 />
                 {MODALIDADE_LABELS[option]}
-              </MenuItem>
+              </li>
             );
           }}
         />

@@ -176,7 +176,6 @@ function IdiomasForm({ selecionados, onClose, onSaved }: IdiomasFormProps) {
               {...params}
               label="Idiomas"
               placeholder="Buscar idioma"
-              slotProps={{ htmlInput: { "aria-label": "Buscar idioma" } }}
             />
           )}
         />
