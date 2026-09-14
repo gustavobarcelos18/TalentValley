@@ -81,7 +81,7 @@ interface DadosBasicosFormProps {
 
 function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
   const [nome, setNome] = useState(dados.nomeCompleto);
-  const [cidade, setCidade] = useState(dados.cidade);
+  const [cidade, setCidade] = useState(dados.cidade ?? "");
   const [uf, setUf] = useState(dados.uf ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

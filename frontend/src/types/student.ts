@@ -20,7 +20,7 @@ export type TipoExperiencia = "PROFISSIONAL" | "ESTAGIO";
 export interface DadosBasicosResponse {
   nomeCompleto: string;
   fotoUrl: string | null;
-  cidade: string;
+  cidade: string | null;
   uf: string | null;
 }
 
