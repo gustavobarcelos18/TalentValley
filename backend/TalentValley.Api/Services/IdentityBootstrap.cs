@@ -26,14 +26,15 @@ public sealed class IdentityBootstrap(
             }
         }
 
-        if (!environment.IsDevelopment()) return;
+        var bootstrapEnabled = environment.IsDevelopment() || configuration.GetValue<bool>("BootstrapAdmin:Enabled");
+        if (!bootstrapEnabled) return;
 
         var email = configuration["BootstrapAdmin:Email"]?.Trim();
         var password = configuration["BootstrapAdmin:Password"];
         var name = configuration["BootstrapAdmin:Name"]?.Trim();
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(name))
         {
-            logger.LogInformation("Development admin bootstrap skipped: configure BootstrapAdmin Email, Password and Name to enable it.");
+            logger.LogInformation("Admin bootstrap skipped: configure BootstrapAdmin Email, Password and Name to enable it.");
             return;
         }
 
@@ -57,14 +58,14 @@ public sealed class IdentityBootstrap(
         await using var transaction = await database.Database.BeginTransactionAsync();
         var created = await users.CreateAsync(user, password);
         if (!created.Succeeded)
-            throw new InvalidOperationException("Development admin creation failed. Check the configured email and password policy.");
+            throw new InvalidOperationException("Admin creation failed. Check the configured email and password policy.");
 
         var assigned = await users.AddToRoleAsync(user, AppRoles.Admin);
         if (!assigned.Succeeded)
-            throw new InvalidOperationException("Development admin role assignment failed.");
+            throw new InvalidOperationException("Admin role assignment failed.");
 
         await transaction.CommitAsync();
 
-        logger.LogInformation("Development admin bootstrap completed.");
+        logger.LogInformation("Admin bootstrap completed.");
     }
 }

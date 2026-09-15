@@ -1,0 +1,12 @@
+bin/
+obj/
+Database/*.db
+Database/*.db-*
+storage/
+.git/
+.gitignore
+*.user
+*.suo
+.env
+.env.*
+appsettings.Local.json

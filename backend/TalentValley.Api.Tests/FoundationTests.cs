@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -61,6 +62,60 @@ public sealed class FoundationTests
         var csrf = await client.GetAsync("/api/auth/csrf");
         Assert.Equal(HttpStatusCode.OK, csrf.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/openapi/v1.json")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Production_bootstraps_admin_when_explicitly_enabled_and_remains_idempotent()
+    {
+        using var enabledFactory = new ApiFactory { EnvironmentName = "Production" };
+        enabledFactory.Overrides["BootstrapAdmin:Enabled"] = "true";
+        enabledFactory.Overrides["BootstrapAdmin:Email"] = "bootstrap@example.test";
+        enabledFactory.Overrides["BootstrapAdmin:Password"] = ApiFactory.Password;
+        enabledFactory.Overrides["BootstrapAdmin:Name"] = "Admin";
+        using var enabledClient = enabledFactory.Client();
+        await enabledFactory.InScopeAsync(async provider =>
+        {
+            var bootstrap = provider.GetRequiredService<IdentityBootstrap>();
+            await bootstrap.InitializeAsync();
+            await bootstrap.InitializeAsync();
+            Assert.Single(await provider.GetRequiredService<AppDbContext>().Users.ToListAsync());
+        });
+    }
+
+    [Fact]
+    public async Task Bootstrap_never_promotes_an_existing_non_admin_account()
+    {
+        using var factory = new ApiFactory { EnvironmentName = "Production" };
+        using var client = factory.Client();
+        await factory.CreateUserAsync("student@example.test");
+        await factory.InScopeAsync(provider =>
+        {
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["BootstrapAdmin:Enabled"] = "true",
+                ["BootstrapAdmin:Email"] = "student@example.test",
+                ["BootstrapAdmin:Password"] = ApiFactory.Password,
+                ["BootstrapAdmin:Name"] = "Admin"
+            }).Build();
+            var bootstrap = new IdentityBootstrap(
+                provider.GetRequiredService<RoleManager<IdentityRole<Guid>>>(),
+                provider.GetRequiredService<UserManager<ApplicationUser>>(),
+                provider.GetRequiredService<AppDbContext>(),
+                configuration,
+                provider.GetRequiredService<Microsoft.Extensions.Hosting.IHostEnvironment>(),
+                provider.GetRequiredService<ILogger<IdentityBootstrap>>());
+            return Assert.ThrowsAsync<InvalidOperationException>(() => bootstrap.InitializeAsync());
+        });
+    }
+
+    [Fact]
+    public async Task Health_is_anonymous_and_returns_ok()
+    {
+        using var factory = new ApiFactory { EnvironmentName = "Production" };
+        using var client = factory.Client();
+        var response = await client.GetAsync("/health");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("{\"status\":\"ok\"}", await response.Content.ReadAsStringAsync());
     }
 
     [Theory]
@@ -168,6 +223,19 @@ public sealed class FoundationTests
         await Assert.ThrowsAsync<EmailDeliveryUnavailableException>(() => production.SendActivationLinkAsync("email", "link"));
         await Assert.ThrowsAsync<EmailDeliveryUnavailableException>(() => production.SendPasswordResetLinkAsync("email", "link"));
         Assert.Equal(2, productionLog.Messages.Count);
+    }
+
+    [Fact]
+    public void Production_log_email_sender_requires_explicit_demo_flag()
+    {
+        using var disabledFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
+        using var disabledClient = disabledFactory.Client();
+        Assert.IsType<UnavailableEmailSender>(disabledFactory.Services.GetRequiredService<IEmailSender>());
+
+        using var enabledFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
+        enabledFactory.Overrides["Demo:LogAccountLinks"] = "true";
+        using var enabledClient = enabledFactory.Client();
+        Assert.IsType<DevelopmentEmailSender>(enabledFactory.Services.GetRequiredService<IEmailSender>());
     }
 
     [Fact]

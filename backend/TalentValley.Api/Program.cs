@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
 using TalentValley.Api.Services;
@@ -42,8 +44,11 @@ var app = builder.Build();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    // Schema changes are applied explicitly with dotnet ef, never during startup.
-    await DatabaseRegistration.InitializeSqliteAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+    var database = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    if (app.Configuration.GetValue<bool>("Deployment:ApplyMigrationsOnStartup"))
+        await database.Database.MigrateAsync();
+
+    await DatabaseRegistration.InitializeSqliteAsync(database);
     await scope.ServiceProvider.GetRequiredService<IdentityBootstrap>().InitializeAsync();
     await scope.ServiceProvider.GetRequiredService<CatalogSeedService>().InitializeAsync();
 }
@@ -56,11 +61,23 @@ if (app.Environment.IsDevelopment())
 // Use generic problem responses in every environment; never send exception details to clients.
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+if (app.Configuration.GetValue<bool>("Deployment:TrustForwardedHeaders"))
+{
+    // Enable only behind the trusted Railway/Vercel managed proxy chain.
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    };
+    forwardedHeaders.KnownIPNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+}
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ApiAntiforgeryMiddleware>();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 
 app.Run();
