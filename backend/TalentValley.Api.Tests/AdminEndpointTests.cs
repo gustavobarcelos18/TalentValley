@@ -16,6 +16,10 @@ public sealed class AdminEndpointTests : IDisposable
     private static readonly (HttpMethod Method, string Path)[] Routes =
     [
         (HttpMethod.Post, "/api/admin/alunos"), (HttpMethod.Get, "/api/admin/alunos"),
+        (HttpMethod.Get, $"/api/admin/alunos/{Id}"),
+        (HttpMethod.Get, $"/api/admin/alunos/{Id}/foto"),
+        (HttpMethod.Get, $"/api/admin/alunos/{Id}/curriculo"),
+        (HttpMethod.Get, $"/api/admin/alunos/{Id}/formacoes/{Id}/certificado"),
         (HttpMethod.Post, $"/api/admin/alunos/{Id}/bloquear"), (HttpMethod.Post, $"/api/admin/alunos/{Id}/reativar"),
         (HttpMethod.Delete, $"/api/admin/alunos/{Id}"),
         (HttpMethod.Post, "/api/admin/recrutadores"), (HttpMethod.Get, "/api/admin/recrutadores"),

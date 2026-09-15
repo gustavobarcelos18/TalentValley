@@ -29,6 +29,25 @@ public sealed class AdminAlunosController(AdminAlunoService alunos) : Controller
     [HttpGet]
     public Task<PaginatedResponse<AlunoListItem>> List([FromQuery] AdminListQuery query) => alunos.ListAsync(query);
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<AdminAlunoDetailResponse>> Detail(Guid id, CancellationToken cancellationToken) =>
+        await alunos.GetAsync(id, cancellationToken) is { } aluno ? Ok(aluno) : Missing();
+
+    [HttpGet("{id:guid}/foto")]
+    public async Task<IActionResult> Photo(Guid id, CancellationToken cancellationToken) =>
+        await alunos.OpenPhotoAsync(id, cancellationToken) is { } file
+            ? File(file.Content, file.ContentType, enableRangeProcessing: false) : Missing();
+
+    [HttpGet("{id:guid}/curriculo")]
+    public async Task<IActionResult> Curriculum(Guid id, CancellationToken cancellationToken) =>
+        await alunos.OpenCurriculumAsync(id, cancellationToken) is { } file
+            ? File(file.Content, "application/pdf", "curriculo.pdf", enableRangeProcessing: false) : Missing();
+
+    [HttpGet("{alunoId:guid}/formacoes/{formacaoId:guid}/certificado")]
+    public async Task<IActionResult> Certificate(Guid alunoId, Guid formacaoId, CancellationToken cancellationToken) =>
+        await alunos.OpenCertificateAsync(alunoId, formacaoId, cancellationToken) is { } file
+            ? File(file.Content, "application/pdf", "certificado.pdf", enableRangeProcessing: false) : Missing();
+
     [HttpPost("{id:guid}/bloquear")]
     public async Task<IActionResult> Block(Guid id) => await alunos.SetActiveAsync(id, false) ? NoContent() : Missing();
 

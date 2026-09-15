@@ -13,6 +13,21 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
     UserManager<ApplicationUser> users, SlugService slugs, AuditoriaService audit,
     IFileStorage storage, ILogger<AdminAlunoService> logger)
 {
+    public async Task<AdminAlunoDetailResponse?> GetAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var aluno = await FullQuery().SingleOrDefaultAsync(x => x.UserId == id, cancellationToken);
+        return aluno is null ? null : MapDetail(aluno);
+    }
+
+    public Task<ProtectedFile?> OpenPhotoAsync(Guid id, CancellationToken cancellationToken) =>
+        OpenFileAsync(database.Alunos.AsNoTracking().Where(x => x.UserId == id).Select(x => x.FotoStorageKey), FileCategory.Photo, null, cancellationToken);
+
+    public Task<ProtectedFile?> OpenCurriculumAsync(Guid id, CancellationToken cancellationToken) =>
+        OpenFileAsync(database.Alunos.AsNoTracking().Where(x => x.UserId == id).Select(x => x.CurriculoStorageKey), FileCategory.Curriculum, "application/pdf", cancellationToken);
+
+    public Task<ProtectedFile?> OpenCertificateAsync(Guid alunoId, Guid formacaoId, CancellationToken cancellationToken) =>
+        OpenFileAsync(database.Formacoes.AsNoTracking().Where(x => x.AlunoId == alunoId && x.Id == formacaoId)
+            .Select(x => x.CertificadoStorageKey), FileCategory.Certificate, "application/pdf", cancellationToken);
     public async Task<AlunoCreatedResponse> CreateAsync(CreateAlunoRequest request)
     {
         await accounts.EnsureEmailAvailableAsync(request.Email);
@@ -46,8 +61,8 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         var total = await query.CountAsync();
         var items = await query.OrderBy(x => x.User.NomeBusca).ThenBy(x => x.UserId)
             .Skip((request.Page - 1) * 10).Take(10)
-            // Photo delivery belongs to the storage phase; never expose a storage key as a URL.
-            .Select(x => new AlunoListItem(x.UserId, x.Slug, x.User.NomeCompleto, null,
+            .Select(x => new AlunoListItem(x.UserId, x.Slug, x.User.NomeCompleto,
+                x.FotoStorageKey == null ? null : "/api/admin/alunos/" + x.UserId + "/foto",
                 x.Cidade, x.Uf, x.Ativo, x.AtualizadoEm)).ToListAsync();
         return new(items, request.Page, 10, total, (int)Math.Ceiling(total / 10d));
     }
@@ -96,4 +111,50 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         }
         return true;
     }
+
+    private IQueryable<Aluno> FullQuery() => database.Alunos.AsNoTracking().AsSplitQuery()
+        .Include(x => x.User)
+        .Include(x => x.Competencias).ThenInclude(x => x.Competencia)
+        .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
+        .Include(x => x.Disponibilidades)
+        .Include(x => x.Modalidades)
+        .Include(x => x.Formacoes)
+        .Include(x => x.Experiencias)
+        .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia);
+
+    private async Task<ProtectedFile?> OpenFileAsync(IQueryable<string?> keyQuery, FileCategory category,
+        string? contentType, CancellationToken cancellationToken)
+    {
+        var key = await keyQuery.SingleOrDefaultAsync(cancellationToken);
+        if (key is null) return null;
+        var content = await storage.OpenReadAsync(category, key, cancellationToken);
+        if (content is null) return null;
+        return new ProtectedFile(content, contentType ?? PhotoContentType(key));
+    }
+
+    private static string PhotoContentType(string key) => Path.GetExtension(key).ToLowerInvariant() switch
+    {
+        ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg"
+    };
+
+    private static AdminAlunoDetailResponse MapDetail(Aluno x) => new(
+        x.UserId, x.Slug, x.User.NomeCompleto, x.Ativo,
+        x.FotoStorageKey is null ? null : $"/api/admin/alunos/{x.UserId}/foto", x.Cidade, x.Uf,
+        new(x.Telefone, x.EmailProfissional, x.LinkedInUrl, x.GitHubUrl, x.PortfolioUrl), x.Bio,
+        x.Competencias.OrderBy(c => c.Competencia.NomeBusca).ThenBy(c => c.CompetenciaId)
+            .Select(c => new CompetenciaResponse(c.CompetenciaId, c.Competencia.Nome)).ToList(),
+        x.Idiomas.OrderBy(i => i.Idioma.NomeBusca).ThenBy(i => i.IdiomaId)
+            .Select(i => new AlunoIdiomaResponse(i.IdiomaId, i.Idioma.Nome, i.Nivel)).ToList(),
+        x.Disponibilidades.OrderBy(d => d.Tipo).Select(d => d.Tipo).ToList(),
+        x.Modalidades.OrderBy(m => m.Modalidade).Select(m => m.Modalidade).ToList(),
+        x.Formacoes.OrderByDescending(f => f.Principal).ThenByDescending(f => f.DataInicio).ThenBy(f => f.Id)
+            .Select(f => new AdminFormacaoResponse(f.Id, f.Tipo, f.Nome, f.Instituicao, f.DataInicio, f.DataFim,
+                f.CargaHoraria, f.Status, f.Principal, f.EhRioPombaValley, f.StatusValidacaoRpv,
+                f.CertificadoStorageKey is not null, f.CertificadoStorageKey is null ? null :
+                $"/api/admin/alunos/{x.UserId}/formacoes/{f.Id}/certificado", f.CriadoEm, f.AtualizadoEm)).ToList(),
+        x.Experiencias.OrderByDescending(e => e.Atual).ThenByDescending(e => e.DataInicio).ThenBy(e => e.Id)
+            .Select(TrajetoriaMapping.Map).ToList(),
+        x.Projetos.OrderBy(p => p.Ordem).ThenBy(p => p.Id).Select(TrajetoriaMapping.Map).ToList(),
+        new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : $"/api/admin/alunos/{x.UserId}/curriculo"),
+        x.AtualizadoEm);
 }

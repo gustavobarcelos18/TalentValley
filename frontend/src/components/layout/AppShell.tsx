@@ -36,7 +36,13 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { label: "Explorar talentos", href: "/recrutador/talentos" },
     { label: "Favoritos", href: "/recrutador/favoritos" },
   ],
-  ADMIN: [],
+  ADMIN: [
+    { label: "Visão geral", href: "/admin" },
+    { label: "Alunos", href: "/admin/alunos" },
+    { label: "Recrutadores", href: "/admin/recrutadores" },
+    { label: "Validações RPV", href: "/admin/validacoes-rpv" },
+    { label: "Auditoria", href: "/admin/auditoria" },
+  ],
 };
 
 interface AppShellProps {
@@ -90,7 +96,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   function isActive(item: NavItem): boolean {
-    if (item.href === "/recrutador") return pathname === item.href;
+    if (item.href === "/recrutador" || item.href === "/admin") return pathname === item.href;
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 

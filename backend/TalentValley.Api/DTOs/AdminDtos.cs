@@ -51,6 +51,18 @@ public sealed record PaginatedResponse<T>(IReadOnlyCollection<T> Items, int Page
 public sealed record AlunoCreatedResponse(Guid Id, string NomeCompleto, string Email, bool Ativo);
 public sealed record AlunoListItem(Guid Id, string Slug, string NomeCompleto, string? FotoUrl,
     string? Cidade, string? Uf, bool Ativo, DateTimeOffset AtualizadoEm);
+public sealed record AdminAlunoDetailResponse(
+    Guid Id, string Slug, string NomeCompleto, bool Ativo, string? FotoUrl, string? Cidade, string? Uf,
+    ContatoResponse Contato, string? Bio, IReadOnlyCollection<CompetenciaResponse> Competencias,
+    IReadOnlyCollection<AlunoIdiomaResponse> Idiomas, IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
+    IReadOnlyCollection<ModalidadeTrabalho> Modalidades, IReadOnlyCollection<AdminFormacaoResponse> Formacoes,
+    IReadOnlyCollection<ExperienciaResponse> Experiencias, IReadOnlyCollection<ProjetoResponse> Projetos,
+    AdminCurriculoResponse Curriculo, DateTimeOffset AtualizadoEm);
+public sealed record AdminFormacaoResponse(Guid Id, TipoFormacao Tipo, string Nome, string Instituicao,
+    DateOnly DataInicio, DateOnly? DataFim, int? CargaHoraria, StatusFormacao Status, bool Principal,
+    bool EhRioPombaValley, StatusValidacaoRpv? StatusValidacaoRpv, bool PossuiCertificado, string? CertificadoUrl,
+    DateTimeOffset CriadoEm, DateTimeOffset AtualizadoEm);
+public sealed record AdminCurriculoResponse(bool PossuiCurriculo, string? Url);
 public sealed record RecrutadorCreatedResponse(Guid Id, string NomeCompleto, string Email, StatusRecrutador Status);
 public sealed record RecrutadorListItem(Guid Id, string NomeCompleto, string Empresa, string Cargo,
     string Cidade, string Uf, StatusRecrutador Status, DateTimeOffset? UltimoAcessoEm);
