@@ -15,7 +15,7 @@ public enum SolicitacaoRejectionResult { Rejected, NotFound, InvalidState }
 public sealed class SolicitacaoCadastroService(AppDbContext database, UserManager<ApplicationUser> users,
     AdminAccountService accounts, AuditoriaService audit, SlugService slugs, IHttpContextAccessor context)
 {
-    private const string ExistingRequestMessage = "JÃ¡ existe uma conta ou solicitaÃ§Ã£o em andamento para este e-mail.";
+    private const string ExistingRequestMessage = "Já existe uma conta ou solicitação em andamento para este e-mail.";
 
     public async Task<SolicitacaoCadastroCreatedResponse> CreateAlunoAsync(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
     {
@@ -98,7 +98,7 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
         request.AnalisadoEm = DateTimeOffset.UtcNow;
         request.AdminUserId = CurrentAdminId();
         await audit.RecordAsync(AcaoAuditoria.SOLICITACAO_CADASTRO_APROVADA, "SOLICITACAO_CADASTRO", request.Id,
-            $"SolicitaÃ§Ã£o de cadastro de {request.NomeCompleto} aprovada.");
+            $"Solicitação de cadastro de {request.NomeCompleto} aprovada.");
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         await accounts.TrySendActivationAsync(user);
@@ -115,7 +115,7 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
         request.AdminUserId = CurrentAdminId();
         request.MotivoRejeicao = reason;
         await audit.RecordAsync(AcaoAuditoria.SOLICITACAO_CADASTRO_REJEITADA, "SOLICITACAO_CADASTRO", request.Id,
-            $"SolicitaÃ§Ã£o de cadastro de {request.NomeCompleto} rejeitada.");
+            $"Solicitação de cadastro de {request.NomeCompleto} rejeitada.");
         await database.SaveChangesAsync(cancellationToken);
         return SolicitacaoRejectionResult.Rejected;
     }
@@ -128,5 +128,5 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
 
 public sealed class DuplicateRegistrationException : Exception
 {
-    public const string MessageForClient = "JÃ¡ existe uma conta ou solicitaÃ§Ã£o em andamento para este e-mail.";
+    public const string MessageForClient = "Já existe uma conta ou solicitação em andamento para este e-mail.";
 }
