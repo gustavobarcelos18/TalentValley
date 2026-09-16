@@ -39,14 +39,5 @@ public sealed class AdminRecrutadoresController(AdminRecrutadorService recruiter
     [HttpPost("{id:guid}/reativar")]
     public async Task<IActionResult> Reactivate(Guid id) => await recruiters.SetActiveAsync(id, true) ? NoContent() : Missing();
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id) => await recruiters.DeleteAsync(id) switch
-    {
-        AdminAccountDeletionResult.Deleted => NoContent(),
-        AdminAccountDeletionResult.Active => Problem(statusCode: StatusCodes.Status409Conflict,
-            title: "Bloqueie o recrutador antes de excluí-lo."),
-        _ => Missing()
-    };
-
     private ObjectResult Missing() => Problem(statusCode: StatusCodes.Status404NotFound, title: "Recrutador não encontrado.");
 }

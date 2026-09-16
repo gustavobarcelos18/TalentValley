@@ -14,12 +14,12 @@ public sealed class TalentSearchQuery : IValidatableObject
 {
     [Range(1, int.MaxValue / 10)]
     public int Page { get; init; } = 1;
-    [StringLength(150), NoEmoji] public string? Nome { get; init; }
-    [StringLength(120), NoEmoji] public string? Cidade { get; init; }
-    [BrazilianUf] public string? Uf { get; init; }
+    public string? Nome { get; init; }
+    public string? Cidade { get; init; }
+    public string? Uf { get; init; }
     public int[] CompetenciaIds { get; init; } = [];
     public TipoFormacao[] TiposFormacao { get; init; } = [];
-    [StringLength(200), NoEmoji] public string? FormacaoNome { get; init; }
+    public string? FormacaoNome { get; init; }
     public StatusFormacao[] StatusFormacao { get; init; } = [];
     public bool? RpvVerificado { get; init; }
     public TipoDisponibilidade[] Disponibilidades { get; init; } = [];
@@ -28,6 +28,9 @@ public sealed class TalentSearchQuery : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        var uf = Uf?.Trim();
+        if (!string.IsNullOrEmpty(uf) && (uf.Length != 2 || !uf.All(char.IsAsciiLetter)))
+            yield return new ValidationResult("UF must contain exactly two alphabetic characters.", [nameof(Uf)]);
         if (Ordenacao is not null && !Enum.IsDefined(Ordenacao.Value))
             yield return new ValidationResult("Invalid sort value.", [nameof(Ordenacao)]);
         if (TiposFormacao.Any(x => !Enum.IsDefined(x)))

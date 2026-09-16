@@ -15,9 +15,6 @@ public sealed class AdminDashboardService(AppDbContext database)
         var activeRecruiters = await database.Recrutadores.AsNoTracking()
             .CountAsync(x => x.Status == StatusRecrutador.ATIVO, cancellationToken);
 
-        var pendingRegistrations = await database.SolicitacoesCadastro.AsNoTracking()
-            .CountAsync(x => x.Status == StatusSolicitacaoCadastro.PENDENTE, cancellationToken);
-
         var pendingRpv = await database.Formacoes.AsNoTracking()
             .CountAsync(x => x.EhRioPombaValley && x.StatusValidacaoRpv == StatusValidacaoRpv.PENDENTE, cancellationToken);
 
@@ -46,7 +43,6 @@ public sealed class AdminDashboardService(AppDbContext database)
         return new(
             activeStudents,
             activeRecruiters,
-            pendingRegistrations,
             pendingRpv,
             updatedInLast7Days,
             verifiedRpv,

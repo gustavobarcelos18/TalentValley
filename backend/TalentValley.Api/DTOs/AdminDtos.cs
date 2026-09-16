@@ -7,9 +7,9 @@ public sealed class CreateAlunoRequest
 {
     private string nomeCompleto = string.Empty;
     private string email = string.Empty;
-    [Required, StringLength(150, MinimumLength = 3), PersonName, NoEmoji]
+    [Required, StringLength(150, MinimumLength = 3)]
     public string NomeCompleto { get => nomeCompleto; init => nomeCompleto = value?.Trim() ?? string.Empty; }
-    [Required, EmailAddress, SafeEmail, StringLength(254), NoEmoji]
+    [Required, EmailAddress, StringLength(254)]
     public string Email { get => email; init => email = value?.Trim() ?? string.Empty; }
 }
 
@@ -17,19 +17,19 @@ public sealed class CreateRecrutadorRequest
 {
     private string nomeCompleto = string.Empty, email = string.Empty, empresa = string.Empty,
         cargo = string.Empty, telefone = string.Empty, cidade = string.Empty, uf = string.Empty;
-    [Required, StringLength(150, MinimumLength = 3), PersonName, NoEmoji]
+    [Required, StringLength(150, MinimumLength = 3)]
     public string NomeCompleto { get => nomeCompleto; init => nomeCompleto = value?.Trim() ?? string.Empty; }
-    [Required, EmailAddress, SafeEmail, StringLength(254), NoEmoji]
+    [Required, EmailAddress, StringLength(254)]
     public string Email { get => email; init => email = value?.Trim() ?? string.Empty; }
-    [Required, StringLength(150, MinimumLength = 2), MeaningfulText, NoEmoji]
+    [Required, StringLength(150, MinimumLength = 2)]
     public string Empresa { get => empresa; init => empresa = value?.Trim() ?? string.Empty; }
-    [Required, StringLength(120, MinimumLength = 2), MeaningfulText, NoEmoji]
+    [Required, StringLength(120, MinimumLength = 2)]
     public string Cargo { get => cargo; init => cargo = value?.Trim() ?? string.Empty; }
-    [Required, StringLength(20), BrazilianPhone]
+    [Required, StringLength(20)]
     public string Telefone { get => telefone; init => telefone = value?.Trim() ?? string.Empty; }
-    [Required, StringLength(120, MinimumLength = 2), CityName, NoEmoji]
+    [Required, StringLength(120, MinimumLength = 2)]
     public string Cidade { get => cidade; init => cidade = value?.Trim() ?? string.Empty; }
-    [Required, BrazilianUf]
+    [Required, RegularExpression("^[A-Z]{2}$")]
     public string Uf { get => uf; init => uf = value?.Trim().ToUpperInvariant() ?? string.Empty; }
 }
 
@@ -37,13 +37,13 @@ public sealed class AdminListQuery
 {
     // Bound the offset to avoid integer overflow, including audit's page size of 20.
     [Range(1, int.MaxValue / 20)] public int Page { get; init; } = 1;
-    [StringLength(150), NoEmoji] public string? Search { get; init; }
+    [StringLength(150)] public string? Search { get; init; }
 }
 
 public sealed class RecrutadorListQuery
 {
     [Range(1, int.MaxValue / 20)] public int Page { get; init; } = 1;
-    [StringLength(150), NoEmoji] public string? Search { get; init; }
+    [StringLength(150)] public string? Search { get; init; }
     [RegularExpression("^(ATIVO|BLOQUEADO)$")] public string? Status { get; init; }
 }
 
@@ -76,7 +76,6 @@ public sealed record AdminDashboardCompetenciaItem(int Id, string Nome, int Quan
 public sealed record AdminDashboardResponse(
     int AlunosAtivos,
     int RecrutadoresAtivos,
-    int SolicitacoesCadastroPendentes,
     int ValidacoesRpvPendentes,
     int PerfisAtualizadosUltimos7Dias,
     int FormacoesRpvVerificadas,

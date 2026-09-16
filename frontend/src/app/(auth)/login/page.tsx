@@ -20,7 +20,7 @@ import { GuestOnly } from "@/components/auth/GuestOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
 import { login } from "@/lib/auth";
-import { normalizeEmailInput, validateEmail } from "@/lib/validation";
+import { validateEmail } from "@/lib/validation";
 
 export default function LoginPage() {
   return (
@@ -72,7 +72,7 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const response = await login({ email: normalizeEmailInput(email), senha });
+      const response = await login({ email: email.trim(), senha });
       loginCompleted(response.usuario);
 
       const destination = returnUrl && isValidLocalRedirect(returnUrl)
@@ -148,7 +148,7 @@ function LoginContent() {
                 required
                 fullWidth
                 value={email}
-                onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
                 slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
               />
@@ -202,9 +202,6 @@ function LoginContent() {
               >
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
-              <Typography align="center" variant="body2" color="text.secondary">
-                Ainda não possui acesso? <Link href="/cadastro">Solicitar cadastro</Link>
-              </Typography>
             </Stack>
           </Paper>
         </Container>

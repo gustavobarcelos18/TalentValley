@@ -74,7 +74,6 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         if (aluno is null) return false;
         if (aluno.Ativo == active) return true;
         aluno.Ativo = active;
-        aluno.User.ExclusaoAgendadaEm = active ? null : DateTimeOffset.UtcNow.AddDays(30);
         await audit.RecordAsync(active ? AcaoAuditoria.ALUNO_REATIVADO : AcaoAuditoria.ALUNO_BLOQUEADO,
             AppRoles.Student, id, $"Aluno {aluno.User.NomeCompleto} {(active ? "reativado" : "bloqueado")}.");
         await database.SaveChangesAsync();
@@ -82,7 +81,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, bool recordAudit = true)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         await using var transaction = await database.Database.BeginTransactionAsync();
         var aluno = await database.Alunos.Include(x => x.User).Include(x => x.Formacoes)
@@ -94,9 +93,8 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         if (aluno.CurriculoStorageKey is not null) files.Add((FileCategory.Curriculum, aluno.CurriculoStorageKey));
         files.AddRange(aluno.Formacoes.Where(x => x.CertificadoStorageKey is not null)
             .Select(x => (FileCategory.Certificate, x.CertificadoStorageKey!)));
-        if (recordAudit)
-            await audit.RecordAsync(AcaoAuditoria.ALUNO_EXCLUIDO, AppRoles.Student, id,
-                $"Aluno {user.NomeCompleto} excluído.");
+        await audit.RecordAsync(AcaoAuditoria.ALUNO_EXCLUIDO, AppRoles.Student, id,
+            $"Aluno {user.NomeCompleto} excluído.");
         // Remove the profile first: owned rows/favorites cascade, while its Identity FK is Restrict.
         database.Alunos.Remove(aluno);
         await database.SaveChangesAsync();
@@ -112,13 +110,6 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
             }
         }
         return true;
-    }
-
-    public async Task DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        var ids = await database.Alunos.AsNoTracking().Where(x => x.User.ExclusaoAgendadaEm <= now)
-            .Select(x => x.UserId).ToListAsync(cancellationToken);
-        foreach (var id in ids) await DeleteAsync(id, recordAudit: false);
     }
 
     private IQueryable<Aluno> FullQuery() => database.Alunos.AsNoTracking().AsSplitQuery()

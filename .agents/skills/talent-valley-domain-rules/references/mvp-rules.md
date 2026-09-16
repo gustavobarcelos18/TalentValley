@@ -9,9 +9,8 @@ Exactly:
 
 Student profiles are private. They are never public internet pages.
 
-Prospective students and recruiters submit a public registration request. An ADMIN reviews it; only approval creates the Identity account and corresponding profile, then the existing activation flow lets the person define a password and log in.
-
-Canonical access flow: `PUBLIC REQUEST → ADMIN APPROVAL → ACCOUNT CREATION → ACTIVATION → LOGIN`.
+Admin creates both student and recruiter access.
+There is no public recruiter registration in the MVP.
 
 Recruiter states:
 - `ATIVO`

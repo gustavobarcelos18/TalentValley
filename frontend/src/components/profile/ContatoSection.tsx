@@ -14,13 +14,45 @@ import CodeOutlined from "@mui/icons-material/CodeOutlined";
 import LanguageOutlined from "@mui/icons-material/LanguageOutlined";
 import LinkedInOutlined from "@mui/icons-material/LinkedIn";
 import { getApiErrorMessage } from "@/lib/api";
-import { formatBrazilianPhone, normalizeEmailInput, normalizeOptionalUrl, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
+import { validateEmail } from "@/lib/validation";
 import { updateContato } from "@/lib/student";
 import type { ContatoResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
 import { SectionCard } from "./SectionCard";
 import type { SectionProps } from "./sectionProps";
 
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+const emojiPattern = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
+const keycapPattern = /[#*0-9]\uFE0F?\u20E3/gu;
+function sanitizeLinkInput(value: string): string {
+  return value.replace(keycapPattern, "").replace(emojiPattern, "");
+}
+
+function sanitizeEmailInput(value: string): string {
+  return value.replace(/[^\w.!#$%&'*+/=?^_`{|}~@-]/g, "");
+}
+
+function maskBrazilianPhone(value: string): string {
+  let digits = value.replace(/\D/g, "");
+  if (value.trim().startsWith("+55") || (digits.length > 11 && digits.startsWith("55"))) digits = digits.slice(2);
+  digits = digits.slice(0, 11);
+  if (!digits) return "";
+
+  const areaCode = digits.slice(0, 2);
+  const subscriber = digits.slice(2);
+  if (digits.length <= 2) return `+55 (${areaCode}`;
+  if (subscriber.length <= 4) return `+55 (${areaCode}) ${subscriber}`;
+  const splitAt = subscriber.length > 8 ? 5 : 4;
+  return `+55 (${areaCode}) ${subscriber.slice(0, splitAt)}-${subscriber.slice(splitAt)}`;
+}
 
 export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
   const [open, setOpen] = useState(false);
@@ -120,7 +152,7 @@ interface ContatoFormProps {
 }
 
 function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
-  const [telefone, setTelefone] = useState(formatBrazilianPhone(contato.telefone ?? ""));
+  const [telefone, setTelefone] = useState(maskBrazilianPhone(contato.telefone ?? ""));
   const [email, setEmail] = useState(contato.emailProfissional ?? "");
   const [linkedin, setLinkedin] = useState(contato.linkedInUrl ?? "");
   const [github, setGithub] = useState(contato.gitHubUrl ?? "");
@@ -129,13 +161,14 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
   const [error, setError] = useState<string | null>(null);
   const trimmedEmail = email.trim();
   const emailInvalid = Boolean(trimmedEmail) && Boolean(validateEmail(trimmedEmail));
-  const linkedinInvalid = Boolean(linkedin.trim()) && Boolean(validateHttpUrl(linkedin));
-  const githubInvalid = Boolean(github.trim()) && Boolean(validateHttpUrl(github));
-  const portfolioInvalid = Boolean(portfolio.trim()) && Boolean(validateHttpUrl(portfolio));
+  const linkedinInvalid = Boolean(linkedin.trim()) && !isValidHttpUrl(linkedin.trim());
+  const githubInvalid = Boolean(github.trim()) && !isValidHttpUrl(github.trim());
+  const portfolioInvalid = Boolean(portfolio.trim()) && !isValidHttpUrl(portfolio.trim());
 
   function validate(): string | null {
-    const phoneError = validateBrazilianPhone(telefone, false);
-    if (phoneError) return phoneError;
+    if (telefone.trim().length > 20) {
+      return "O telefone deve ter no máximo 20 caracteres.";
+    }
     if (trimmedEmail) {
       const emailError = validateEmail(trimmedEmail);
       if (emailError) {
@@ -148,8 +181,8 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
       ["Portfólio", portfolio.trim()],
     ];
     for (const [label, value] of urls) {
-      if (value && validateHttpUrl(value)) {
-        return `${label} deve ser uma URL válida começando com http:// ou https://.`;
+      if (value && !isValidHttpUrl(value)) {
+        return `${label} deve ser uma URL válida começando com http:// ou https://`;
       }
     }
     return null;
@@ -167,11 +200,11 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
     setSaving(true);
     try {
       await updateContato({
-        telefone: telefone.trim() ? telefone.replace(/\D/g, "") : null,
-        emailProfissional: email.trim() ? normalizeEmailInput(email) : null,
-        linkedInUrl: normalizeOptionalUrl(linkedin),
-        gitHubUrl: normalizeOptionalUrl(github),
-        portfolioUrl: normalizeOptionalUrl(portfolio),
+        telefone: telefone.trim() || null,
+        emailProfissional: email.trim() || null,
+        linkedInUrl: linkedin.trim() || null,
+        gitHubUrl: github.trim() || null,
+        portfolioUrl: portfolio.trim() || null,
       });
       onSaved();
     } catch (err) {
@@ -196,19 +229,19 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           id="contato-telefone"
           label="Telefone"
           value={telefone}
-          onChange={(e) => setTelefone(formatBrazilianPhone(e.target.value))}
+          onChange={(e) => setTelefone(maskBrazilianPhone(e.target.value))}
           fullWidth
           disabled={saving}
-          placeholder="(11) 91234-5678"
-          slotProps={{ htmlInput: { inputMode: "tel", maxLength: 15 } }}
-          helperText="Opcional. Informe um telefone brasileiro."
+          placeholder="+55 (11) 91234-5678"
+          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 20 } }}
+          helperText="Opcional, até 20 caracteres."
         />
         <TextField
           id="contato-email"
           label="E-mail profissional"
-          type="email"
+          type="text"
           value={email}
-          onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+          onChange={(e) => setEmail(sanitizeEmailInput(e.target.value).slice(0, 254))}
           fullWidth
           disabled={saving}
           error={emailInvalid}
@@ -219,7 +252,7 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           id="contato-linkedin"
           label="LinkedIn"
           value={linkedin}
-          onChange={(e) => setLinkedin(e.target.value.slice(0, 2048))}
+          onChange={(e) => setLinkedin(sanitizeLinkInput(e.target.value))}
           placeholder="https://www.linkedin.com/in/seu-perfil"
           fullWidth
           disabled={saving}
@@ -232,7 +265,7 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           id="contato-github"
           label="GitHub"
           value={github}
-          onChange={(e) => setGithub(e.target.value.slice(0, 2048))}
+          onChange={(e) => setGithub(sanitizeLinkInput(e.target.value))}
           placeholder="https://github.com/seu-usuario"
           fullWidth
           disabled={saving}
@@ -245,7 +278,7 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           id="contato-portfolio"
           label="Portfólio"
           value={portfolio}
-          onChange={(e) => setPortfolio(e.target.value.slice(0, 2048))}
+          onChange={(e) => setPortfolio(sanitizeLinkInput(e.target.value))}
           placeholder="https://seu-portfolio.com"
           fullWidth
           disabled={saving}
