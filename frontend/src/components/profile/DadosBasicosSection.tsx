@@ -9,18 +9,12 @@ import {
   Typography,
 } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
-import { sanitizeCityName, sanitizePersonName, validateCityName, validatePersonName } from "@/lib/validation";
+import { BRAZILIAN_UFS, normalizeWhitespace, sanitizeCityName, sanitizePersonName, validateCityName, validatePersonName, validateUF } from "@/lib/validation";
 import { updateDadosBasicos } from "@/lib/student";
 import type { DadosBasicosResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
 import { SectionCard } from "./SectionCard";
 import type { SectionProps } from "./sectionProps";
-
-const UFS = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
-  "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
-  "SP", "SE", "TO",
-];
 
 export function DadosBasicosSection({ profile, onChanged, notify }: SectionProps) {
   const [open, setOpen] = useState(false);
@@ -92,10 +86,7 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
     if (nameError) return nameError;
     const cityError = validateCityName(cidade);
     if (cityError) return cityError;
-    if (!uf) {
-      return "Selecione a UF.";
-    }
-    return null;
+    return validateUF(uf);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -110,8 +101,8 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
     setSaving(true);
     try {
       await updateDadosBasicos({
-        nomeCompleto: nome.trim(),
-        cidade: cidade.trim(),
+        nomeCompleto: normalizeWhitespace(nome),
+        cidade: normalizeWhitespace(cidade),
         uf,
       });
       onSaved();
@@ -145,7 +136,8 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
           fullWidth
           disabled={saving}
           slotProps={{ htmlInput: { maxLength: 150 } }}
-          helperText="Somente letras e espaços."
+          error={Boolean(validatePersonName(nome))}
+          helperText={validatePersonName(nome) ?? "Use letras, espaços, hífen e apóstrofo."}
         />
         <TextField
           id="dados-cidade"
@@ -156,7 +148,8 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
           fullWidth
           disabled={saving}
           slotProps={{ htmlInput: { maxLength: 120 } }}
-          helperText="Somente letras e espaços."
+          error={Boolean(validateCityName(cidade))}
+          helperText={validateCityName(cidade) ?? "Use letras, espaços, hífen e apóstrofo."}
         />
         <TextField
           id="dados-uf"
@@ -169,7 +162,7 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
           disabled={saving}
           slotProps={{ htmlInput: { "aria-label": "UF" } }}
         >
-          {UFS.map((opcao) => (
+          {BRAZILIAN_UFS.map((opcao) => (
             <MenuItem key={opcao} value={opcao}>
               {opcao}
             </MenuItem>

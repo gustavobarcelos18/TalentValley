@@ -195,7 +195,8 @@ public sealed class FoundationTests
             Assert.False(db.Database.HasPendingModelChanges());
             var migrations = await db.Database.GetAppliedMigrationsAsync();
             Assert.Equal(["20260911102241_InitialCreate", "20260911122211_AdminAccountProvisioning",
-                "20260911160808_FormationOptionalWorkload"], migrations);
+                "20260911160808_FormationOptionalWorkload", "20260915130451_ScheduledAccountDeletion",
+                "20260915134219_RegistrationApprovalWorkflow", "20260916123012_RemoveScheduledAccountDeletion"], migrations);
             await db.Database.OpenConnectionAsync();
             await using var command = db.Database.GetDbConnection().CreateCommand();
             command.CommandText = "PRAGMA journal_mode;";

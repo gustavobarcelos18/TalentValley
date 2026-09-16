@@ -8,17 +8,13 @@ import EditOutlined from "@mui/icons-material/EditOutlined";
 import OpenInNewOutlined from "@mui/icons-material/OpenInNewOutlined";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatDateInput, parseDateInput } from "@/lib/format";
+import { stripEmoji, validateBrazilianDateInput, validateFreeText, validateHttpUrl, validateProjectName } from "@/lib/validation";
 import { createProjeto, deleteProjeto, fetchCompetenciaCatalog, fetchProjetos, updateProjeto } from "@/lib/student";
 import type { CatalogoCompetenciaResponse, ProjetoRequest, ProjetoResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
 import type { SectionProps } from "./sectionProps";
 
-function validUrl(value: string | null) { if (!value?.trim()) return true; try { const url = new URL(value.trim()); return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname); } catch { return false; } }
 function maskProjectDate(value: string) { const digits = value.replace(/\D/g, "").slice(0, 8); return digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}` : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits; }
-function sanitizeProjectName(value: string) { return value.replace(/[^\p{L}\p{N}\s#.,'’"()_+\-/&:]/gu, "").slice(0, 200); }
-const emojiPattern = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
-const keycapPattern = /[#*0-9]\uFE0F?\u20E3/gu;
-function sanitizeLinkInput(value: string) { return value.replace(keycapPattern, "").replace(emojiPattern, ""); }
 
 export function ProjetosSection({ onChanged, notify }: SectionProps) {
   const [projects, setProjects] = useState<ProjetoResponse[] | null>(null); const [error, setError] = useState<string | null>(null); const [editor, setEditor] = useState<ProjetoResponse | "new" | null>(null); const [deleting, setDeleting] = useState<ProjetoResponse | null>(null);
@@ -51,7 +47,7 @@ function ProjectForm({ project, occupied, onClose, onSaved }: { project?: Projet
     const repositorioUrl = data.repositorioUrl?.trim() || null;
     const dataInicio = parseDateInput(data.dataInicio);
     const dataFim = data.dataFim ? parseDateInput(data.dataFim) : null;
-    if (!nome || nome.length > 200 || !dataInicio || (!data.emAndamento && data.dataFim && !dataFim) || !descricao || descricao.length > 1000 || (dataFim && dataFim < dataInicio) || !validUrl(demoUrl) || !validUrl(repositorioUrl) || data.competenciaIds.some((id, index) => data.competenciaIds.indexOf(id) !== index)) {
+    if (validateProjectName(nome) || validateBrazilianDateInput(data.dataInicio) || !dataInicio || (!data.emAndamento && data.dataFim && (!dataFim || validateBrazilianDateInput(data.dataFim))) || validateFreeText(descricao, 1000) || !descricao || (dataFim && dataFim < dataInicio) || validateHttpUrl(demoUrl) || validateHttpUrl(repositorioUrl) || data.competenciaIds.some((id, index) => data.competenciaIds.indexOf(id) !== index)) {
       setError("Revise nome, datas, descrição, tecnologias e links. Os links devem começar com http:// ou https://.");
       return;
     }
@@ -69,20 +65,20 @@ function ProjectForm({ project, occupied, onClose, onSaved }: { project?: Projet
     }
   };
   const selected = catalog.filter((item) => data.competenciaIds.includes(item.id));
-  const demoUrlInvalid = Boolean(data.demoUrl?.trim()) && !validUrl(data.demoUrl);
-  const repositorioUrlInvalid = Boolean(data.repositorioUrl?.trim()) && !validUrl(data.repositorioUrl);
+  const demoUrlInvalid = Boolean(data.demoUrl?.trim()) && Boolean(validateHttpUrl(data.demoUrl));
+  const repositorioUrlInvalid = Boolean(data.repositorioUrl?.trim()) && Boolean(validateHttpUrl(data.repositorioUrl));
   return <FormDialog title={project ? "Editar projeto" : "Adicionar projeto"} onClose={onClose} onSubmit={submit} saving={saving} error={error}><Stack spacing={2}>
     {catalogError && <Alert severity="warning">Não foi possível carregar o catálogo de tecnologias.</Alert>}
-    <TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", sanitizeProjectName(e.target.value))} helperText={`${data.nome.length}/200`} />
+    <TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", e.target.value.slice(0, 200))} error={Boolean(data.nome && validateProjectName(data.nome))} helperText={validateProjectName(data.nome) ?? `${data.nome.length}/200`} slotProps={{ htmlInput: { maxLength: 200 } }} />
     <TextField select label="Posição" value={data.ordem} onChange={(e) => set("ordem", Number(e.target.value))}><MenuItem value={1}>Destaque 1</MenuItem><MenuItem value={2}>Destaque 2</MenuItem></TextField>
     <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
       <TextField required type="text" label="Início" value={data.dataInicio ?? ""} onChange={(e) => setDate("dataInicio", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} />
       <TextField disabled={data.emAndamento} type="text" label="Término" value={data.dataFim ?? ""} onChange={(e) => setDate("dataFim", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} />
     </Stack>
     <FormControlLabel control={<Switch checked={data.emAndamento} onChange={(e) => setData((p) => ({ ...p, emAndamento: e.target.checked, dataFim: e.target.checked ? null : p.dataFim }))} />} label="Projeto em andamento" />
-    <TextField required multiline minRows={4} label="Descrição" value={data.descricao} onChange={(e) => set("descricao", e.target.value.slice(0, 1000))} helperText={`${data.descricao.length}/1000`} slotProps={{ htmlInput: { maxLength: 1000 } }} />
-    <TextField label="Link da demo" type="url" value={data.demoUrl ?? ""} onChange={(e) => set("demoUrl", sanitizeLinkInput(e.target.value).slice(0, 2048) || null)} error={demoUrlInvalid} helperText={demoUrlInvalid ? "Informe um link completo começando com http:// ou https://." : "Opcional. Use um endereço HTTP ou HTTPS."} slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }} />
-    <TextField label="Link do repositório" type="url" value={data.repositorioUrl ?? ""} onChange={(e) => set("repositorioUrl", sanitizeLinkInput(e.target.value).slice(0, 2048) || null)} error={repositorioUrlInvalid} helperText={repositorioUrlInvalid ? "Informe um link completo começando com http:// ou https://." : "Opcional. Use um endereço HTTP ou HTTPS."} slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }} />
+    <TextField required multiline minRows={4} label="Descrição" value={data.descricao} onChange={(e) => set("descricao", stripEmoji(e.target.value).slice(0, 1000))} error={Boolean(data.descricao && validateFreeText(data.descricao, 1000))} helperText={validateFreeText(data.descricao, 1000) ?? `${data.descricao.length}/1000`} slotProps={{ htmlInput: { maxLength: 1000 } }} />
+    <TextField label="Link da demo" type="url" value={data.demoUrl ?? ""} onChange={(e) => set("demoUrl", e.target.value.slice(0, 2048) || null)} error={demoUrlInvalid} helperText={demoUrlInvalid ? "Informe um link completo começando com http:// ou https://." : "Opcional. Use um endereço HTTP ou HTTPS."} slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }} />
+    <TextField label="Link do repositório" type="url" value={data.repositorioUrl ?? ""} onChange={(e) => set("repositorioUrl", e.target.value.slice(0, 2048) || null)} error={repositorioUrlInvalid} helperText={repositorioUrlInvalid ? "Informe um link completo começando com http:// ou https://." : "Opcional. Use um endereço HTTP ou HTTPS."} slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }} />
     <Autocomplete multiple options={catalog} value={selected} onChange={(_, value) => set("competenciaIds", value.map((item) => item.id))} getOptionLabel={(item) => item.nome} isOptionEqualToValue={(a, b) => a.id === b.id} renderInput={(params) => <TextField {...params} label="Tecnologias" placeholder="Buscar tecnologia" />} />
   </Stack></FormDialog>;
 }

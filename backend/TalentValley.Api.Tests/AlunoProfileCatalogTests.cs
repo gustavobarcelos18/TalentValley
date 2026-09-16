@@ -74,6 +74,19 @@ public sealed class AlunoProfileCatalogTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateContato_rejects_an_overlong_phone_instead_of_truncating_it()
+    {
+        using var client = await StudentClientAsync();
+
+        var response = await client.PutAsJsonAsync("/api/alunos/me/contato", new
+        {
+            telefone = "553299999000012"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task UpdateContato_invalid_scheme_rejected()
     {
         using var client = await StudentClientAsync();

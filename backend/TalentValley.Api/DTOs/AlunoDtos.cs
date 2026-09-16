@@ -38,33 +38,34 @@ public sealed class UpdateDadosBasicosRequest
     private string nomeCompleto = string.Empty;
     private string cidade = string.Empty;
     private string? uf = null;
-    [Required, StringLength(150, MinimumLength = 3), RegularExpression(@"^[\p{L} ]+$")]
-    public string NomeCompleto { get => nomeCompleto; init => nomeCompleto = value?.Trim() ?? string.Empty; }
-    [Required, StringLength(120, MinimumLength = 2), RegularExpression(@"^[\p{L} ]+$")]
-    public string Cidade { get => cidade; init => cidade = value?.Trim() ?? string.Empty; }
-    [Required, RegularExpression("^[A-Z]{2}$")]
+    [Required, StringLength(150, MinimumLength = 3), PersonName, NoEmoji]
+    public string NomeCompleto { get => nomeCompleto; init => nomeCompleto = Normalize(value); }
+    [Required, StringLength(120, MinimumLength = 2), CityName, NoEmoji]
+    public string Cidade { get => cidade; init => cidade = Normalize(value); }
+    [Required, BrazilianUf]
     public string? Uf { get => uf; init => uf = string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant(); }
+    private static string Normalize(string? value) => string.Join(' ', (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 }
 
 public sealed class UpdateSobreRequest
 {
     private string? bio = null;
-    [StringLength(1500), NoEmoji]
+    [StringLength(1500), NoEmoji, NoControlCharacters]
     public string? Bio { get => bio; init => bio = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
 }
 
 public sealed class UpdateContatoRequest
 {
     private string? telefone, emailProfissional, linkedinUrl, githubUrl, portfolioUrl;
-    [StringLength(20)]
+    [StringLength(20), BrazilianPhone]
     public string? Telefone { get => telefone; init => telefone = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
-    [EmailAddress, StringLength(254)]
+    [EmailAddress, SafeEmail, StringLength(254), NoEmoji]
     public string? EmailProfissional { get => emailProfissional; init => emailProfissional = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
-    [StringLength(2048)]
+    [StringLength(2048), SafeHttpUrl, NoEmoji]
     public string? LinkedInUrl { get => linkedinUrl; init => linkedinUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
-    [StringLength(2048)]
+    [StringLength(2048), SafeHttpUrl, NoEmoji]
     public string? GitHubUrl { get => githubUrl; init => githubUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
-    [StringLength(2048)]
+    [StringLength(2048), SafeHttpUrl, NoEmoji]
     public string? PortfolioUrl { get => portfolioUrl; init => portfolioUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
 }
 

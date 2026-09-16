@@ -38,6 +38,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
   ADMIN: [
     { label: "Visão geral", href: "/admin" },
+    { label: "Solicitações", href: "/admin/solicitacoes" },
     { label: "Alunos", href: "/admin/alunos" },
     { label: "Recrutadores", href: "/admin/recrutadores" },
     { label: "Validações RPV", href: "/admin/validacoes-rpv" },

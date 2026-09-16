@@ -9,6 +9,8 @@ coverage/
 # Backend build output
 bin/
 obj/
+.build-check/
+.test-check/
 
 # Local configuration and secrets
 .env*

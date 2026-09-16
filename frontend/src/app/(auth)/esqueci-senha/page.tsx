@@ -14,7 +14,7 @@ import {
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { forgotPassword } from "@/lib/auth";
-import { validateEmail } from "@/lib/validation";
+import { normalizeEmailInput, validateEmail } from "@/lib/validation";
 
 export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("");
@@ -35,7 +35,7 @@ export default function EsqueciSenhaPage() {
     setLoading(true);
 
     try {
-      await forgotPassword(email.trim());
+      await forgotPassword(normalizeEmailInput(email));
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) {
@@ -115,7 +115,7 @@ export default function EsqueciSenhaPage() {
                     required
                     fullWidth
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.slice(0, 254))}
                     disabled={loading}
                     slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
                   />

@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AlunoModalidade> AlunoModalidades => Set<AlunoModalidade>();
     public DbSet<Favorito> Favoritos => Set<Favorito>();
     public DbSet<Auditoria> Auditorias => Set<Auditoria>();
+    public DbSet<SolicitacaoCadastro> SolicitacoesCadastro => Set<SolicitacaoCadastro>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

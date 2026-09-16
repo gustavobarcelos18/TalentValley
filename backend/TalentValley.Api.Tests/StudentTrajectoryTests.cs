@@ -170,6 +170,7 @@ public sealed class StudentTrajectoryTests : IDisposable
             "cargaHoraria" => JsonValue.Create(int.Parse(value)),
             "ehRioPombaValley" => JsonValue.Create(false), _ => JsonValue.Create(value)
         };
+        if (field == "dataFim") request["status"] = "CONCLUIDO";
         var updated = await UpdateAsync(client, "formacoes", id, request);
         if (field == "ehRioPombaValley") Assert.Null(updated["statusValidacaoRpv"]);
         else Assert.Equal("PENDENTE", updated["statusValidacaoRpv"]!.GetValue<string>());
@@ -302,18 +303,24 @@ public sealed class StudentTrajectoryTests : IDisposable
     [Theory]
     [InlineData("PROFISSIONAL")]
     [InlineData("ESTAGIO")]
-    public async Task Experience_current_clears_end_date_before_validation_and_noop_comparison(string type)
+    public async Task Experience_current_rejects_end_date_and_noop_comparison(string type)
     {
         var (client, _) = await StudentAsync();
         using var ownerClient = client;
         var request = Experience();
         request["tipo"] = type;
         request["dataFim"] = "2020-01-01";
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + "experiencias", request)).StatusCode);
+        request["dataFim"] = null;
         var created = await CreateAsync(client, "experiencias", request);
         Assert.Equal(type, created["tipo"]!.GetValue<string>());
         Assert.Null(created["dataFim"]);
+        request["dataFim"] = "2020-01-01";
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"{Root}experiencias/{Id(created)}", request)).StatusCode);
+        request["dataFim"] = null;
         Assert.Equal(Stamp(created), Stamp(await UpdateAsync(client, "experiencias", Id(created), request)));
         request["atual"] = false;
+        request["dataFim"] = "2020-01-01";
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"{Root}experiencias/{Id(created)}", request)).StatusCode);
         request["dataFim"] = "2025-03-01";
         Assert.Equal("2025-03-01", (await UpdateAsync(client, "experiencias", Id(created), request))["dataFim"]!.GetValue<string>());
@@ -331,16 +338,22 @@ public sealed class StudentTrajectoryTests : IDisposable
     }
 
     [Fact]
-    public async Task Project_current_normalizes_dates_and_completed_dates_are_validated()
+    public async Task Project_current_rejects_end_date_and_completed_dates_are_validated()
     {
         var (client, _) = await StudentAsync();
         using var ownerClient = client;
         var request = Project();
         request["dataFim"] = "2020-01-01";
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + "projetos", request)).StatusCode);
+        request["dataFim"] = null;
         var created = await CreateAsync(client, "projetos", request);
         Assert.Null(created["dataFim"]);
+        request["dataFim"] = "2020-01-01";
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"{Root}projetos/{Id(created)}", request)).StatusCode);
+        request["dataFim"] = null;
         Assert.Equal(Stamp(created), Stamp(await UpdateAsync(client, "projetos", Id(created), request)));
         request["emAndamento"] = false;
+        request["dataFim"] = "2020-01-01";
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"{Root}projetos/{Id(created)}", request)).StatusCode);
         request["dataFim"] = "2026-08-01";
         await UpdateAsync(client, "projetos", Id(created), request);
@@ -621,7 +634,7 @@ public sealed class StudentTrajectoryTests : IDisposable
         var request = Formation();
         request["tipo"] = type;
         request["status"] = status;
-        request["dataFim"] = "2025-02-01";
+        request["dataFim"] = status == "EM_ANDAMENTO" ? null : "2025-02-01";
         var created = await CreateAsync(client, "formacoes", request);
         Assert.Equal(type, created["tipo"]!.GetValue<string>());
         Assert.Equal(status, created["status"]!.GetValue<string>());

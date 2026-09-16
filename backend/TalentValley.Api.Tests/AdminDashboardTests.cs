@@ -266,18 +266,18 @@ public sealed class AdminDashboardTests : IDisposable
         await factory.InScopeAsync(async services =>
         {
             var db = services.GetRequiredService<AppDbContext>();
-            db.Competencias.Add(new Competencia { Id = 100, Nome = "Blazor", NomeBusca = "blazor" });
-            db.Competencias.Add(new Competencia { Id = 200, Nome = "Ember", NomeBusca = "ember" });
+            db.Competencias.Add(new Competencia { Id = 10100, Nome = "Fixture Atlas", NomeBusca = "fixture atlas" });
+            db.Competencias.Add(new Competencia { Id = 10200, Nome = "Fixture Birch", NomeBusca = "fixture birch" });
             await db.SaveChangesAsync();
         });
 
-        await AddCompetencyToStudentAsync(activeId, 100);
-        await AddCompetencyToStudentAsync(blockedId, 100);
-        await AddCompetencyToStudentAsync(blockedId, 200);
+        await AddCompetencyToStudentAsync(activeId, 10100);
+        await AddCompetencyToStudentAsync(blockedId, 10100);
+        await AddCompetencyToStudentAsync(blockedId, 10200);
 
         var dashboard = await GetDashboardAsync();
-        var blazor = dashboard.CompetenciasMaisUtilizadas.Single(x => x.Id == 100);
-        var ember = dashboard.CompetenciasMaisUtilizadas.SingleOrDefault(x => x.Id == 200);
+        var blazor = dashboard.CompetenciasMaisUtilizadas.Single(x => x.Id == 10100);
+        var ember = dashboard.CompetenciasMaisUtilizadas.SingleOrDefault(x => x.Id == 10200);
         Assert.Equal(1, blazor.QuantidadeAlunos);
         Assert.Null(ember);
     }
@@ -310,38 +310,38 @@ public sealed class AdminDashboardTests : IDisposable
         await factory.InScopeAsync(async services =>
         {
             var db = services.GetRequiredService<AppDbContext>();
-            db.Competencias.Add(new Competencia { Id = 1010, Nome = "Svelte", NomeBusca = "svelte" });
-            db.Competencias.Add(new Competencia { Id = 1020, Nome = "Ember", NomeBusca = "ember" });
-            db.Competencias.Add(new Competencia { Id = 1030, Nome = "Blazor", NomeBusca = "blazor" });
-            db.Competencias.Add(new Competencia { Id = 1040, Nome = "Deno", NomeBusca = "deno" });
-            db.Competencias.Add(new Competencia { Id = 1050, Nome = "Ruby", NomeBusca = "ruby" });
-            db.Competencias.Add(new Competencia { Id = 1060, Nome = "Kotlin", NomeBusca = "kotlin" });
+            db.Competencias.Add(new Competencia { Id = 11010, Nome = "Fixture Cedar", NomeBusca = "fixture cedar" });
+            db.Competencias.Add(new Competencia { Id = 11020, Nome = "Fixture Birch", NomeBusca = "fixture birch" });
+            db.Competencias.Add(new Competencia { Id = 11030, Nome = "Fixture Atlas", NomeBusca = "fixture atlas" });
+            db.Competencias.Add(new Competencia { Id = 11040, Nome = "Fixture Dune", NomeBusca = "fixture dune" });
+            db.Competencias.Add(new Competencia { Id = 11050, Nome = "Fixture Elm", NomeBusca = "fixture elm" });
+            db.Competencias.Add(new Competencia { Id = 11060, Nome = "Fixture Fir", NomeBusca = "fixture fir" });
             await db.SaveChangesAsync();
         });
 
-        await AddCompetencyToStudentAsync(a, 1030);
-        await AddCompetencyToStudentAsync(b, 1030);
-        await AddCompetencyToStudentAsync(c, 1030);
-        await AddCompetencyToStudentAsync(a, 1020);
-        await AddCompetencyToStudentAsync(b, 1020);
-        await AddCompetencyToStudentAsync(a, 1010);
-        await AddCompetencyToStudentAsync(c, 1010);
-        await AddCompetencyToStudentAsync(a, 1040);
-        await AddCompetencyToStudentAsync(b, 1050);
-        await AddCompetencyToStudentAsync(c, 1060);
+        await AddCompetencyToStudentAsync(a, 11030);
+        await AddCompetencyToStudentAsync(b, 11030);
+        await AddCompetencyToStudentAsync(c, 11030);
+        await AddCompetencyToStudentAsync(a, 11020);
+        await AddCompetencyToStudentAsync(b, 11020);
+        await AddCompetencyToStudentAsync(a, 11010);
+        await AddCompetencyToStudentAsync(c, 11010);
+        await AddCompetencyToStudentAsync(a, 11040);
+        await AddCompetencyToStudentAsync(b, 11050);
+        await AddCompetencyToStudentAsync(c, 11060);
 
         var dashboard = await GetDashboardAsync();
         var ordered = dashboard.CompetenciasMaisUtilizadas.ToList();
 
         Assert.Equal(5, ordered.Count);
-        Assert.Equal("Blazor", ordered[0].Nome);
+        Assert.Equal("Fixture Atlas", ordered[0].Nome);
         Assert.Equal(3, ordered[0].QuantidadeAlunos);
-        Assert.Equal("Ember", ordered[1].Nome);
+        Assert.Equal("Fixture Birch", ordered[1].Nome);
         Assert.Equal(2, ordered[1].QuantidadeAlunos);
-        Assert.Equal("Svelte", ordered[2].Nome);
+        Assert.Equal("Fixture Cedar", ordered[2].Nome);
         Assert.Equal(2, ordered[2].QuantidadeAlunos);
-        Assert.Equal("Deno", ordered[3].Nome);
-        Assert.Equal("Kotlin", ordered[4].Nome);
+        Assert.Equal("Fixture Dune", ordered[3].Nome);
+        Assert.Equal("Fixture Elm", ordered[4].Nome);
     }
 
     public void Dispose() => factory.Dispose();

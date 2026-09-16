@@ -115,12 +115,13 @@ public sealed class AdminEndpointTests : IDisposable
     public async Task Lists_filter_order_and_paginate_in_SQL_and_detail_uses_string_status()
     {
         using var client = await AdminAsync();
+        var names = Enumerable.Range(0, 12).Select(i => $"A{(char)('a' + i)}").ToArray();
         for (var i = 11; i >= 0; i--)
         {
             Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/admin/alunos",
-                new { nomeCompleto = $"João {i:D2}", email = $"student{i}@example.test" })).StatusCode);
+                new { nomeCompleto = $"João {names[i]}", email = $"student{i}@example.test" })).StatusCode);
             Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/admin/recrutadores",
-                AdminProvisioningTests.Recruiter($"recruiter{i}@example.test", $"Carlos {i:D2}"))).StatusCode);
+                AdminProvisioningTests.Recruiter($"recruiter{i}@example.test", $"Carlos {names[i]}"))).StatusCode);
         }
         var first = (await client.GetFromJsonAsync<PaginatedResponse<AlunoListItem>>("/api/admin/alunos?search=joao"))!;
         var second = (await client.GetFromJsonAsync<PaginatedResponse<AlunoListItem>>("/api/admin/alunos?page=2&search=joao"))!;
@@ -130,14 +131,14 @@ public sealed class AdminEndpointTests : IDisposable
         Assert.Equal(10, first.Items.Count);
         Assert.Equal(2, second.Items.Count);
         Assert.Equal(2, second.Page);
-        Assert.Equal(Enumerable.Range(0, 12).Select(i => $"João {i:D2}"), first.Items.Concat(second.Items).Select(x => x.NomeCompleto));
+        Assert.Equal(names.Select(name => $"João {name}"), first.Items.Concat(second.Items).Select(x => x.NomeCompleto));
 
         var recruiters = JsonDocument.Parse(await client.GetStringAsync("/api/admin/recrutadores?search=INOVACAO&status=ATIVO")).RootElement;
         Assert.Equal(12, recruiters.GetProperty("totalItems").GetInt32());
         Assert.Equal(10, recruiters.GetProperty("items").GetArrayLength());
         var recruiter = recruiters.GetProperty("items")[0];
         var id = recruiter.GetProperty("id").GetGuid();
-        Assert.Equal("Carlos 00", recruiter.GetProperty("nomeCompleto").GetString());
+        Assert.Equal("Carlos Aa", recruiter.GetProperty("nomeCompleto").GetString());
         Assert.Equal("ATIVO", recruiter.GetProperty("status").GetString());
         var detail = JsonDocument.Parse(await client.GetStringAsync($"/api/admin/recrutadores/{id}")).RootElement;
         Assert.Equal("recruiter0@example.test", detail.GetProperty("email").GetString());
