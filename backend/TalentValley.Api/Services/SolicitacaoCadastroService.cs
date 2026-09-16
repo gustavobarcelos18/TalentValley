@@ -64,7 +64,7 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
         if (!string.IsNullOrEmpty(request.Tipo)) query = query.Where(x => x.Tipo == Enum.Parse<TipoSolicitacaoCadastro>(request.Tipo));
         if (!string.IsNullOrEmpty(request.Status)) query = query.Where(x => x.Status == Enum.Parse<StatusSolicitacaoCadastro>(request.Status));
         var total = await query.CountAsync(cancellationToken);
-        var items = await query.OrderBy(x => x.Status == StatusSolicitacaoCadastro.PENDENTE ? 0 : 1).ThenByDescending(x => x.CriadoEm).ThenBy(x => x.Id)
+        var items = await query.OrderBy(x => x.Status == StatusSolicitacaoCadastro.PENDENTE ? 0 : 1).ThenByDescending(x => x.CriadoEm.ToString()).ThenBy(x => x.Id)
             .Skip((request.Page - 1) * 10).Take(10).Select(x => new SolicitacaoCadastroListItem(x.Id, x.Tipo, x.Status,
                 x.NomeCompleto, x.Email, x.Telefone, x.Cidade, x.Uf, x.InstituicaoEnsino, x.Curso, x.TipoFormacao,
                 x.AnoConclusaoPrevisto, x.Empresa, x.Cargo, x.CriadoEm)).ToListAsync(cancellationToken);

@@ -48,6 +48,75 @@ public sealed class RegistrationRequestTests : IDisposable
     }
 
     [Fact]
+    public async Task Admin_pending_list_returns_created_request()
+    {
+        using var publicClient = factory.Client();
+        await ApiFactory.SetCsrfAsync(publicClient);
+        var created = await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student());
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var request = await created.Content.ReadFromJsonAsync<SolicitacaoCadastroCreatedResponse>(ApiFactory.JsonOptions);
+
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        using var admin = factory.Client();
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(admin, "admin@example.test")).StatusCode);
+        var response = await admin.GetAsync("/api/admin/solicitacoes-cadastro?status=PENDENTE");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await response.Content.ReadFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(ApiFactory.JsonOptions);
+        Assert.Equal(1, list!.TotalItems);
+        Assert.Equal(request!.Id, Assert.Single(list.Items).Id);
+    }
+
+    [Fact]
+    public async Task Admin_list_keeps_status_date_id_order_and_pagination_after_filtering()
+    {
+        var timestamp = new DateTimeOffset(2026, 9, 16, 12, 0, 0, TimeSpan.Zero);
+        var pendingIds = Enumerable.Range(1, 11).Select(i => new Guid(i, 0, 0, new byte[8])).ToArray();
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            for (var i = 0; i < pendingIds.Length; i++)
+                db.SolicitacoesCadastro.Add(new SolicitacaoCadastro
+                {
+                    Id = pendingIds[i], Tipo = TipoSolicitacaoCadastro.ALUNO, Status = StatusSolicitacaoCadastro.PENDENTE,
+                    NomeCompleto = $"Pedido {i + 1:D2}", Email = $"pedido{i + 1}@example.test",
+                    EmailNormalizado = $"PEDIDO{i + 1}@EXAMPLE.TEST", Telefone = "32999990000", Cidade = "Rio Pomba", Uf = "MG",
+                    CriadoEm = i < 2 ? timestamp : timestamp.AddMinutes(-i)
+                });
+            db.SolicitacoesCadastro.Add(new SolicitacaoCadastro
+            {
+                Id = Guid.NewGuid(), Tipo = TipoSolicitacaoCadastro.RECRUTADOR, Status = StatusSolicitacaoCadastro.APROVADA,
+                NomeCompleto = "Aprovado", Email = "aprovado@example.test", EmailNormalizado = "APROVADO@EXAMPLE.TEST",
+                Telefone = "32999990000", Cidade = "Rio Pomba", Uf = "MG", CriadoEm = timestamp.AddDays(1)
+            });
+            await db.SaveChangesAsync();
+        });
+
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        using var admin = factory.Client();
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(admin, "admin@example.test")).StatusCode);
+
+        var first = await admin.GetFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(
+            "/api/admin/solicitacoes-cadastro?status=PENDENTE", ApiFactory.JsonOptions);
+        Assert.Equal(11, first!.TotalItems);
+        Assert.Equal(2, first.TotalPages);
+        Assert.Equal(pendingIds.Take(10), first.Items.Select(x => x.Id));
+
+        var second = await admin.GetFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(
+            "/api/admin/solicitacoes-cadastro?status=PENDENTE&page=2", ApiFactory.JsonOptions);
+        Assert.Equal(new[] { pendingIds[10] }, second!.Items.Select(x => x.Id));
+
+        var all = await admin.GetFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(
+            "/api/admin/solicitacoes-cadastro", ApiFactory.JsonOptions);
+        Assert.Equal(12, all!.TotalItems);
+        Assert.Equal(pendingIds.Take(10), all.Items.Select(x => x.Id));
+
+        var searched = await admin.GetFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(
+            "/api/admin/solicitacoes-cadastro?status=PENDENTE&search=Pedido%2005", ApiFactory.JsonOptions);
+        Assert.Equal(pendingIds[4], Assert.Single(searched!.Items).Id);
+    }
+
+    [Fact]
     public async Task Duplicate_pending_and_existing_account_emails_are_rejected_but_rejected_request_can_resubmit()
     {
         using var client = factory.Client();
