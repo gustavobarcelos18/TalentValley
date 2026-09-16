@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
@@ -7,7 +8,15 @@ using TalentValley.Api.DTOs;
 
 namespace TalentValley.Api.Services;
 
-public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountService accounts, AuditoriaService audit)
+public enum AdminAccountDeletionResult
+{
+    Deleted,
+    NotFound,
+    Active
+}
+
+public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountService accounts, AuditoriaService audit,
+    UserManager<ApplicationUser> users)
 {
     public async Task<RecrutadorCreatedResponse> CreateAsync(CreateRecrutadorRequest request)
     {
@@ -65,10 +74,34 @@ public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountSe
         var status = active ? StatusRecrutador.ATIVO : StatusRecrutador.BLOQUEADO;
         if (recruiter.Status == status) return true;
         recruiter.Status = status;
+        recruiter.User.ExclusaoAgendadaEm = active ? null : DateTimeOffset.UtcNow.AddDays(30);
         await audit.RecordAsync(active ? AcaoAuditoria.RECRUTADOR_REATIVADO : AcaoAuditoria.RECRUTADOR_BLOQUEADO,
             AppRoles.Recruiter, id, $"Recrutador {recruiter.User.NomeCompleto} {(active ? "reativado" : "bloqueado")}.");
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;
+    }
+
+    public async Task<AdminAccountDeletionResult> DeleteAsync(Guid id, bool recordAudit = true, bool requireBlocked = true)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync();
+        var recruiter = await database.Recrutadores.Include(x => x.User).SingleOrDefaultAsync(x => x.UserId == id);
+        if (recruiter is null) return AdminAccountDeletionResult.NotFound;
+        if (requireBlocked && recruiter.Status != StatusRecrutador.BLOQUEADO) return AdminAccountDeletionResult.Active;
+        var user = recruiter.User;
+        if (recordAudit) await audit.RecordAsync(AcaoAuditoria.RECRUTADOR_EXCLUIDO, AppRoles.Recruiter, id,
+            $"Recrutador {user.NomeCompleto} excluído.");
+        database.Recrutadores.Remove(recruiter);
+        await database.SaveChangesAsync();
+        AdminAccountService.RequireSuccess(await users.DeleteAsync(user));
+        await transaction.CommitAsync();
+        return AdminAccountDeletionResult.Deleted;
+    }
+
+    public async Task DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var ids = await database.Recrutadores.AsNoTracking().Where(x => x.User.ExclusaoAgendadaEm <= now)
+            .Select(x => x.UserId).ToListAsync(cancellationToken);
+        foreach (var id in ids) await DeleteAsync(id, recordAudit: false, requireBlocked: false);
     }
 }

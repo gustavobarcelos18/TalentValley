@@ -298,6 +298,9 @@ namespace TalentValley.Api.Data.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("ExclusaoAgendadaEm")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("INTEGER");
 
@@ -348,6 +351,8 @@ namespace TalentValley.Api.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExclusaoAgendadaEm");
 
                     b.HasIndex("NomeBusca");
 
@@ -727,6 +732,106 @@ namespace TalentValley.Api.Data.Migrations
                     b.ToTable("Recrutadores");
                 });
 
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.SolicitacaoCadastro", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("AdminUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("AnalisadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("AnoConclusaoPrevisto")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Cargo")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cidade")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Curso")
+                        .HasMaxLength(180)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EmailNormalizado")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Empresa")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InstituicaoEnsino")
+                        .HasMaxLength(180)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MotivoRejeicao")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NomeCompleto")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelacaoRioPombaValley")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SiteEmpresa")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Telefone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TipoFormacao")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Uf")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
+
+                    b.HasIndex("EmailNormalizado")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'PENDENTE'");
+
+                    b.HasIndex("Status", "Tipo", "CriadoEm");
+
+                    b.ToTable("SolicitacoesCadastro");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
@@ -939,6 +1044,16 @@ namespace TalentValley.Api.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.SolicitacaoCadastro", b =>
+                {
+                    b.HasOne("TalentValley.Api.Domain.Entities.ApplicationUser", "AdminUser")
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AdminUser");
                 });
 
             modelBuilder.Entity("TalentValley.Api.Domain.Entities.Aluno", b =>

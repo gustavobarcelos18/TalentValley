@@ -17,6 +17,8 @@ builder.Services.AddScoped<AdminAlunoService>();
 builder.Services.AddScoped<AdminRecrutadorService>();
 builder.Services.AddScoped<AdminRpvValidationService>();
 builder.Services.AddScoped<AdminDashboardService>();
+builder.Services.AddScoped<SolicitacaoCadastroService>();
+builder.Services.AddHostedService<ScheduledAccountDeletionService>();
 
 builder.Services.AddScoped<SlugService>();
 builder.Services.AddScoped<AlunoService>();

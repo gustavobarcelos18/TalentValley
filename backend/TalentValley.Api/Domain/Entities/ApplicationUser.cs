@@ -9,4 +9,5 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset CriadoEm { get; set; }
     public DateTimeOffset? UltimoLoginEm { get; set; }
     public DateTimeOffset? LoginAnteriorEm { get; set; }
+    public DateTimeOffset? ExclusaoAgendadaEm { get; set; }
 }
