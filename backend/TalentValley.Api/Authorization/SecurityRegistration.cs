@@ -103,16 +103,16 @@ public static class SecurityRegistration
         services.AddScoped<JwtTokenService>();
         services.AddScoped<AuthService>();
         services.AddScoped<AccountTokenService>();
-        services.AddOptions<ResendOptions>().Bind(configuration.GetSection("Resend"));
-        services.AddHttpClient<ResendEmailSender>();
+        services.AddOptions<BrevoOptions>().Bind(configuration.GetSection("Brevo"));
+        services.AddHttpClient<BrevoEmailSender>();
         services.AddTransient<IEmailSender>(provider =>
         {
             if (environment.IsDevelopment())
                 return new DevelopmentEmailSender(provider.GetRequiredService<ILogger<DevelopmentEmailSender>>());
 
-            var resend = provider.GetRequiredService<IOptions<ResendOptions>>().Value;
-            return resend.IsConfigured
-                ? provider.GetRequiredService<ResendEmailSender>()
+            var brevo = provider.GetRequiredService<IOptions<BrevoOptions>>().Value;
+            return brevo.IsConfigured
+                ? provider.GetRequiredService<BrevoEmailSender>()
                 : new UnavailableEmailSender(provider.GetRequiredService<ILogger<UnavailableEmailSender>>());
         });
 

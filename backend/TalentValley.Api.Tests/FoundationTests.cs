@@ -227,28 +227,41 @@ public sealed class FoundationTests
     }
 
     [Fact]
-    public void Production_email_sender_requires_complete_resend_configuration()
+    public void Production_email_sender_requires_complete_brevo_configuration()
     {
         using var disabledFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
         using var disabledClient = disabledFactory.Client();
         Assert.IsType<UnavailableEmailSender>(disabledFactory.Services.GetRequiredService<IEmailSender>());
 
         using var incompleteFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
-        incompleteFactory.Overrides["Resend:ApiKey"] = "test-key";
+        incompleteFactory.Overrides["Brevo:ApiKey"] = "test-key";
         using var incompleteClient = incompleteFactory.Client();
         Assert.IsType<UnavailableEmailSender>(incompleteFactory.Services.GetRequiredService<IEmailSender>());
 
+        using var missingNameFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
+        missingNameFactory.Overrides["Brevo:ApiKey"] = "test-key";
+        missingNameFactory.Overrides["Brevo:SenderAddress"] = "no-reply@example.test";
+        using var missingNameClient = missingNameFactory.Client();
+        Assert.IsType<UnavailableEmailSender>(missingNameFactory.Services.GetRequiredService<IEmailSender>());
+
+        using var whitespaceKeyFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
+        whitespaceKeyFactory.Overrides["Brevo:ApiKey"] = "  ";
+        whitespaceKeyFactory.Overrides["Brevo:SenderAddress"] = "no-reply@example.test";
+        whitespaceKeyFactory.Overrides["Brevo:SenderName"] = "Talent Valley";
+        using var whitespaceKeyClient = whitespaceKeyFactory.Client();
+        Assert.IsType<UnavailableEmailSender>(whitespaceKeyFactory.Services.GetRequiredService<IEmailSender>());
+
         using var enabledFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
-        enabledFactory.Overrides["Resend:ApiKey"] = "test-key";
-        enabledFactory.Overrides["Resend:SenderAddress"] = "no-reply@example.test";
-        enabledFactory.Overrides["Resend:SenderName"] = "Talent Valley";
+        enabledFactory.Overrides["Brevo:ApiKey"] = "test-key";
+        enabledFactory.Overrides["Brevo:SenderAddress"] = "no-reply@example.test";
+        enabledFactory.Overrides["Brevo:SenderName"] = "Talent Valley";
         using var enabledClient = enabledFactory.Client();
-        Assert.IsType<ResendEmailSender>(enabledFactory.Services.GetRequiredService<IEmailSender>());
+        Assert.IsType<BrevoEmailSender>(enabledFactory.Services.GetRequiredService<IEmailSender>());
 
         using var developmentFactory = new ApiFactory { UseRealEmailSender = true };
-        developmentFactory.Overrides["Resend:ApiKey"] = "test-key";
-        developmentFactory.Overrides["Resend:SenderAddress"] = "no-reply@example.test";
-        developmentFactory.Overrides["Resend:SenderName"] = "Talent Valley";
+        developmentFactory.Overrides["Brevo:ApiKey"] = "test-key";
+        developmentFactory.Overrides["Brevo:SenderAddress"] = "no-reply@example.test";
+        developmentFactory.Overrides["Brevo:SenderName"] = "Talent Valley";
         using var developmentClient = developmentFactory.Client();
         Assert.IsType<DevelopmentEmailSender>(developmentFactory.Services.GetRequiredService<IEmailSender>());
     }

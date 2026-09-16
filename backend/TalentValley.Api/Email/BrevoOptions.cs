@@ -1,6 +1,6 @@
 namespace TalentValley.Api.Email;
 
-public sealed class ResendOptions
+public sealed class BrevoOptions
 {
     public string? ApiKey { get; set; }
     public string? SenderAddress { get; set; }
