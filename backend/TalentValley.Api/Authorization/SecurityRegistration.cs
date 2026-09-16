@@ -103,22 +103,18 @@ public static class SecurityRegistration
         services.AddScoped<JwtTokenService>();
         services.AddScoped<AuthService>();
         services.AddScoped<AccountTokenService>();
-        var logAccountLinks = configuration.GetValue<bool>("Demo:LogAccountLinks");
-        if (!environment.IsDevelopment() && logAccountLinks)
+        services.AddOptions<ResendOptions>().Bind(configuration.GetSection("Resend"));
+        services.AddHttpClient<ResendEmailSender>();
+        services.AddSingleton<IEmailSender>(provider =>
         {
-            services.AddSingleton<IEmailSender>(provider =>
-            {
-                var logger = provider.GetRequiredService<ILogger<DevelopmentEmailSender>>();
-                logger.LogWarning("Demo account-link logging is enabled. This mode is for demo use only and must not be used for real production email delivery.");
-                return new DevelopmentEmailSender(logger, isDemoMode: true);
-            });
-        }
-        else
-        {
-            services.AddSingleton<IEmailSender>(provider => environment.IsDevelopment()
-                ? new DevelopmentEmailSender(provider.GetRequiredService<ILogger<DevelopmentEmailSender>>())
-                : new UnavailableEmailSender(provider.GetRequiredService<ILogger<UnavailableEmailSender>>()));
-        }
+            if (environment.IsDevelopment())
+                return new DevelopmentEmailSender(provider.GetRequiredService<ILogger<DevelopmentEmailSender>>());
+
+            var resend = provider.GetRequiredService<IOptions<ResendOptions>>().Value;
+            return resend.IsConfigured
+                ? provider.GetRequiredService<ResendEmailSender>()
+                : new UnavailableEmailSender(provider.GetRequiredService<ILogger<UnavailableEmailSender>>());
+        });
 
         services.AddOptions<FrontendOptions>().Bind(configuration.GetSection("Frontend"))
             .Validate(o => Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out var uri) &&

@@ -227,16 +227,30 @@ public sealed class FoundationTests
     }
 
     [Fact]
-    public void Production_log_email_sender_requires_explicit_demo_flag()
+    public void Production_email_sender_requires_complete_resend_configuration()
     {
         using var disabledFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
         using var disabledClient = disabledFactory.Client();
         Assert.IsType<UnavailableEmailSender>(disabledFactory.Services.GetRequiredService<IEmailSender>());
 
+        using var incompleteFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
+        incompleteFactory.Overrides["Resend:ApiKey"] = "test-key";
+        using var incompleteClient = incompleteFactory.Client();
+        Assert.IsType<UnavailableEmailSender>(incompleteFactory.Services.GetRequiredService<IEmailSender>());
+
         using var enabledFactory = new ApiFactory { EnvironmentName = "Production", UseRealEmailSender = true };
-        enabledFactory.Overrides["Demo:LogAccountLinks"] = "true";
+        enabledFactory.Overrides["Resend:ApiKey"] = "test-key";
+        enabledFactory.Overrides["Resend:SenderAddress"] = "no-reply@example.test";
+        enabledFactory.Overrides["Resend:SenderName"] = "Talent Valley";
         using var enabledClient = enabledFactory.Client();
-        Assert.IsType<DevelopmentEmailSender>(enabledFactory.Services.GetRequiredService<IEmailSender>());
+        Assert.IsType<ResendEmailSender>(enabledFactory.Services.GetRequiredService<IEmailSender>());
+
+        using var developmentFactory = new ApiFactory { UseRealEmailSender = true };
+        developmentFactory.Overrides["Resend:ApiKey"] = "test-key";
+        developmentFactory.Overrides["Resend:SenderAddress"] = "no-reply@example.test";
+        developmentFactory.Overrides["Resend:SenderName"] = "Talent Valley";
+        using var developmentClient = developmentFactory.Client();
+        Assert.IsType<DevelopmentEmailSender>(developmentFactory.Services.GetRequiredService<IEmailSender>());
     }
 
     [Fact]
