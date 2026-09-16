@@ -105,7 +105,7 @@ public static class SecurityRegistration
         services.AddScoped<AccountTokenService>();
         services.AddOptions<ResendOptions>().Bind(configuration.GetSection("Resend"));
         services.AddHttpClient<ResendEmailSender>();
-        services.AddSingleton<IEmailSender>(provider =>
+        services.AddTransient<IEmailSender>(provider =>
         {
             if (environment.IsDevelopment())
                 return new DevelopmentEmailSender(provider.GetRequiredService<ILogger<DevelopmentEmailSender>>());
