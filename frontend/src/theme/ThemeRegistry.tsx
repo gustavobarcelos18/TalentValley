@@ -12,7 +12,7 @@ type ThemeRegistryProps = {
 export function ThemeRegistry({ children }: ThemeRegistryProps) {
   return (
     <AppRouterCacheProvider>
-      <ThemeProvider theme={talentValleyTheme}>
+      <ThemeProvider theme={talentValleyTheme} defaultMode="dark" disableTransitionOnChange>
         <CssBaseline />
         {children}
       </ThemeProvider>
