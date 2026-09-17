@@ -1,27 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Avatar, Button, IconButton, Switch, Tab, Tabs, useColorScheme } from "@mui/material";
-import { KeyboardArrowDown, ArrowForward, Close, DarkModeOutlined, LightModeOutlined, Menu, NorthEast, VisibilityOutlined, HubOutlined, LayersOutlined } from "@mui/icons-material";
+import { Button, Tab, Tabs } from "@mui/material";
+import { KeyboardArrowDown, ArrowForward, NorthEast, VisibilityOutlined, HubOutlined, LayersOutlined } from "@mui/icons-material";
 import { useAuth } from "@/hooks/useAuth";
-import { motion } from "framer-motion";
 import { ValleyScene, SceneContours, SceneConnections } from "./ValleyScene";
-import { LandingMotion, useLandingMotionPolicy } from "./motion/LandingMotion";
+import { PublicHeader } from "./PublicHeader";
+import { Brand } from "./Brand";
+import { destinations } from "./navigation";
+import { LandingMotion } from "./motion/LandingMotion";
 import { useLandingEntrance } from "./motion/useLandingEntrance";
 import { useHeroDepth } from "./motion/useHeroDepth";
 import { useSectionStories } from "./motion/useSectionStories";
 import { ActionMotion } from "./motion/ActionMotion";
 import { StorySteps } from "./motion/StorySteps";
 import "./landing.css";
-
-const navigation = [["hero", "Início"], ["talentos", "Talentos"], ["empresas", "Empresas"], ["como-funciona", "Como funciona"], ["rio-pomba-valley", "Rio Pomba Valley"]];
-const destinations = { ALUNO: "/meu-perfil", RECRUTADOR: "/recrutador", ADMIN: "/admin" };
-
-function Brand() {
-  return <span className="tv-brand"><svg width="102" height="50" viewBox="0 0 102 50" fill="none" aria-hidden="true"><path d="M2 46 49 4 66 21 77 14 100 46Z" fill="#008F73"/><path d="m2 46 24-22 12 17Z" fill="#00B838"/><path d="m24 24 25-20-11 37Z" fill="#A0D060"/><path d="m49 4 17 17-28 20Z" fill="#00B838"/><path d="m49 4 7 25 10-8Z" fill="#D8E9B8"/><path d="m56 29 10-8 11 17-20 8Z" fill="#20C8C0"/><path d="m66 21 11-7 8 15Z" fill="#73BB40"/><path d="m77 38 8-9 15 17H57Z" fill="#A0D060"/><path d="M2 46 49 4 66 21 77 14 100 46ZM24 24l32 5 21 9M49 4l7 25-18 12L24 24M56 29l10-8 19 8-8 9 23 8M38 41l-36 5m36-5 18-12" stroke="currentColor" strokeOpacity=".7" strokeWidth=".8"/><path d="M56 29q15 7 1 17" stroke="#F4F7F6" strokeWidth="2"/><circle cx="24" cy="24" r="2" fill="#F4F7F6"/><circle cx="56" cy="29" r="3" fill="#F4F7F6"/><circle cx="77" cy="38" r="2" fill="#F4F7F6"/></svg><span><strong>Talent <em>Valley</em></strong><small>by Rio Pomba Valley</small></span></span>;
-}
 
 function JoinActions({ audience, hero = false }: { audience?: "talent" | "company"; hero?: boolean }) {
   const { user, loading } = useAuth();
@@ -74,47 +69,12 @@ function LandingContent() {
   const hero = useRef<HTMLElement>(null);
   useHeroDepth(hero);
   useSectionStories(entrance);
-  const policy = useLandingMotionPolicy();
-  const reduced = policy === "pending" || policy === "reduced";
-  const { user, loading } = useAuth();
-  const { mode, systemMode, setMode } = useColorScheme();
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [active, setActive] = useState("hero");
+  const { user } = useAuth();
   const [audience, setAudience] = useState(0);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const dark = (mode === "system" ? systemMode : mode) !== "light";
-
-  useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 24);
-      const current = navigation.reduce((id, [sectionId]) => {
-        const section = document.getElementById(sectionId);
-        return section && section.getBoundingClientRect().top <= 120 ? sectionId : id;
-      }, "hero");
-      setActive(current);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
 
   return <div className="landing" ref={entrance} data-motion-scope>
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
-    <header className={`landing-header ${scrolled || menuOpen ? "is-elevated" : ""}`} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}>
-      <div className="nav-inner" data-entrance="0.08">
-        <Link href="#hero" className="brand-link" aria-label="Talent Valley — início" onClick={() => setMenuOpen(false)}><Brand /></Link>
-        <nav id="public-navigation" aria-label="Navegação principal" className={`public-nav ${menuOpen ? "is-open" : ""}`}>
-          {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => setMenuOpen(false)}>{label}</a>)}
-        </nav>
-        <div className="nav-actions">
-          <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><DarkModeOutlined aria-hidden="true"/><Switch className="theme-toggle" checked={!dark} onChange={(_, checked) => setMode(checked ? "light" : "dark")} slotProps={{ input: { "aria-label": "Tema claro" } }}/><LightModeOutlined aria-hidden="true"/></motion.div>
-          {loading ? <span className="identity-placeholder" aria-label="Verificando sessão"/> : user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><Avatar>{user.nome.trim().charAt(0)}</Avatar><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
-          <IconButton ref={menuButton} className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <Close/> : <Menu/>}</IconButton>
-        </div>
-      </div>
-    </header>
+    <PublicHeader />
 
     <main id="conteudo" tabIndex={-1}>
       <section ref={hero} id="hero" tabIndex={-1} className="hero" aria-labelledby="hero-title">
