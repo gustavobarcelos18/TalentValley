@@ -16,7 +16,7 @@ import { ActionMotion } from "./motion/ActionMotion";
 import { StorySteps } from "./motion/StorySteps";
 import "./landing.css";
 
-const navigation = [["hero", "Hero"], ["como-funciona", "Como funciona"], ["talentos", "Talentos"], ["empresas", "Empresas"], ["rio-pomba-valley", "Rio Pomba Valley"]];
+const navigation = [["hero", "Início"], ["talentos", "Talentos"], ["empresas", "Empresas"], ["como-funciona", "Como funciona"], ["rio-pomba-valley", "Rio Pomba Valley"]];
 const destinations = { ALUNO: "/meu-perfil", RECRUTADOR: "/recrutador", ADMIN: "/admin" };
 
 function Brand() {
@@ -86,18 +86,17 @@ function LandingContent() {
   const dark = (mode === "system" ? systemMode : mode) !== "light";
 
   useEffect(() => {
-    let elevated = false;
     const onScroll = () => {
-      const next = window.scrollY > 24;
-      if (next !== elevated) { elevated = next; setScrolled(next); }
+      setScrolled(window.scrollY > 24);
+      const current = navigation.reduce((id, [sectionId]) => {
+        const section = document.getElementById(sectionId);
+        return section && section.getBoundingClientRect().top <= 120 ? sectionId : id;
+      }, "hero");
+      setActive(current);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => { if (entry.isIntersecting) setActive(entry.target.id); });
-    }, { rootMargin: "-15% 0px -60% 0px" });
-    navigation.forEach(([id]) => { const section = document.getElementById(id); if (section) observer.observe(section); });
-    return () => { window.removeEventListener("scroll", onScroll); observer.disconnect(); };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
 
@@ -107,10 +106,10 @@ function LandingContent() {
       <div className="nav-inner" data-entrance="0.08">
         <Link href="#hero" className="brand-link" aria-label="Talent Valley — início" onClick={() => setMenuOpen(false)}><Brand /></Link>
         <nav id="public-navigation" aria-label="Navegação principal" className={`public-nav ${menuOpen ? "is-open" : ""}`}>
-          {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => { setMenuOpen(false); document.getElementById(id)?.focus({ preventScroll: true }); }}>{label}</a>)}
+          {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
         <div className="nav-actions">
-          <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><LightModeOutlined aria-hidden="true"/><Switch className="theme-toggle" checked={!dark} onChange={(_, checked) => setMode(checked ? "light" : "dark")} slotProps={{ input: { "aria-label": "Tema claro" } }}/><DarkModeOutlined aria-hidden="true"/></motion.div>
+          <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><DarkModeOutlined aria-hidden="true"/><Switch className="theme-toggle" checked={!dark} onChange={(_, checked) => setMode(checked ? "light" : "dark")} slotProps={{ input: { "aria-label": "Tema claro" } }}/><LightModeOutlined aria-hidden="true"/></motion.div>
           {loading ? <span className="identity-placeholder" aria-label="Verificando sessão"/> : user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><Avatar>{user.nome.trim().charAt(0)}</Avatar><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
           <IconButton ref={menuButton} className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <Close/> : <Menu/>}</IconButton>
         </div>

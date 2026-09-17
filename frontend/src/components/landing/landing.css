@@ -54,7 +54,7 @@
 .tv-brand small { font-size: .8rem; color: var(--muted); display: block; margin-top: 5px; letter-spacing: .015em; }
 .public-nav { display: flex; gap: clamp(14px, 2vw, 34px); align-items: center; }
 .public-nav a { font-size: .875rem; padding: 15px 0; position: relative; white-space: nowrap; }
-.public-nav a[aria-current]::after { content: ""; height: 2px; background: var(--teal); position: absolute; bottom: 4px; left: 0; width: 28px; }
+.public-nav a[aria-current]::after { content: ""; height: 2px; background: var(--teal); position: absolute; bottom: 4px; left: 0; width: 100%; }
 .public-nav a:hover { color: var(--teal); }
 .nav-actions { display: flex; align-items: center; gap: 28px; }
 .landing .MuiIconButton-root { color: var(--ink); min-width: 44px; min-height: 44px; }
