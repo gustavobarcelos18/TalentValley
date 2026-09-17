@@ -44,8 +44,8 @@
 .landing h2 em { font-style: normal; color: var(--accent); }
 .landing p { color: var(--muted); line-height: 1.85; }
 .landing .eyebrow { color: var(--accent); font-size: .67rem; font-weight: 600; letter-spacing: .2em; margin-bottom: 26px; line-height: 1.7; }
-.landing-header { position: fixed; top: 0; width: 100%; z-index: 20; border-bottom: 1px solid rgb(168 178 176 / 18%); transition: background-color .2s, border-color .2s; }
-.landing-header.is-elevated { background: var(--nav); backdrop-filter: blur(18px); border-color: var(--line); }
+.landing-header { position: fixed; top: 0; width: 100%; z-index: 20; border-bottom: 1px solid rgb(168 178 176 / 18%); transition: background-color .3s, border-color .3s, box-shadow .3s; }
+.landing-header.is-elevated { background: var(--nav); backdrop-filter: blur(18px); border-color: var(--line); box-shadow: 0 8px 28px rgb(0 0 0 / 8%); }
 .nav-inner { max-width: 1800px; min-height: 92px; margin: auto; padding: 18px 3.2%; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .brand-link { display: inline-flex; flex-shrink: 0; }
 .tv-brand { display: flex; align-items: center; gap: 10px; }
@@ -72,14 +72,14 @@
 .user-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-link .MuiAvatar-root { background: var(--teal); color: var(--page); width: 36px; height: 36px; font-size: .9rem; }
 .identity-placeholder { width: 90px; height: 44px; }
-.hero { position: relative; min-height: 760px; height: 100svh; max-height: 1200px; isolation: isolate; display: flex; justify-content: center; text-align: center; background: var(--page) url('/landing/valley-dark.webp') center center / cover no-repeat; }
-.light .hero { background-image: url('/landing/valley-light.webp'); }
+.hero { position: relative; min-height: 760px; height: 100svh; max-height: 1200px; isolation: isolate; display: flex; justify-content: center; text-align: center; background: var(--page); overflow: clip; }
+.light .hero-background { background-image: url('/landing/valley-light.webp'); }
 .hero-atmosphere { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(13 17 20 / 35%), transparent 56%); }
 .light .hero-atmosphere { background: linear-gradient(180deg, rgb(246 247 242 / 25%), transparent 56%); }
 .hero-copy { position: relative; padding: clamp(140px, 15.4vh, 185px) 20px 0; z-index: 2; }
 .hero h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(4.8rem, 6.35vw, 7rem); line-height: .88; letter-spacing: -.065em; }
-.hero h1 span { color: #a0d060; background: linear-gradient(100deg, #35dc90, #8cba53); background-clip: text; -webkit-text-fill-color: transparent; }
-.light .hero h1 span { color: #36832b; background-image: linear-gradient(100deg, #008652, #52832e); }
+.hero h1 span:not(.hero-title-line) { color: #a0d060; background: linear-gradient(100deg, #35dc90, #8cba53); background-clip: text; -webkit-text-fill-color: transparent; }
+.light .hero h1 span:not(.hero-title-line) { color: #36832b; background-image: linear-gradient(100deg, #008652, #52832e); }
 .hero h1 em { font-style: normal; color: #20c8c0; }
 .light .hero h1 em { color: #007f7b; }
 .hero .hero-subtitle { margin-top: 22px; color: var(--ink); font-size: clamp(1rem, 1.7vw, 1.8rem); line-height: 1.4; letter-spacing: -.025em; }
@@ -166,8 +166,8 @@
 @media (max-width: 1350px) { .hero-side { display: none; }.public-nav { gap: 18px; }.nav-inner { gap: 18px; }.tv-brand strong { font-size: 1.5rem; }.tv-brand > svg { width: 65px; }.audience-section { gap: 45px; }.nav-actions { gap: 16px; }.theme-control { padding-right: 16px; }.landing .login-button { padding-inline: 25px; } }
 @media (max-width: 1023px) {
   .landing .menu-toggle { display: inline-flex; }
-  .public-nav { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--nav); padding: 16px 6% 24px; border-bottom: 1px solid var(--line); }
-  .public-nav.is-open { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+  .public-nav { display: flex; flex-direction: column; align-items: stretch; gap: 2px; visibility: hidden; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity .2s, transform .2s, visibility .2s; position: absolute; top: 100%; left: 0; width: 100%; background: var(--nav); padding: 16px 6% 24px; border-bottom: 1px solid var(--line); }
+  .public-nav.is-open { visibility: visible; opacity: 1; transform: none; pointer-events: auto; }
   .public-nav a { min-height: 48px; }
   .hero h1 { font-size: clamp(4.7rem, 9vw, 7rem); }
   .hero { height: 900px; min-height: 90svh; }
@@ -177,7 +177,7 @@
 @media (max-width: 767px) {
   .nav-inner { min-height: 80px; padding: 12px 16px; gap: 8px; }.tv-brand { gap: 6px; }.tv-brand > svg { width: 38px; }.tv-brand strong { font-size: 1.25rem; }.tv-brand small { font-size: .53rem; }
   .nav-actions { gap: 1px; }.landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }.user-link > span { display: none; }.identity-placeholder { width: 50px; }.theme-control { border: 0; padding: 0; gap: 0; }.theme-control > svg { display: none; }.landing .theme-toggle { width: 54px; }
-  .hero { min-height: 770px; height: 100svh; max-height: 950px; background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }.light .hero { background-image: url('/landing/valley-light-mobile.webp'); }.hero-copy { padding: 145px 20px 0; }.hero h1 { font-size: clamp(3.35rem, 9.9vw, 5.5rem); line-height: 1.05; letter-spacing: -.065em; }
+  .hero { min-height: 770px; height: 100svh; max-height: 950px; }.light .hero-background { background-image: url('/landing/valley-light-mobile.webp'); }.hero-copy { padding: 145px 20px 0; }.hero h1 { font-size: clamp(3.35rem, 9.9vw, 5.5rem); line-height: 1.05; letter-spacing: -.065em; }
   .hero .hero-subtitle { max-width: 310px; margin: 25px auto 0; font-size: 1rem; line-height: 1.6; }.hero .institutional-line { font-size: .53rem; letter-spacing: .13em; margin-top: 17px; }
   .hero .join-actions { gap: 10px; }.landing .join-actions .MuiButton-root { padding: 12px 20px; font-size: .8rem; gap: 8px; }.hero .join-actions .MuiButton-root { min-width: 0; min-height: 54px; }.hero-institution { display: none; }
   .valley-scene { height: 49%; width: 150%; left: -25%; opacity: .85; }.explore-link { bottom: 20px; }
@@ -189,3 +189,26 @@
 }
 @media (max-width: 380px) { .nav-inner { padding-inline: 12px; }.tv-brand > svg { display: none; }.hero-copy { padding-inline: 12px; }.hero h1 { font-size: 3rem; }.landing .join-actions .MuiButton-root { padding-inline: 16px; }.section { padding-inline: 20px; } }
 @media (prefers-reduced-motion: reduce) { .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
+/* Hero motion layers have separate transform owners for scroll and pointer depth. */
+.hero-background-scroll { position: absolute; inset: -18px -12px -85px; z-index: -3; pointer-events: none; }
+.hero-background { width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; }
+.hero-topography, .hero-network { position: absolute; inset: 35% 0 0; z-index: -1; pointer-events: none; }
+.hero-topography { opacity: .24; }
+.hero-network { opacity: .28; }
+.hero-topography-depth, .hero-network-depth, .hero-topography svg, .hero-network svg { width: 100%; height: 100%; }
+.hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
+.hero h1 .hero-title-line { display: inline-block; }
+.landing [data-entrance]:focus-within { opacity: 1 !important; transform: none !important; }
+.hero .join-actions .MuiButton-endIcon { transition: transform .2s; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
+}
+@media (max-width: 767px) {
+  .hero-background-scroll { inset: -4px -2px -20px; }
+  .hero-background { background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }
+  .hero-topography, .hero-network { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing .public-nav { transform: none; transition: opacity .16s, visibility .16s !important; }
+}

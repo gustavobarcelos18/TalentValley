@@ -6,7 +6,11 @@ import Image from "next/image";
 import { Avatar, Button, IconButton, Switch, Tab, Tabs, useColorScheme } from "@mui/material";
 import { KeyboardArrowDown, ArrowForward, Close, DarkModeOutlined, LightModeOutlined, Menu, NorthEast, VisibilityOutlined, HubOutlined, LayersOutlined } from "@mui/icons-material";
 import { useAuth } from "@/hooks/useAuth";
-import { ValleyScene } from "./ValleyScene";
+import { motion } from "framer-motion";
+import { ValleyScene, SceneContours, SceneConnections } from "./ValleyScene";
+import { LandingMotion, useLandingMotionPolicy } from "./motion/LandingMotion";
+import { useLandingEntrance } from "./motion/useLandingEntrance";
+import { useHeroDepth } from "./motion/useHeroDepth";
 import "./landing.css";
 
 const navigation = [["hero", "Hero"], ["como-funciona", "Como funciona"], ["talentos", "Talentos"], ["empresas", "Empresas"], ["rio-pomba-valley", "Rio Pomba Valley"]];
@@ -16,14 +20,31 @@ function Brand() {
   return <span className="tv-brand"><svg width="102" height="50" viewBox="0 0 102 50" fill="none" aria-hidden="true"><path d="M2 46 49 4 66 21 77 14 100 46Z" fill="#008F73"/><path d="m2 46 24-22 12 17Z" fill="#00B838"/><path d="m24 24 25-20-11 37Z" fill="#A0D060"/><path d="m49 4 17 17-28 20Z" fill="#00B838"/><path d="m49 4 7 25 10-8Z" fill="#D8E9B8"/><path d="m56 29 10-8 11 17-20 8Z" fill="#20C8C0"/><path d="m66 21 11-7 8 15Z" fill="#73BB40"/><path d="m77 38 8-9 15 17H57Z" fill="#A0D060"/><path d="M2 46 49 4 66 21 77 14 100 46ZM24 24l32 5 21 9M49 4l7 25-18 12L24 24M56 29l10-8 19 8-8 9 23 8M38 41l-36 5m36-5 18-12" stroke="currentColor" strokeOpacity=".7" strokeWidth=".8"/><path d="M56 29q15 7 1 17" stroke="#F4F7F6" strokeWidth="2"/><circle cx="24" cy="24" r="2" fill="#F4F7F6"/><circle cx="56" cy="29" r="3" fill="#F4F7F6"/><circle cx="77" cy="38" r="2" fill="#F4F7F6"/></svg><span><strong>Talent <em>Valley</em></strong><small>by Rio Pomba Valley</small></span></span>;
 }
 
-function JoinActions({ audience }: { audience?: "talent" | "company" }) {
+function JoinActions({ audience, hero = false }: { audience?: "talent" | "company"; hero?: boolean }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="join-placeholder" role="status"><span className="sr-only">Verificando sessão…</span></div>;
+  if (hero) return <HeroActions user={user} />;
   if (user) return <div className="join-actions"><Button component={Link} href={destinations[user.role]} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></div>;
   return <div className="join-actions">
     {audience !== "company" && <Button component={Link} href="/cadastro/aluno" variant="contained" endIcon={<ArrowForward />}>Sou pombinho</Button>}
     {audience !== "talent" && <Button component={Link} href="/cadastro/recrutador" variant={audience ? "contained" : "outlined"} endIcon={<ArrowForward />}>Sou recrutador</Button>}
   </div>;
+}
+
+function HeroActions({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
+  const entrance = useLandingEntrance();
+  const policy = useLandingMotionPolicy();
+  const hover = policy === "desktop" ? { y: -3 } : undefined;
+  const actions = user
+    ? [{ href: destinations[user.role], label: "Acessar minha área", contained: true }]
+    : [{ href: "/cadastro/aluno", label: "Sou pombinho", contained: true }, { href: "/cadastro/recrutador", label: "Sou recrutador", contained: false }];
+  return <div ref={entrance} className="join-actions" data-motion-scope>{actions.map((action, index) =>
+    <div key={action.href} data-entrance={0.8 + index * 0.1} data-hero-action>
+      <motion.div whileHover={hover} transition={{ duration: 0.2 }}>
+        <Button component={Link} href={action.href} variant={action.contained ? "contained" : "outlined"} endIcon={<ArrowForward />}>{action.label}</Button>
+      </motion.div>
+    </div>
+  )}</div>;
 }
 
 function NetworkPanel({ company = false }: { company?: boolean }) {
@@ -40,6 +61,15 @@ function NetworkPanel({ company = false }: { company?: boolean }) {
 }
 
 export function LandingPage() {
+  return <LandingMotion><LandingContent /></LandingMotion>;
+}
+
+function LandingContent() {
+  const entrance = useLandingEntrance();
+  const hero = useRef<HTMLElement>(null);
+  useHeroDepth(hero);
+  const policy = useLandingMotionPolicy();
+  const reduced = policy === "pending" || policy === "reduced";
   const { user, loading } = useAuth();
   const { mode, systemMode, setMode } = useColorScheme();
   const [scrolled, setScrolled] = useState(false);
@@ -50,7 +80,11 @@ export function LandingPage() {
   const dark = (mode === "system" ? systemMode : mode) !== "light";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    let elevated = false;
+    const onScroll = () => {
+      const next = window.scrollY > 24;
+      if (next !== elevated) { elevated = next; setScrolled(next); }
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     const observer = new IntersectionObserver((entries) => {
@@ -70,16 +104,16 @@ export function LandingPage() {
     ["Conecte-se", "Conheça a trajetória e entre em contato pelos canais do talento."],
   ];
 
-  return <div className="landing">
+  return <div className="landing" ref={entrance} data-motion-scope>
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
     <header className={`landing-header ${scrolled || menuOpen ? "is-elevated" : ""}`} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}>
-      <div className="nav-inner">
+      <div className="nav-inner" data-entrance="0.08">
         <Link href="#hero" className="brand-link" aria-label="Talent Valley — início" onClick={() => setMenuOpen(false)}><Brand /></Link>
         <nav id="public-navigation" aria-label="Navegação principal" className={`public-nav ${menuOpen ? "is-open" : ""}`}>
           {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => { setMenuOpen(false); document.getElementById(id)?.focus({ preventScroll: true }); }}>{label}</a>)}
         </nav>
         <div className="nav-actions">
-          <div className="theme-control"><LightModeOutlined aria-hidden="true"/><Switch className="theme-toggle" checked={!dark} onChange={(_, checked) => setMode(checked ? "light" : "dark")} slotProps={{ input: { "aria-label": "Tema claro" } }}/><DarkModeOutlined aria-hidden="true"/></div>
+          <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><LightModeOutlined aria-hidden="true"/><Switch className="theme-toggle" checked={!dark} onChange={(_, checked) => setMode(checked ? "light" : "dark")} slotProps={{ input: { "aria-label": "Tema claro" } }}/><DarkModeOutlined aria-hidden="true"/></motion.div>
           {loading ? <span className="identity-placeholder" aria-label="Verificando sessão"/> : user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><Avatar>{user.nome.trim().charAt(0)}</Avatar><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
           <IconButton ref={menuButton} className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <Close/> : <Menu/>}</IconButton>
         </div>
@@ -87,20 +121,24 @@ export function LandingPage() {
     </header>
 
     <main id="conteudo" tabIndex={-1}>
-      <section id="hero" tabIndex={-1} className="hero" aria-labelledby="hero-title">
-        <div className="hero-atmosphere" aria-hidden="true"/>
-        <div className="hero-side hero-side-left" aria-hidden="true">PESSOAS<br/>CONEXÕES<br/>UM VALE MAIS FORTE<span/></div>
-        <div className="hero-side hero-side-right" aria-hidden="true">DO NOSSO VALE<br/>PARA MAIS<br/>OPORTUNIDADES<span/></div>
-        <div className="hero-copy">
-          <h1 id="hero-title">Talento <span>encontra</span><br/><em>oportunidade</em> aqui.</h1>
-          <p className="hero-subtitle">Onde talentos e oportunidades se encontram.</p>
-          <p className="institutional-line">Uma iniciativa Rio Pomba Valley</p>
-          <JoinActions />
-        </div>
-        <a className="explore-link" href="#proposta"><span>role para explorar</span><KeyboardArrowDown fontSize="small"/></a>
-        <div className="hero-side hero-side-bottom" aria-hidden="true">RIO POMBA VALLEY<br/>CONECTA<br/>PESSOAS E IDEIAS<span/></div>
-        <div className="hero-side hero-side-middle" aria-hidden="true">TALENTOS<br/>MOVEM<br/>REGIÕES<span/></div>
-        <div className="hero-institution"><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley"/><span>TERRITÓRIO<br/>DE GRANDES<br/>PESSOAS</span></div>
+      <section ref={hero} id="hero" tabIndex={-1} className="hero" aria-labelledby="hero-title">
+        <div className="hero-background-scroll" aria-hidden="true"><div className="hero-background" data-entrance="0" data-entrance-fade /></div>
+        <div className="hero-atmosphere" aria-hidden="true" data-entrance="0" data-entrance-fade />
+        <div className="hero-topography" aria-hidden="true"><div className="hero-topography-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.15" data-entrance-fade><SceneContours compact /></svg></div></div>
+        <div className="hero-network" aria-hidden="true"><div className="hero-network-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.3" data-entrance-fade><SceneConnections /></svg></div></div>
+        <div className="hero-exit-shade" aria-hidden="true"/>
+        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-left" aria-hidden="true">PESSOAS<br/>CONEXÕES<br/>UM VALE MAIS FORTE<span/></div>
+        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-right" aria-hidden="true">DO NOSSO VALE<br/>PARA MAIS<br/>OPORTUNIDADES<span/></div>
+        <div className="hero-copy"><div className="hero-copy-depth">
+          <h1 id="hero-title"><span className="hero-title-line" data-entrance="0.16">Talento <span>encontra</span></span><br/><span className="hero-title-line" data-entrance="0.3"><em>oportunidade</em> aqui.</span></h1>
+          <p className="hero-subtitle" data-entrance="0.48">Onde talentos e oportunidades se encontram.</p>
+          <p className="institutional-line" data-entrance="0.62">Uma iniciativa Rio Pomba Valley</p>
+          <JoinActions hero />
+        </div></div>
+        <a data-entrance="1.35" data-entrance-fade className="explore-link" href="#proposta"><span>role para explorar</span><KeyboardArrowDown fontSize="small"/></a>
+        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-bottom" aria-hidden="true">RIO POMBA VALLEY<br/>CONECTA<br/>PESSOAS E IDEIAS<span/></div>
+        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-middle" aria-hidden="true">TALENTOS<br/>MOVEM<br/>REGIÕES<span/></div>
+        <div className="hero-institution" data-entrance="1.2" data-entrance-fade><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley"/><span>TERRITÓRIO<br/>DE GRANDES<br/>PESSOAS</span></div>
       </section>
 
       <section id="proposta" className="section value-section" aria-labelledby="value-title">

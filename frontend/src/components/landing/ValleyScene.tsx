@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-/** Static vector layers, ready for scoped motion in Phase 2. */
+/** Shared artwork; motion is owned by the hero, never by the scene itself. */
 export function ValleyScene({ compact = false }: { compact?: boolean }) {
   const id = useId().replace(/:/g, "");
   return (
@@ -33,16 +33,28 @@ export function ValleyScene({ compact = false }: { compact?: boolean }) {
         <path d="m1200 295-60 225 126-105Z" fill="var(--scene-lime)" fillOpacity=".16"/>
         <path d="m1040 370-29 143 129 7Z" fill="var(--scene-teal)" fillOpacity=".7"/>
       </g>
+      <SceneContours compact={compact} />
+      <path data-scene-layer="river" d="M731 427C620 480 839 490 716 540S640 602 806 690" stroke={`url(#${id}-river)`} strokeWidth="17" />
+      <path d="M731 427C620 480 839 490 716 540S640 602 806 690" stroke="var(--scene-line)" strokeWidth="1.5" />
+      <SceneConnections />
+      {[[190,355],[465,470],[735,525],[1075,425],[1315,310]].map(([x,y]) => <g key={x}><circle cx={x} cy={y} r="38" fill={`url(#${id}-glow)`}/><circle cx={x} cy={y} r="4" fill="var(--scene-node)"/><circle cx={x} cy={y} r="9" stroke="var(--scene-node)" strokeOpacity=".4"/></g>)}
+    </svg>
+  );
+}
+
+export function SceneContours({ compact = false }: { compact?: boolean }) {
+  return (
       <g data-scene-layer="contours" stroke="var(--scene-line)" strokeWidth=".8" opacity=".55">
         {Array.from({ length: compact ? 13 : 24 }, (_, i) => <path key={i} d={`M-50 ${330+i*14} C120 ${265+i*12} 180 ${490+i*7} 340 ${430+i*10} S490 ${540+i*6} 655 ${605+i*6} M790 ${620+i*5} C940 ${560+i*5} 1020 ${370+i*10} 1160 ${440+i*8} S1330 ${290+i*13} 1500 ${320+i*14}`} />)}
       </g>
-      <path data-scene-layer="river" d="M731 427C620 480 839 490 716 540S640 602 806 690" stroke={`url(#${id}-river)`} strokeWidth="17" />
-      <path d="M731 427C620 480 839 490 716 540S640 602 806 690" stroke="var(--scene-line)" strokeWidth="1.5" />
+  );
+}
+
+export function SceneConnections() {
+  return (
       <g data-scene-layer="connections" stroke="var(--scene-node)" strokeWidth="1" opacity=".75">
         <path d="M190 355Q330 190 465 470Q620 300 735 525Q910 285 1075 425Q1190 180 1315 310"/>
         <path d="M465 470Q755 355 1075 425M190 355 465 470 735 525 1075 425 1315 310" strokeDasharray="3 7"/>
       </g>
-      {[[190,355],[465,470],[735,525],[1075,425],[1315,310]].map(([x,y]) => <g key={x}><circle cx={x} cy={y} r="38" fill={`url(#${id}-glow)`}/><circle cx={x} cy={y} r="4" fill="var(--scene-node)"/><circle cx={x} cy={y} r="9" stroke="var(--scene-node)" strokeOpacity=".4"/></g>)}
-    </svg>
   );
 }
