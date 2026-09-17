@@ -11,6 +11,9 @@ import { ValleyScene, SceneContours, SceneConnections } from "./ValleyScene";
 import { LandingMotion, useLandingMotionPolicy } from "./motion/LandingMotion";
 import { useLandingEntrance } from "./motion/useLandingEntrance";
 import { useHeroDepth } from "./motion/useHeroDepth";
+import { useSectionStories } from "./motion/useSectionStories";
+import { ActionMotion } from "./motion/ActionMotion";
+import { StorySteps } from "./motion/StorySteps";
 import "./landing.css";
 
 const navigation = [["hero", "Hero"], ["como-funciona", "Como funciona"], ["talentos", "Talentos"], ["empresas", "Empresas"], ["rio-pomba-valley", "Rio Pomba Valley"]];
@@ -24,25 +27,23 @@ function JoinActions({ audience, hero = false }: { audience?: "talent" | "compan
   const { user, loading } = useAuth();
   if (loading) return <div className="join-placeholder" role="status"><span className="sr-only">Verificando sessão…</span></div>;
   if (hero) return <HeroActions user={user} />;
-  if (user) return <div className="join-actions"><Button component={Link} href={destinations[user.role]} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></div>;
+  if (user) return <div className="join-actions"><ActionMotion><Button component={Link} href={destinations[user.role]} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></ActionMotion></div>;
   return <div className="join-actions">
-    {audience !== "company" && <Button component={Link} href="/cadastro/aluno" variant="contained" endIcon={<ArrowForward />}>Sou pombinho</Button>}
-    {audience !== "talent" && <Button component={Link} href="/cadastro/recrutador" variant={audience ? "contained" : "outlined"} endIcon={<ArrowForward />}>Sou recrutador</Button>}
+    {audience !== "company" && <ActionMotion><Button component={Link} href="/cadastro/aluno" variant="contained" endIcon={<ArrowForward />}>Sou pombinho</Button></ActionMotion>}
+    {audience !== "talent" && <ActionMotion><Button component={Link} href="/cadastro/recrutador" variant={audience ? "contained" : "outlined"} endIcon={<ArrowForward />}>Sou recrutador</Button></ActionMotion>}
   </div>;
 }
 
 function HeroActions({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   const entrance = useLandingEntrance();
-  const policy = useLandingMotionPolicy();
-  const hover = policy === "desktop" ? { y: -3 } : undefined;
   const actions = user
     ? [{ href: destinations[user.role], label: "Acessar minha área", contained: true }]
     : [{ href: "/cadastro/aluno", label: "Sou pombinho", contained: true }, { href: "/cadastro/recrutador", label: "Sou recrutador", contained: false }];
   return <div ref={entrance} className="join-actions" data-motion-scope>{actions.map((action, index) =>
     <div key={action.href} data-entrance={0.8 + index * 0.1} data-hero-action>
-      <motion.div whileHover={hover} transition={{ duration: 0.2 }}>
+      <ActionMotion>
         <Button component={Link} href={action.href} variant={action.contained ? "contained" : "outlined"} endIcon={<ArrowForward />}>{action.label}</Button>
-      </motion.div>
+      </ActionMotion>
     </div>
   )}</div>;
 }
@@ -51,6 +52,9 @@ function NetworkPanel({ company = false }: { company?: boolean }) {
   return <div className={`network-panel ${company ? "company-network" : ""}`} aria-hidden="true">
     <span className="panel-coordinate">RPV / {company ? "CONEXÕES" : "TRAJETÓRIAS"}</span>
     <ValleyScene compact />
+    <svg className="story-paths" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path d="M50 49 Q25 48 24 27"/><path d="M50 49 Q68 52 82 37"/><path d="M50 49 Q62 70 45 79"/>
+    </svg>
     <div className="network-orbit orbit-one"/><div className="network-orbit orbit-two"/>
     <span className="network-label label-one">{company ? "Competências" : "Formação"}</span>
     <span className="network-label label-two">{company ? "Potencial" : "Projetos"}</span>
@@ -68,6 +72,7 @@ function LandingContent() {
   const entrance = useLandingEntrance();
   const hero = useRef<HTMLElement>(null);
   useHeroDepth(hero);
+  useSectionStories(entrance);
   const policy = useLandingMotionPolicy();
   const reduced = policy === "pending" || policy === "reduced";
   const { user, loading } = useAuth();
@@ -94,15 +99,6 @@ function LandingContent() {
     return () => { window.removeEventListener("scroll", onScroll); observer.disconnect(); };
   }, []);
 
-  const steps = audience === 0 ? [
-    ["Faça parte", "Solicite seu cadastro e dê o primeiro passo no ecossistema."],
-    ["Construa seu perfil", "Apresente sua formação, competências, projetos e experiências."],
-    ["Seja encontrado", "Deixe sua trajetória visível para recrutadores autorizados."],
-  ] : [
-    ["Faça parte", "Solicite seu acesso como recrutador ao ecossistema."],
-    ["Encontre talentos", "Explore perfis por competências, formação e interesses."],
-    ["Conecte-se", "Conheça a trajetória e entre em contato pelos canais do talento."],
-  ];
 
   return <div className="landing" ref={entrance} data-motion-scope>
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
@@ -141,32 +137,32 @@ function LandingContent() {
         <div className="hero-institution" data-entrance="1.2" data-entrance-fade><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley"/><span>TERRITÓRIO<br/>DE GRANDES<br/>PESSOAS</span></div>
       </section>
 
-      <section id="proposta" className="section value-section" aria-labelledby="value-title">
+      <section data-story="value" id="proposta" className="section value-section" aria-labelledby="value-title"><span className="story-continuity" aria-hidden="true"/>
         <div className="section-heading"><p className="eyebrow">UM ECOSSISTEMA DE POSSIBILIDADES</p><h2 id="value-title">Talento, formação e<br/>mercado <em>conectados.</em></h2></div>
         <div className="value-grid grid md:grid-cols-3">
           {[[VisibilityOutlined,"Visibilidade","Sua trajetória ganha espaço. Seu potencial chega a quem busca novos talentos."],[HubOutlined,"Conexão","Pessoas e empresas se aproximam por competências, interesses e possibilidades reais."],[LayersOutlined,"Ecossistema","Educação, tecnologia e mercado fortalecem juntos o futuro da nossa região."]].map(([Icon,title,copy]) => { const Symbol = Icon as typeof VisibilityOutlined; return <article key={String(title)}><Symbol aria-hidden="true"/><h3>{String(title)}</h3><p>{String(copy)}</p></article>; })}
         </div>
       </section>
 
-      <section id="talentos" tabIndex={-1} className="section audience-section grid lg:grid-cols-2" aria-labelledby="talents-title">
-        <div className="audience-copy"><p className="eyebrow">01 / PARA TALENTOS</p><h2 id="talents-title">Seu potencial<br/>merece ser <em>encontrado.</em></h2><p>Você tem uma história para construir. Crie seu perfil profissional, apresente sua formação, competências e trajetória e ganhe visibilidade no ecossistema Rio Pomba Valley.</p><ul className="benefits"><li><span>01</span>Monte seu perfil</li><li><span>02</span>Mostre sua trajetória</li><li><span>03</span>Seja encontrado</li></ul><JoinActions audience="talent"/></div>
+      <section data-story="talent" id="talentos" tabIndex={-1} className="section audience-section grid lg:grid-cols-2" aria-labelledby="talents-title"><span className="story-continuity" aria-hidden="true"/>
+        <div className="audience-copy"><p className="eyebrow">01 / PARA TALENTOS</p><h2 id="talents-title">Seu potencial<br/>merece ser <em>encontrado.</em></h2><p>Você tem uma história para construir. Crie seu perfil profissional, apresente sua formação, competências e trajetória e ganhe visibilidade no ecossistema Rio Pomba Valley.</p><ul className="benefits"><li><span>01</span>Monte seu perfil</li><li><span>02</span>Mostre sua trajetória</li><li><span>03</span>Seja encontrado</li></ul><div className="story-action"><JoinActions audience="talent"/></div></div>
         <NetworkPanel />
       </section>
 
-      <section id="empresas" tabIndex={-1} className="section audience-section company-section grid lg:grid-cols-2" aria-labelledby="companies-title">
+      <section data-story="company" id="empresas" tabIndex={-1} className="section audience-section company-section grid lg:grid-cols-2" aria-labelledby="companies-title"><span className="story-continuity" aria-hidden="true"/>
         <NetworkPanel company />
-        <div className="audience-copy"><p className="eyebrow">02 / PARA RECRUTADORES</p><h2 id="companies-title">Encontre talento<br/>onde ele está <em>nascendo.</em></h2><p>O próximo talento da sua equipe pode estar mais perto do que você imagina. Conheça profissionais da região, explore competências e formação e descubra o potencial por trás de cada trajetória.</p><div className="company-note"><NorthEast aria-hidden="true"/><p>Conexões locais.<br/><strong>Possibilidades que vão além.</strong></p></div><JoinActions audience="company"/></div>
+        <div className="audience-copy"><p className="eyebrow">02 / PARA RECRUTADORES</p><h2 id="companies-title">Encontre talento<br/>onde ele está <em>nascendo.</em></h2><p>O próximo talento da sua equipe pode estar mais perto do que você imagina. Conheça profissionais da região, explore competências e formação e descubra o potencial por trás de cada trajetória.</p><div className="company-note"><NorthEast aria-hidden="true"/><p>Conexões locais.<br/><strong>Possibilidades que vão além.</strong></p></div><div className="story-action"><JoinActions audience="company"/></div></div>
       </section>
 
-      <section id="como-funciona" tabIndex={-1} className="how-section" aria-labelledby="how-title"><div className="section">
+      <section data-story="how" id="como-funciona" tabIndex={-1} className="how-section" aria-labelledby="how-title"><span className="story-continuity" aria-hidden="true"/><div className="section">
         <div className="section-heading"><p className="eyebrow">SIMPLES PARA COMEÇAR</p><h2 id="how-title">Seu próximo passo.<br/><em>Uma nova possibilidade.</em></h2></div>
         <Tabs className="audience-tabs" value={audience} onChange={(_, value: number) => setAudience(value)} centered aria-label="Como funciona para cada público"><Tab id="how-tab-0" aria-controls="how-panel-0" label="Para talentos"/><Tab id="how-tab-1" aria-controls="how-panel-1" label="Para empresas"/></Tabs>
-        <div role="tabpanel" id={`how-panel-${audience}`} aria-labelledby={`how-tab-${audience}`} tabIndex={0}><ol className="steps-grid grid md:grid-cols-3">{steps.map(([title, copy], index) => <li key={title}><span className="step-number">0{index+1}</span><h3>{title}</h3><p>{copy}</p></li>)}</ol></div>
+        <StorySteps audience={audience}/>
       </div></section>
 
-      <section id="rio-pomba-valley" tabIndex={-1} className="section institution-section" aria-labelledby="rpv-title">
+      <section data-story="institution" id="rio-pomba-valley" tabIndex={-1} className="section institution-section" aria-labelledby="rpv-title"><span className="story-continuity" aria-hidden="true"/>
         <div className="institution-brand"><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley MG.BR — marca institucional original"/><span>ORIGEM LOCAL. VOCAÇÃO PARA O FUTURO.</span></div>
-        <div><p className="eyebrow">NOSSA ORIGEM, NOSSA FORÇA</p><h2 id="rpv-title">Um vale de pessoas.<br/><em>Um mundo de potencial.</em></h2><p>O Rio Pomba Valley conecta pessoas, empresas, educação, tecnologia e inovação. Uma rede que valoriza o conhecimento da nossa região e abre caminhos para o seu desenvolvimento.</p><p>O Talent Valley nasce dessa conexão: um espaço para aproximar quem está construindo sua trajetória de quem acredita no seu potencial.</p><div className="ecosystem-words"><span>Pessoas</span><span>Educação</span><span>Empresas</span><span>Tecnologia</span><span>Inovação</span></div></div>
+        <div className="institution-copy"><p className="eyebrow">NOSSA ORIGEM, NOSSA FORÇA</p><h2 id="rpv-title">Um vale de pessoas.<br/><em>Um mundo de potencial.</em></h2><p>O Rio Pomba Valley conecta pessoas, empresas, educação, tecnologia e inovação. Uma rede que valoriza o conhecimento da nossa região e abre caminhos para o seu desenvolvimento.</p><p>O Talent Valley nasce dessa conexão: um espaço para aproximar quem está construindo sua trajetória de quem acredita no seu potencial.</p><div className="ecosystem-words"><span>Pessoas</span><span>Educação</span><span>Empresas</span><span>Tecnologia</span><span>Inovação</span></div></div>
       </section>
     </main>
     <footer className="landing-footer"><div className="footer-main"><Link className="brand-link" href="#hero"><Brand/></Link><p>O próximo capítulo começa com uma conexão.</p><Link href={user ? destinations[user.role] : "/login"}>{user ? "Minha área" : "Login"}<NorthEast fontSize="small"/></Link></div><div className="footer-bottom"><span>Talent Valley · Uma iniciativa Rio Pomba Valley</span><span>Feito de pessoas. Conectado ao futuro.</span></div></footer>

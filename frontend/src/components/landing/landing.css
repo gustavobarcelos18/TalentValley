@@ -200,9 +200,9 @@
 .hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
 .hero h1 .hero-title-line { display: inline-block; }
 .landing [data-entrance]:focus-within { opacity: 1 !important; transform: none !important; }
-.hero .join-actions .MuiButton-endIcon { transition: transform .2s; }
+.landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .hero .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
+  .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
 }
 @media (max-width: 767px) {
   .hero-background-scroll { inset: -4px -2px -20px; }
@@ -211,4 +211,21 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .landing .public-nav { transform: none; transition: opacity .16s, visibility .16s !important; }
+}
+
+/* Shared continuation and network paths inherit the live theme's scene colors. */
+[data-story] { position: relative; }
+.story-continuity { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--scene-line), transparent); pointer-events: none; }
+.story-paths { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; stroke: var(--scene-node); opacity: .45; }
+.story-paths path { stroke-width: 1; vector-effect: non-scaling-stroke; }
+.story-steps { display: grid; }
+.story-steps > * { grid-area: 1 / 1; min-width: 0; }
+.steps-measure { visibility: hidden; pointer-events: none; }
+.step-number { position: relative; }
+.step-connection { position: absolute; bottom: -1px; left: 0; right: -56px; height: 1px; background: linear-gradient(90deg, var(--accent), var(--scene-line)); transform-origin: left; }
+.steps-grid li:last-child .step-connection { right: 0; }
+.story-action:focus-within { opacity: 1 !important; transform: none !important; }
+@media (max-width: 767px) {
+  .step-connection { right: 0; }
+  .story-paths { opacity: .25; }
 }
