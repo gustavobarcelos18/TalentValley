@@ -52,8 +52,9 @@ function NetworkPanel({ company = false }: { company?: boolean }) {
   return <div className={`network-panel ${company ? "company-network" : ""}`} aria-hidden="true">
     <span className="panel-coordinate">RPV / {company ? "CONEXÕES" : "TRAJETÓRIAS"}</span>
     <ValleyScene compact />
+    <div className="panel-glow"/>
     <svg className="story-paths" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" aria-hidden="true">
-      <path d="M50 49 Q25 48 24 27"/><path d="M50 49 Q68 52 82 37"/><path d="M50 49 Q62 70 45 79"/>
+      <path d="M50 49 Q25 48 24 27"/><path className="path-light" pathLength="100" d="M50 49 Q25 48 24 27"/><path d="M50 49 Q68 52 82 37"/><path d="M50 49 Q62 70 45 79"/>
     </svg>
     <div className="network-orbit orbit-one"/><div className="network-orbit orbit-two"/>
     <span className="network-label label-one">{company ? "Competências" : "Formação"}</span>
@@ -119,26 +120,27 @@ function LandingContent() {
     <main id="conteudo" tabIndex={-1}>
       <section ref={hero} id="hero" tabIndex={-1} className="hero" aria-labelledby="hero-title">
         <div className="hero-background-scroll" aria-hidden="true"><div className="hero-background" data-entrance="0" data-entrance-fade /></div>
-        <div className="hero-atmosphere" aria-hidden="true" data-entrance="0" data-entrance-fade />
+        <div className="hero-valley" aria-hidden="true"><ValleyScene /></div>
+        <div className="hero-atmosphere" aria-hidden="true"><div className="hero-glow" data-entrance="0" data-entrance-fade /></div>
         <div className="hero-topography" aria-hidden="true"><div className="hero-topography-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.15" data-entrance-fade><SceneContours compact /></svg></div></div>
         <div className="hero-network" aria-hidden="true"><div className="hero-network-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.3" data-entrance-fade><SceneConnections /></svg></div></div>
         <div className="hero-exit-shade" aria-hidden="true"/>
-        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-left" aria-hidden="true">PESSOAS<br/>CONEXÕES<br/>UM VALE MAIS FORTE<span/></div>
-        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-right" aria-hidden="true">DO NOSSO VALE<br/>PARA MAIS<br/>OPORTUNIDADES<span/></div>
+        <div className="hero-side hero-side-left" aria-hidden="true">PESSOAS<br/>CONEXÕES<br/>UM VALE MAIS FORTE<span/></div>
+        <div className="hero-side hero-side-right" aria-hidden="true">DO NOSSO VALE<br/>PARA MAIS<br/>OPORTUNIDADES<span/></div>
         <div className="hero-copy"><div className="hero-copy-depth">
-          <h1 id="hero-title"><span className="hero-title-line" data-entrance="0.16">Talento <span>encontra</span></span><br/><span className="hero-title-line" data-entrance="0.3"><em>oportunidade</em> aqui.</span></h1>
-          <p className="hero-subtitle" data-entrance="0.48">Onde talentos e oportunidades se encontram.</p>
-          <p className="institutional-line" data-entrance="0.62">Uma iniciativa Rio Pomba Valley</p>
-          <JoinActions hero />
+          <div className="hero-headline-scroll"><h1 id="hero-title"><span className="hero-title-line" data-entrance="0.16">Talento <span>encontra</span></span><br/><span className="hero-title-line" data-entrance="0.3"><em>oportunidade</em> aqui.</span></h1></div>
+          <div className="hero-subtitle-scroll"><p className="hero-subtitle" data-entrance="0.48">Onde talentos e oportunidades se encontram.</p></div>
+          <div className="hero-institutional-scroll"><p className="institutional-line" data-entrance="0.62">Uma iniciativa Rio Pomba Valley</p></div>
+          <div className="hero-actions-scroll"><JoinActions hero /></div>
         </div></div>
-        <a data-entrance="1.35" data-entrance-fade className="explore-link" href="#proposta"><span>role para explorar</span><KeyboardArrowDown fontSize="small"/></a>
-        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-bottom" aria-hidden="true">RIO POMBA VALLEY<br/>CONECTA<br/>PESSOAS E IDEIAS<span/></div>
-        <div data-entrance="1.2" data-entrance-fade className="hero-side hero-side-middle" aria-hidden="true">TALENTOS<br/>MOVEM<br/>REGIÕES<span/></div>
+        <a className="explore-link" href="#proposta"><span>role para explorar</span><KeyboardArrowDown fontSize="small"/></a>
+        <div className="hero-side hero-side-bottom" aria-hidden="true">RIO POMBA VALLEY<br/>CONECTA<br/>PESSOAS E IDEIAS<span/></div>
+        <div className="hero-side hero-side-middle" aria-hidden="true">TALENTOS<br/>MOVEM<br/>REGIÕES<span/></div>
         <div className="hero-institution" data-entrance="1.2" data-entrance-fade><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley"/><span>TERRITÓRIO<br/>DE GRANDES<br/>PESSOAS</span></div>
       </section>
 
       <section data-story="value" id="proposta" className="section value-section" aria-labelledby="value-title"><span className="story-continuity" aria-hidden="true"/>
-        <div className="section-heading"><p className="eyebrow">UM ECOSSISTEMA DE POSSIBILIDADES</p><h2 id="value-title">Talento, formação e<br/>mercado <em>conectados.</em></h2></div>
+        <div className="value-cover" aria-hidden="true"/><div className="section-heading"><p className="eyebrow">UM ECOSSISTEMA DE POSSIBILIDADES</p><h2 id="value-title"><span className="title-mask"><span className="title-plane">Talento, formação e</span></span><span className="title-mask"><span className="title-plane">mercado <em>conectados.</em></span></span></h2></div>
         <div className="value-grid grid md:grid-cols-3">
           {[[VisibilityOutlined,"Visibilidade","Sua trajetória ganha espaço. Seu potencial chega a quem busca novos talentos."],[HubOutlined,"Conexão","Pessoas e empresas se aproximam por competências, interesses e possibilidades reais."],[LayersOutlined,"Ecossistema","Educação, tecnologia e mercado fortalecem juntos o futuro da nossa região."]].map(([Icon,title,copy]) => { const Symbol = Icon as typeof VisibilityOutlined; return <article key={String(title)}><Symbol aria-hidden="true"/><h3>{String(title)}</h3><p>{String(copy)}</p></article>; })}
         </div>
@@ -161,7 +163,7 @@ function LandingContent() {
       </div></section>
 
       <section data-story="institution" id="rio-pomba-valley" tabIndex={-1} className="section institution-section" aria-labelledby="rpv-title"><span className="story-continuity" aria-hidden="true"/>
-        <div className="institution-brand"><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley MG.BR — marca institucional original"/><span>ORIGEM LOCAL. VOCAÇÃO PARA O FUTURO.</span></div>
+        <div className="institution-scene" aria-hidden="true"><ValleyScene compact /></div><div className="institution-brand"><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley MG.BR — marca institucional original"/><span>ORIGEM LOCAL. VOCAÇÃO PARA O FUTURO.</span></div>
         <div className="institution-copy"><p className="eyebrow">NOSSA ORIGEM, NOSSA FORÇA</p><h2 id="rpv-title">Um vale de pessoas.<br/><em>Um mundo de potencial.</em></h2><p>O Rio Pomba Valley conecta pessoas, empresas, educação, tecnologia e inovação. Uma rede que valoriza o conhecimento da nossa região e abre caminhos para o seu desenvolvimento.</p><p>O Talent Valley nasce dessa conexão: um espaço para aproximar quem está construindo sua trajetória de quem acredita no seu potencial.</p><div className="ecosystem-words"><span>Pessoas</span><span>Educação</span><span>Empresas</span><span>Tecnologia</span><span>Inovação</span></div></div>
       </section>
     </main>

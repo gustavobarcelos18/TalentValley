@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLandingMotionPolicy } from "./LandingMotion";
 
-/** One entry timeline per section; no pinning, loops, or per-frame React work. */
+/** One reversible scrub per section; ambient tweens share a visibility observer. */
 export function useSectionStories(ref: RefObject<HTMLElement | null>) {
   const policy = useLandingMotionPolicy();
 
@@ -13,97 +13,85 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
     const root = ref.current;
     if (!root || policy === "pending" || policy === "reduced") return;
     gsap.registerPlugin(ScrollTrigger);
-    let observer: IntersectionObserver | undefined;
-    const timelines = new Map<Element, gsap.core.Timeline>();
+    const mobile = policy === "mobile";
+    const d = mobile ? 0.3 : 1;
+    const ambient = new Map<Element, gsap.core.Timeline>();
+    const visible = new Set<Element>();
+    const updateAmbient = () => ambient.forEach((timeline, section) => {
+      if (visible.has(section) && !document.hidden) timeline.play();
+      else timeline.pause();
+    });
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) visible.add(entry.target);
+        else visible.delete(entry.target);
+      });
+      updateAmbient();
+    });
     const context = gsap.context(() => {
-      const sections = root.querySelectorAll<HTMLElement>("[data-story]");
-      if (policy === "mobile") {
-        // A single observer reveals local groups as they enter the tall mobile layout.
-        // Network artwork is static: no path drawing or simultaneous depth layers.
-        observer = new IntersectionObserver(entries => entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-          timelines.get(entry.target)?.play();
-          observer?.unobserve(entry.target);
-        }), { rootMargin: "0px 0px -6% 0px" });
-        sections.forEach(section => {
-          section.querySelectorAll<HTMLElement>(".eyebrow, h2, .value-grid article, .audience-copy > p:not(.eyebrow), .benefits li, .company-note, .story-action, .network-panel, .institution-brand, .institution-copy > p:not(.eyebrow), .ecosystem-words").forEach(element => {
-            const timeline = gsap.timeline({ paused: true }).from(element, {
-              opacity: 0, y: 8, duration: 0.4, ease: "power2.out", clearProps: "opacity,transform",
-            });
-            timelines.set(element, timeline);
-            observer?.observe(element);
-          });
-        });
-        return;
-      }
-
-      sections.forEach(section => {
+      root.querySelectorAll<HTMLElement>("[data-story]").forEach(section => {
         const select = gsap.utils.selector(section);
+        const value = section.dataset.story === "value";
+        const company = section.dataset.story === "company";
         const timeline = gsap.timeline({
-          defaults: { duration: 0.7, ease: "power2.out" },
-          scrollTrigger: { trigger: section, start: "top 75%", once: true },
+          defaults: { ease: "none", duration: 1 },
+          scrollTrigger: { trigger: section, start: value ? "top bottom" : "top 95%", end: "bottom top", scrub: true, invalidateOnRefresh: true },
         });
-        timelines.set(section, timeline);
-        const reveal = (selector: string, at: number, stagger = 0.1, duration = 0.7) => {
+        const from = (selector: string, vars: gsap.TweenVars, at = 0) => {
           const elements = select(selector);
-          if (elements.length) timeline.from(elements, { opacity: 0, y: 16, stagger, duration, clearProps: "opacity,transform" }, at);
+          if (elements.length) timeline.from(elements, vars, at);
         };
-        const paths = (at: number, converge = false) => {
-          section.querySelectorAll<SVGPathElement>(".story-paths path, [data-scene-layer='connections'] path:not([stroke-dasharray])").forEach((path, index) => {
-            const length = path.getTotalLength();
-            timeline.fromTo(path, { strokeDasharray: length, strokeDashoffset: converge ? -length : length }, {
-              strokeDashoffset: 0, duration: 0.9, ease: "power1.inOut", clearProps: "strokeDasharray,strokeDashoffset",
-            }, at + index * 0.12);
-          });
+        const depth = (selector: string, y: number) => {
+          const elements = select(selector);
+          if (elements.length) timeline.fromTo(elements, { y: -y * d }, { y: y * d }, 0);
         };
-        timeline.from(select(".story-continuity"), { scaleX: 0, transformOrigin: "left", duration: 1.2, clearProps: "transform" }, 0);
-        switch (section.dataset.story) {
-          case "value":
-            reveal(".eyebrow, h2", 0, 0.12);
-            reveal(".value-grid article", 0.25, 0.16);
-            break;
-          case "talent":
-            reveal(".eyebrow, h2", 0);
-            reveal(".audience-copy > p:not(.eyebrow)", 0.2);
-            timeline.from(select(".network-panel"), { opacity: 0, scale: 0.96, y: 20, duration: 1, clearProps: "opacity,transform" }, 0.35);
-            paths(0.55);
-            reveal(".network-label", 0.75, 0.2);
-            timeline.from(select(".network-center"), { scale: 0.92, opacity: 0.4, clearProps: "opacity,transform" }, 1.3);
-            reveal(".benefits li", 1.5, 0.14);
-            reveal(".story-action", 1.95);
-            break;
-          case "company":
-            reveal(".network-panel", 0, 0, 0.9);
-            reveal(".network-label", 0.3, 0.18);
-            paths(0.65, true);
-            timeline.from(select(".network-center"), { opacity: 0, scale: 0.94, clearProps: "opacity,transform" }, 1.05);
-            reveal(".eyebrow, h2, .audience-copy > p:not(.eyebrow), .company-note", 1.15, 0.12);
-            reveal(".story-action", 1.8);
-            break;
-          case "how":
-            reveal(".eyebrow, h2", 0);
-            break;
-          case "institution":
-            // Fade the intact logo container; never transform/filter the original artwork.
-            timeline.from(select(".institution-brand"), { opacity: 0, duration: 1.1, clearProps: "opacity" }, 0);
-            reveal(".eyebrow, h2, .institution-copy > p:not(.eyebrow)", 0.25, 0.18, 1);
-            reveal(".ecosystem-words span", 0.95, 0.18, 0.85);
-            break;
+        from(".eyebrow", { y: 50 * d, opacity: 0, duration: 0.25 });
+        if (value) {
+          from(".value-cover", { y: mobile ? 70 : 190, duration: 0.6 });
+          from(".title-plane", { yPercent: 115, opacity: 0, scale: 0.97, stagger: mobile ? 0.04 : 0.08, duration: mobile ? 0.16 : 0.32 }, mobile ? 0.02 : 0.08);
+          from(".value-grid article", { y: 45 * d, opacity: 0, stagger: 0.04, duration: mobile ? 0.16 : 0.25 }, mobile ? 0.12 : 0.24);
+        } else {
+          from("h2", { y: (company ? 115 : 85) * d, opacity: 0, duration: mobile ? 0.2 : 0.35 }, 0.04);
+          from(".audience-copy > p:not(.eyebrow), .institution-copy > p:not(.eyebrow)", { y: 20 * d, opacity: 0, stagger: 0.04, duration: 0.25 }, 0.1);
+        }
+        depth(".story-continuity", -90);
+        depth("[data-scene-layer='distant']", 55);
+        depth("[data-scene-layer='facets']", 90);
+        depth("[data-scene-layer='mesh'], [data-scene-layer='contours']", 30);
+        depth("[data-scene-layer='connections']", -65);
+        depth(".panel-glow", -100);
+        if (company) {
+          from(".network-orbit", { scale: 1.35, rotation: 8, duration: 0.65 });
+          from(".story-paths", { scale: 1.3, opacity: 0.15, duration: 0.65 });
+          from(".label-one", { x: -55 * d, y: -65 * d, duration: 0.65 });
+          from(".label-two", { x: 65 * d, y: -40 * d, duration: 0.65 });
+          from(".label-three", { y: 80 * d, duration: 0.65 });
+        } else {
+          depth(".story-paths", -45);
+          depth(".label-one", -55);
+          depth(".label-two", 38);
+          depth(".label-three", -28);
+          from(".network-orbit", { rotation: -7, scale: 1.12 });
+        }
+        from(".network-center", { scale: 0.88, duration: 0.5 });
+        from(".ecosystem-words span", { y: (index: number) => (24 + index * 9) * d, opacity: 0, stagger: 0.035, duration: 0.4 }, 0.1);
+        // The original institutional logo is never transformed or filtered.
+        from(".institution-brand", { opacity: 0, duration: 0.3 });
+
+        if (!mobile && select(".panel-glow").length) {
+          const loop = gsap.timeline({ paused: true, repeat: -1, yoyo: true })
+            .fromTo(select(".panel-glow"), { opacity: 0.35 }, { opacity: 0.75, duration: 4, ease: "sine.inOut" }, 0)
+            .fromTo(select(".network-center svg"), { opacity: 0.65 }, { opacity: 1, duration: 3, ease: "sine.inOut" }, 0)
+            .fromTo(select(".path-light"), { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 4, ease: "none" }, 0);
+          ambient.set(section, loop);
+          observer.observe(section);
         }
       });
     }, root);
-
-    // Keyboard navigation must never land on an invisible, delayed action.
-    const onFocus = (event: FocusEvent) => {
-      if (!(event.target instanceof Element)) return;
-      timelines.forEach((timeline, element) => {
-        if (element.contains(event.target as Node)) timeline.progress(1);
-      });
-    };
-    root.addEventListener("focusin", onFocus);
+    document.addEventListener("visibilitychange", updateAmbient);
     return () => {
-      root.removeEventListener("focusin", onFocus);
-      observer?.disconnect();
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", updateAmbient);
       context.revert();
     };
   }, [policy, ref]);

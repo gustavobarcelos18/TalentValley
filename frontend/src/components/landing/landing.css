@@ -229,3 +229,51 @@
   .step-connection { right: 0; }
   .story-paths { opacity: .25; }
 }
+
+/* Phase 2.2: the landscape bleeds into a rising, feathered value backdrop. */
+.landing { overflow-x: clip; }
+.hero { overflow: visible; z-index: 1; }
+.hero-background-scroll { bottom: -26svh; }
+.hero-background { mask-image: linear-gradient(#000 75%, transparent 100%); }
+.hero-valley { position: absolute; inset: 40% -3% -25svh; z-index: -2; pointer-events: none; opacity: .65; }
+.hero-valley .valley-scene { width: 100%; height: 100%; left: 0; mask-image: linear-gradient(transparent, #000 25%, #000 70%, transparent); }
+.hero-valley [data-scene-layer='contours'], .hero-valley [data-scene-layer='connections'] { display: none; }
+.hero-topography, .hero-network { bottom: -22svh; }
+.hero-glow { position: absolute; inset: 15% -10% -15%; background: radial-gradient(ellipse at 65% 65%, rgb(32 200 192 / 22%), transparent 55%); }
+.hero-exit-shade { bottom: -26svh; height: 35svh; }
+.hero h1 .hero-title-line { color: inherit; background: none; -webkit-text-fill-color: initial; }
+.hero-actions-scroll:focus-within { opacity: 1 !important; transform: none !important; }
+.value-section { z-index: 2; isolation: isolate; padding-top: 13svh; }
+.value-cover { position: absolute; inset: -8svh calc((100% - 100vw) / 2) -1px; z-index: -1; background: linear-gradient(transparent, var(--page) 24svh); pointer-events: none; }
+.value-section > .story-continuity { display: none; }
+.title-mask { display: block; overflow: clip; padding-bottom: .12em; margin-bottom: -.12em; }
+.title-plane { display: inline-block; transform-origin: 50% 100%; }
+[data-story]:not(.value-section) { z-index: 2; }
+.audience-section { border-top: 0; }
+.story-continuity { top: -60px; height: 170px; opacity: .45; background: repeating-radial-gradient(ellipse at 75% 100%, transparent 0 27px, var(--scene-line) 28px 29px, transparent 30px 48px); mask-image: linear-gradient(transparent, #000 50%, transparent); z-index: -1; }
+.network-panel { overflow: visible; background: none; border: 0; }
+.network-panel::before { content: ""; position: absolute; inset: 0; z-index: -2; border: 1px solid var(--line); border-radius: inherit; background: radial-gradient(ellipse at 50% 50%, rgb(0 168 152 / 14%), transparent 65%), var(--surface); }
+.network-panel .valley-scene { overflow: visible; mask-image: linear-gradient(transparent, #000 25%, #000 65%, transparent); }
+.network-orbit { max-width: 115%; }
+.panel-glow { position: absolute; inset: 40% -8% -15%; pointer-events: none; background: radial-gradient(ellipse, rgb(32 200 192 / 22%), transparent 65%); z-index: 2; }
+.path-light { stroke: var(--accent); stroke-dasharray: 4 96; stroke-width: 2 !important; }
+.institution-section { isolation: isolate; }
+.institution-scene { position: absolute; inset: -10% 0; z-index: -1; opacity: .22; pointer-events: none; }
+.institution-scene .valley-scene { height: 100%; mask-image: linear-gradient(transparent, #000 30%, transparent); }
+@media (max-width: 767px) {
+  .hero-background-scroll { bottom: -16svh; }
+  .hero-valley { inset: 55% 0 -14svh; opacity: .4; }
+  .hero-topography { display: block; inset: 60% 0 -12svh; opacity: .15; }
+  .hero-exit-shade { bottom: -16svh; height: 24svh; }
+  .value-section { padding-top: 8svh; }
+  .value-cover { top: -4svh; background: linear-gradient(transparent, var(--page) 16svh); }
+  .network-panel { margin-inline: 6px; }
+  .network-label { padding: 9px 11px; }
+  .network-panel .compact { width: 100%; left: 0; }
+  .panel-glow { opacity: .35; }
+  .path-light { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .path-light { display: none; }
+  .hero-valley { opacity: .35; }
+}
