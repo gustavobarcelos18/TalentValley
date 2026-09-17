@@ -29,7 +29,7 @@ function JoinActions({ audience, hero = false }: { audience?: "talent" | "compan
   if (hero) return <HeroActions user={user} />;
   if (user) return <div className="join-actions"><ActionMotion><Button component={Link} href={destinations[user.role]} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></ActionMotion></div>;
   return <div className="join-actions">
-    {audience !== "company" && <ActionMotion><Button component={Link} href="/cadastro/aluno" variant="contained" endIcon={<ArrowForward />}>Sou pombinho</Button></ActionMotion>}
+    {audience !== "company" && <ActionMotion><Button component={Link} href="/cadastro/aluno" variant="contained" endIcon={<ArrowForward />}>Sou Talento</Button></ActionMotion>}
     {audience !== "talent" && <ActionMotion><Button component={Link} href="/cadastro/recrutador" variant={audience ? "contained" : "outlined"} endIcon={<ArrowForward />}>Sou recrutador</Button></ActionMotion>}
   </div>;
 }
@@ -38,7 +38,7 @@ function HeroActions({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   const entrance = useLandingEntrance();
   const actions = user
     ? [{ href: destinations[user.role], label: "Acessar minha área", contained: true }]
-    : [{ href: "/cadastro/aluno", label: "Sou pombinho", contained: true }, { href: "/cadastro/recrutador", label: "Sou recrutador", contained: false }];
+    : [{ href: "/cadastro/aluno", label: "Sou Talento", contained: true }, { href: "/cadastro/recrutador", label: "Sou recrutador", contained: false }];
   return <div ref={entrance} className="join-actions" data-motion-scope>{actions.map((action, index) =>
     <div key={action.href} data-entrance={0.8 + index * 0.1} data-hero-action>
       <ActionMotion>
