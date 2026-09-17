@@ -120,23 +120,16 @@ function LandingContent() {
     <main id="conteudo" tabIndex={-1}>
       <section ref={hero} id="hero" tabIndex={-1} className="hero" aria-labelledby="hero-title">
         <div className="hero-background-scroll" aria-hidden="true"><div className="hero-background" data-entrance="0" data-entrance-fade /></div>
-        <div className="hero-valley" aria-hidden="true"><ValleyScene /></div>
         <div className="hero-atmosphere" aria-hidden="true"><div className="hero-glow" data-entrance="0" data-entrance-fade /></div>
-        <div className="hero-topography" aria-hidden="true"><div className="hero-topography-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.15" data-entrance-fade><SceneContours compact /></svg></div></div>
-        <div className="hero-network" aria-hidden="true"><div className="hero-network-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.3" data-entrance-fade><SceneConnections /></svg></div></div>
+        <div className="hero-technology" aria-hidden="true"><div className="hero-technology-depth"><svg viewBox="0 0 1440 680" preserveAspectRatio="xMidYMax slice" fill="none" data-entrance="1.15" data-entrance-fade><SceneContours compact /><SceneConnections /></svg></div></div>
         <div className="hero-exit-shade" aria-hidden="true"/>
-        <div className="hero-side hero-side-left" aria-hidden="true">PESSOAS<br/>CONEXÕES<br/>UM VALE MAIS FORTE<span/></div>
-        <div className="hero-side hero-side-right" aria-hidden="true">DO NOSSO VALE<br/>PARA MAIS<br/>OPORTUNIDADES<span/></div>
         <div className="hero-copy"><div className="hero-copy-depth">
           <div className="hero-headline-scroll"><h1 id="hero-title"><span className="hero-title-line" data-entrance="0.16">Talento <span>encontra</span></span><br/><span className="hero-title-line" data-entrance="0.3"><em>oportunidade</em> aqui.</span></h1></div>
           <div className="hero-subtitle-scroll"><p className="hero-subtitle" data-entrance="0.48">Onde talentos e oportunidades se encontram.</p></div>
           <div className="hero-institutional-scroll"><p className="institutional-line" data-entrance="0.62">Uma iniciativa Rio Pomba Valley</p></div>
           <div className="hero-actions-scroll"><JoinActions hero /></div>
         </div></div>
-        <a className="explore-link" href="#proposta"><span>role para explorar</span><KeyboardArrowDown fontSize="small"/></a>
-        <div className="hero-side hero-side-bottom" aria-hidden="true">RIO POMBA VALLEY<br/>CONECTA<br/>PESSOAS E IDEIAS<span/></div>
-        <div className="hero-side hero-side-middle" aria-hidden="true">TALENTOS<br/>MOVEM<br/>REGIÕES<span/></div>
-        <div className="hero-institution" data-entrance="1.2" data-entrance-fade><Image src="/brand/rio-pomba-valley.png" width={291} height={244} alt="Rio Pomba Valley"/><span>TERRITÓRIO<br/>DE GRANDES<br/>PESSOAS</span></div>
+        <a className="explore-link" href="#proposta" aria-label="Rolar para explorar"><KeyboardArrowDown/></a>
       </section>
 
       <section data-story="value" id="proposta" className="section value-section" aria-labelledby="value-title"><span className="story-continuity" aria-hidden="true"/>
