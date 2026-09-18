@@ -163,7 +163,6 @@ function AtivarContaContent() {
                               aria-label={passwordAriaLabel}
                               onClick={() => setShowPassword((v) => !v)}
                               edge="end"
-                              tabIndex={-1}
                             >
                               {visibilityIcon}
                             </IconButton>

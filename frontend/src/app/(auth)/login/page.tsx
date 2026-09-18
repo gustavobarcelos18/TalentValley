@@ -174,7 +174,6 @@ function LoginContent() {
                           aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                           onClick={() => setShowPassword((v) => !v)}
                           edge="end"
-                          tabIndex={-1}
                         >
                           {visibilityIcon}
                         </IconButton>

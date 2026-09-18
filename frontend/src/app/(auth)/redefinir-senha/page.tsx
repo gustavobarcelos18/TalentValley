@@ -286,7 +286,6 @@ function PasswordField({
                 aria-label={ariaLabel}
                 onClick={onTogglePassword}
                 edge="end"
-                tabIndex={-1}
               >
                 {visibilityIcon}
               </IconButton>
