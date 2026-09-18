@@ -686,13 +686,72 @@ export function AdminStudentDetailView({ id }: { id: string }) {
       </Section>
       <Section title="Contato">
         <Stack spacing={0.5}>
-          {Object.entries(p.contato)
-            .filter(([, v]) => v)
-            .map(([key, value]) => (
-              <Typography key={key}>
-                {key}: {value}
-              </Typography>
-            ))}
+          {p.contato.telefone && (
+            <Typography>
+              {"Telefone: "}
+              <Box
+                component="a"
+                href={`tel:${p.contato.telefone}`}
+                sx={{ display: "inline", overflowWrap: "anywhere" }}
+              >
+                {p.contato.telefone}
+              </Box>
+            </Typography>
+          )}
+          {p.contato.emailProfissional && (
+            <Typography>
+              {"E-mail profissional: "}
+              <Box
+                component="a"
+                href={`mailto:${p.contato.emailProfissional}`}
+                sx={{ display: "inline", overflowWrap: "anywhere" }}
+              >
+                {p.contato.emailProfissional}
+              </Box>
+            </Typography>
+          )}
+          {p.contato.linkedInUrl && (
+            <Typography>
+              {"LinkedIn: "}
+              <Box
+                component="a"
+                href={p.contato.linkedInUrl}
+                target="_blank"
+                rel="noreferrer"
+                sx={{ display: "inline", overflowWrap: "anywhere" }}
+              >
+                {p.contato.linkedInUrl}
+              </Box>
+            </Typography>
+          )}
+          {p.contato.gitHubUrl && (
+            <Typography>
+              {"GitHub: "}
+              <Box
+                component="a"
+                href={p.contato.gitHubUrl}
+                target="_blank"
+                rel="noreferrer"
+                sx={{ display: "inline", overflowWrap: "anywhere" }}
+              >
+                {p.contato.gitHubUrl}
+              </Box>
+            </Typography>
+          )}
+          {p.contato.portfolioUrl && (
+            <Typography>
+              {"Portfólio: "}
+              <Box
+                component="a"
+                href={p.contato.portfolioUrl}
+                target="_blank"
+                rel="noreferrer"
+                sx={{ display: "inline", overflowWrap: "anywhere" }}
+              >
+                {p.contato.portfolioUrl}
+              </Box>
+            </Typography>
+          )}
           {!Object.values(p.contato).some(Boolean) && (
             <Typography color="text.secondary">Não informado.</Typography>
           )}
