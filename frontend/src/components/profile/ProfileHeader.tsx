@@ -6,6 +6,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   Stack,
@@ -67,10 +71,19 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function pickFile() {
     inputRef.current?.click();
+  }
+
+  function openRemoveDialog() {
+    setConfirmOpen(true);
+  }
+
+  function closeRemoveDialog() {
+    setConfirmOpen(false);
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -114,7 +127,10 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
           getApiErrorMessage(err, "Não foi possível remover a foto. Tente novamente.")
         );
       })
-      .finally(() => setRemoving(false));
+      .finally(() => {
+        setRemoving(false);
+        setConfirmOpen(false);
+      });
   }
 
   const busy = uploading || removing;
@@ -197,7 +213,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
           {dados.fotoUrl && (
             <Button
               size="small"
-              onClick={handleRemove}
+              onClick={openRemoveDialog}
               disabled={busy}
               startIcon={<DeleteOutlined />}
               sx={{
@@ -229,6 +245,31 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
         hidden
         aria-label="Selecionar foto de perfil"
       />
+
+      <Dialog
+        open={confirmOpen}
+        onClose={removing ? undefined : closeRemoveDialog}
+        aria-labelledby="remove-photo-dialog-title"
+        aria-describedby="remove-photo-dialog-description"
+      >
+        <DialogTitle id="remove-photo-dialog-title">
+          Remover foto de perfil?
+        </DialogTitle>
+        <DialogContent>
+          <Typography id="remove-photo-dialog-description" variant="body1">
+            A foto atual será removida do seu perfil. Você poderá enviar outra
+            foto depois.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeRemoveDialog} disabled={removing}>
+            Cancelar
+          </Button>
+          <Button onClick={handleRemove} disabled={removing} color="error">
+            {removing ? "Removendo..." : "Remover foto"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }
