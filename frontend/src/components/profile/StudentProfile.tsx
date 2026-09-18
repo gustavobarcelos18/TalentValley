@@ -54,6 +54,19 @@ export function StudentProfile() {
 
       {profile && (
         <Stack spacing={{ xs: 2.5, sm: 3 }}>
+          {!loading && error && (
+            <Alert
+              severity="warning"
+              role="alert"
+              action={
+                <Button color="inherit" size="small" onClick={refresh}>
+                  Tentar novamente
+                </Button>
+              }
+            >
+              {error}
+            </Alert>
+          )}
           <ProfileHeader profile={profile} onChanged={refresh} notify={notify} />
           <DadosBasicosSection profile={profile} onChanged={refresh} notify={notify} />
           <SobreSection profile={profile} onChanged={refresh} notify={notify} />
