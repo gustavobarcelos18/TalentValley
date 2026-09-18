@@ -624,6 +624,12 @@ function StudentCreate({
   );
 }
 
+const STATUS_VALIDACAO_RPV_LABELS = {
+  PENDENTE: "Aguardando validação",
+  VERIFICADO: "Verificado pelo Rio Pomba Valley",
+  REJEITADO: "Validação não aprovada",
+};
+
 export function AdminStudentDetailView({ id }: { id: string }) {
   const state = useLoad(() => adminApi.student(id), [id]);
   const [removeTarget, setRemoveTarget] = useState<string | null>(null),
@@ -793,7 +799,11 @@ export function AdminStudentDetailView({ id }: { id: string }) {
                   {f.ehRioPombaValley && (
                     <Chip
                       size="small"
-                      label={`RPV: ${f.statusValidacaoRpv ?? "PENDENTE"}`}
+                      label={`RPV: ${
+                        STATUS_VALIDACAO_RPV_LABELS[
+                          f.statusValidacaoRpv ?? "PENDENTE"
+                        ]
+                      }`}
                     />
                   )}
                   {f.possuiCertificado && f.certificadoUrl && (
