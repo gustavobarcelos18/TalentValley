@@ -83,5 +83,12 @@ export function useProtectedFile(path: string | null) {
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
+  // Without a path there is no file to represent: the effect above exits early
+  // and cleanup has already revoked any previous object URL. Derive an empty
+  // public state from `path` so stale/revoked reducer state is never exposed.
+  if (!path) {
+    return { url: null, loading: false, error: null, reload };
+  }
+
   return { ...state, reload };
 }
