@@ -115,6 +115,11 @@
 .benefits li span { color: var(--accent); font: .65rem monospace; margin-right: 20px; }
 .network-panel { position: relative; height: 475px; isolation: isolate; overflow: hidden; border: 1px solid var(--line); border-radius: 3px 90px 3px 3px; background: radial-gradient(ellipse at 50% 50%, rgb(0 168 152 / 14%), transparent 65%), var(--surface); }
 .network-panel .compact { height: 75%; opacity: .6; }
+/* The scene is moved as one composited plane (`.panel-scene` / `.institution-scene`)
+   instead of transforming individual SVG <g> groups; the wrapper just establishes a
+   positioned containing block so the absolutely positioned scene keeps its place. */
+.network-panel .panel-scene { position: absolute; inset: 0; }
+[data-scene-plane] { will-change: transform; }
 .panel-coordinate, .panel-caption { position: absolute; left: 27px; font: .6rem monospace; letter-spacing: .14em; color: var(--muted); }
 .panel-coordinate { top: 27px; }
 .panel-caption { bottom: 25px; }
@@ -176,10 +181,16 @@
 @media (max-width: 380px) { .nav-inner { padding-inline: 12px; }.tv-brand > svg { display: none; }.hero-copy { padding-inline: 12px; }.hero h1 { font-size: 3rem; }.landing .join-actions .MuiButton-root { padding-inline: 16px; }.section { padding-inline: 20px; } }
 @media (prefers-reduced-motion: reduce) { .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
-/* Hero motion layers have separate transform owners for scroll and pointer depth. */
-.hero-background-scroll { position: absolute; inset: -18px -12px -85px; z-index: -3; pointer-events: none; }
+/* Hero motion layers have separate transform owners for scroll and pointer depth.
+   On desktop-large viewports the background and technology planes used to start
+   from an oversized fixed inset (`-18px -12px -85px`) and then get scaled on
+   scroll, so each scroll frame rasterized a region larger than the visible
+   viewport. Tighten the desktop overdraw and remove the background scale that
+   was the cheapest-looking but most expensive operation on a full-HD raster.
+*/
+.hero-background-scroll { position: absolute; inset: -6% -3% -18svh; z-index: -3; pointer-events: none; }
 .hero-background { width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; }
-.hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
+.hero-technology { position: absolute; inset: 35% 0 -24svh; z-index: -1; pointer-events: none; opacity: .3; }
 .hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
 .hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
 .hero h1 .hero-title-line { display: inline-block; }
@@ -189,8 +200,10 @@
   .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
 }
 @media (max-width: 767px) {
-  .hero-background-scroll { inset: -4px -2px -20px; }
+  .hero-background-scroll { inset: -2% 0 -12svh; }
   .hero-background { background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }
+  .hero-technology { inset: 60% 0 -12svh; opacity: .18; }
+  .hero-exit-shade { bottom: -16svh; height: 24svh; }
 }
 @media (prefers-reduced-motion: reduce) {
   .landing .public-nav { transform: none; transition: opacity .16s, visibility .16s !important; }

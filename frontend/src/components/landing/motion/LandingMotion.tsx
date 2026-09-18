@@ -34,3 +34,20 @@ export function LandingMotion({ children }: { children: ReactNode }) {
 export function useLandingMotionPolicy() {
   return useContext(MotionPolicyContext);
 }
+
+export function useIsMotionVisible(): boolean {
+  const policy = useLandingMotionPolicy();
+  return policy !== "pending";
+}
+
+export function useDepthFractionControl() {
+  const policy = useLandingMotionPolicy();
+
+  const setDepthFraction = (fraction: number) => {
+    if (policy === "pending") {
+      return;
+    }
+  };
+
+  return { setDepthFraction };
+}
