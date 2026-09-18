@@ -296,7 +296,7 @@ export function AdminDashboardView() {
               borderColor: attention ? "primary.light" : "divider",
               textDecoration: "none",
               color: "text.primary",
-              bgcolor: attention ? "primary.50" : "background.paper",
+              bgcolor: attention ? "action.selected" : "background.paper",
             }}
           >
             <Typography color="text.secondary" variant="body2">
