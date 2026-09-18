@@ -36,7 +36,7 @@ function PageFallback() {
   return (
     <Box
       component="main"
-      className="flex min-h-screen items-center bg-gradient-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
     />
   );
 }
@@ -105,7 +105,7 @@ function AtivarContaContent() {
     <GuestOnly>
       <Box
         component="main"
-        className="flex min-h-screen items-center bg-gradient-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+        className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
       >
         <Container maxWidth="xs">
           <Paper
@@ -209,7 +209,7 @@ function InvalidLinkState() {
   return (
     <Box
       component="main"
-      className="flex min-h-screen items-center bg-gradient-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
     >
       <Container maxWidth="xs">
         <Paper elevation={0} className="border border-zinc-200 p-8 dark:border-zinc-800">
