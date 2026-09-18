@@ -11,6 +11,19 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[];
 }
 
+function getRoleDestination(role: UserRole): string {
+  switch (role) {
+    case "ALUNO":
+      return "/meu-perfil";
+    case "RECRUTADOR":
+      return "/recrutador";
+    case "ADMIN":
+      return "/admin";
+    default:
+      return "/login";
+  }
+}
+
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -24,7 +37,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     }
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-      router.replace("/login");
+      router.replace(getRoleDestination(user.role));
     }
   }, [user, loading, allowedRoles, router]);
 
