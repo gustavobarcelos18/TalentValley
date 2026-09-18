@@ -5,6 +5,10 @@ import {
   Alert,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Stack,
   Typography,
@@ -50,6 +54,7 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const possuiCurriculo = profile.curriculo.possuiCurriculo;
 
@@ -112,6 +117,14 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
       .finally(() => setDownloading(false));
   }
 
+  function openDeleteConfirmation() {
+    setConfirmOpen(true);
+  }
+
+  function closeDeleteConfirmation() {
+    setConfirmOpen(false);
+  }
+
   function handleDelete() {
     setError(null);
     setDeleting(true);
@@ -128,7 +141,10 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
           )
         );
       })
-      .finally(() => setDeleting(false));
+      .finally(() => {
+        setDeleting(false);
+        setConfirmOpen(false);
+      });
   }
 
   return (
@@ -208,7 +224,7 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
                 size="small"
                 color="error"
                 startIcon={<DeleteOutlined />}
-                onClick={handleDelete}
+                onClick={openDeleteConfirmation}
                 disabled={busy}
               >
                 Excluir
@@ -258,6 +274,35 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
         hidden
         aria-label="Selecionar currículo em PDF"
       />
+
+      <Dialog
+        open={confirmOpen}
+        onClose={deleting ? undefined : closeDeleteConfirmation}
+        aria-labelledby="curriculo-delete-dialog-title"
+      >
+        <DialogTitle id="curriculo-delete-dialog-title">
+          Excluir currículo?
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            O currículo atual será removido do seu perfil. Você poderá enviar
+            outro arquivo depois.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirmation} disabled={deleting}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleDelete}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? "Excluindo..." : "Excluir currículo"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }
