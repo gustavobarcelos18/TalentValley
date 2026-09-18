@@ -626,6 +626,9 @@ function StudentCreate({
 
 export function AdminStudentDetailView({ id }: { id: string }) {
   const state = useLoad(() => adminApi.student(id), [id]);
+  const [removeTarget, setRemoveTarget] = useState<string | null>(null),
+    [busy, setBusy] = useState(false),
+    [notice, setNotice] = useState<string | null>(null);
   if (state.loading || state.error || !state.data)
     return (
       <Page title="Perfil do aluno">
@@ -633,6 +636,20 @@ export function AdminStudentDetailView({ id }: { id: string }) {
       </Page>
     );
   const p = state.data;
+  const removeValidation = async () => {
+    if (!removeTarget) return;
+    setBusy(true);
+    try {
+      await adminApi.validationAction(removeTarget, "remover-validacao");
+      setRemoveTarget(null);
+      setNotice("Validação RPV removida. A formação voltou para pendente.");
+      state.reload();
+    } catch (e) {
+      setNotice(getApiErrorMessage(e, "Não foi possível concluir a ação."));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <Page
       title="Perfil do aluno"
@@ -726,6 +743,15 @@ export function AdminStudentDetailView({ id }: { id: string }) {
                       label="Abrir certificado"
                     />
                   )}
+                  {f.ehRioPombaValley &&
+                    f.statusValidacaoRpv === "VERIFICADO" && (
+                      <Button
+                        size="small"
+                        onClick={() => setRemoveTarget(f.id)}
+                      >
+                        Remover validação
+                      </Button>
+                    )}
                 </Stack>
               </Box>
             ))}
@@ -788,6 +814,21 @@ export function AdminStudentDetailView({ id }: { id: string }) {
           <Empty text="Currículo não informado." />
         )}
       </Section>
+      <Confirm
+        open={removeTarget !== null}
+        title="Remover validação RPV?"
+        text="A formação deixará de ser exibida como verificada e o status de validação RPV voltará para pendente. A formação e o certificado não serão excluídos."
+        busy={busy}
+        onClose={() => setRemoveTarget(null)}
+        confirm={() => void removeValidation()}
+        danger
+      />
+      <Snackbar
+        open={!!notice}
+        autoHideDuration={5000}
+        onClose={() => setNotice(null)}
+        message={notice}
+      />
     </Page>
   );
 }
