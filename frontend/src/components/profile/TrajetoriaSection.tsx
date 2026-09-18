@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, MenuItem, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
@@ -8,10 +8,11 @@ import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import BusinessCenterOutlined from "@mui/icons-material/BusinessCenterOutlined";
+import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import { ApiError, apiDownload, getApiErrorMessage } from "@/lib/api";
 import { formatDate, formatDateInput, parseDateInput } from "@/lib/format";
 import { sanitizeIntegerInput, stripEmoji, validateAlphanumericWithPunctuation, validateBrazilianDateInput } from "@/lib/validation";
-import { createExperiencia, createFormacao, deleteExperiencia, deleteFormacao, deleteFormationCertificate, fetchTrajectory, updateExperiencia, updateFormacao } from "@/lib/student";
+import { createExperiencia, createFormacao, deleteExperiencia, deleteFormacao, deleteFormationCertificate, fetchTrajectory, updateExperiencia, updateFormacao, uploadFormationCertificate } from "@/lib/student";
 import type { ExperienciaRequest, ExperienciaResponse, FormacaoRequest, FormacaoResponse, StatusFormacao, TipoExperiencia, TipoFormacao, TrajetoriaItemResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
 import type { SectionProps } from "./sectionProps";
@@ -26,6 +27,29 @@ const maskFormationDate = (value: string) => {
   return digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
     : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
 };
+const CERTIFICADO_MAX_BYTES = 10 * 1024 * 1024;
+
+// Local PDF validation for formation certificates, mirroring the curriculum
+// validation rules in CurriculoSection (extension, MIME, size, magic bytes).
+async function validateCertificatePdf(file: File): Promise<string | null> {
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
+    return "Envie um arquivo PDF.";
+  }
+  if (file.type && file.type !== "application/pdf") {
+    return "O arquivo selecionado não é um PDF válido.";
+  }
+  if (file.size === 0) {
+    return "O arquivo PDF está vazio.";
+  }
+  if (file.size > CERTIFICADO_MAX_BYTES) {
+    return "O certificado deve ter no máximo 10 MB.";
+  }
+  const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  if (signature.length !== 5 || new TextDecoder().decode(signature) !== "%PDF-") {
+    return "O arquivo selecionado não é um PDF válido.";
+  }
+  return null;
+}
 
 export function TrajetoriaSection({ onChanged, notify }: SectionProps) {
   const [items, setItems] = useState<TrajetoriaItemResponse[] | null>(null);
@@ -59,10 +83,26 @@ function TimelineItem({ item, onEdit, onDelete, onChanged }: { item: TrajetoriaI
 function RpvChip({ formation }: { formation: FormacaoResponse }) { if (!formation.ehRioPombaValley) return null; const labels = { PENDENTE: "Aguardando validação", VERIFICADO: "Verificado pelo Rio Pomba Valley", REJEITADO: "Validação não aprovada" }; return <Chip size="small" variant="outlined" color={formation.statusValidacaoRpv === "VERIFICADO" ? "success" : formation.statusValidacaoRpv === "REJEITADO" ? "error" : "warning"} label={formation.statusValidacaoRpv ? labels[formation.statusValidacaoRpv] : "Aguardando validação"} />; }
 
 function FormationCertificate({ formation, onChanged }: { formation: FormacaoResponse; onChanged: (message: string) => Promise<void> }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
   const mutate = async (task: () => Promise<void>, success: string) => { setBusy(true); setError(null); try { await task(); await onChanged(success); } catch (e) { setError(getApiErrorMessage(e, "Não foi possível alterar o certificado.")); } finally { setBusy(false); } };
   const download = async () => { setBusy(true); try { const blob = await apiDownload(`/api/alunos/me/formacoes/${formation.id}/certificado`); const url = URL.createObjectURL(blob); window.open(url, "_blank", "noopener,noreferrer"); setTimeout(() => URL.revokeObjectURL(url), 1000); } catch (e) { setError(getApiErrorMessage(e, "Não foi possível abrir o certificado.")); } finally { setBusy(false); } };
-  return <Stack spacing={.5}>{formation.ehRioPombaValley && <Typography variant="caption" color="text.secondary">Alterações na formação ou no certificado podem exigir uma nova validação.</Typography>}{error && <Alert severity="error">{error}</Alert>}<Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{formation.possuiCertificado && <><Button size="small" startIcon={<DownloadOutlined />} onClick={() => void download()} disabled={busy}>Abrir certificado</Button><Button size="small" color="error" onClick={() => void mutate(() => deleteFormationCertificate(formation.id), "Certificado removido.")} disabled={busy}>Remover</Button></>}</Stack></Stack>;
+  const pickFile = () => inputRef.current?.click();
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setBusy(true); setError(null);
+    try {
+      const validation = await validateCertificatePdf(file);
+      if (validation) { setError(validation); return; }
+      await uploadFormationCertificate(formation.id, file);
+      await onChanged(formation.possuiCertificado ? "Certificado substituído." : "Certificado enviado.");
+    } catch (e) {
+      setError(getApiErrorMessage(e, "Não foi possível enviar o certificado. Tente novamente."));
+    } finally { setBusy(false); }
+  };
+  return <Stack spacing={.5}>{formation.ehRioPombaValley && <Typography variant="caption" color="text.secondary">Alterações na formação ou no certificado podem exigir uma nova validação.</Typography>}{error && <Alert severity="error">{error}</Alert>}<Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{formation.possuiCertificado ? <><Button size="small" startIcon={<DownloadOutlined />} onClick={() => void download()} disabled={busy}>Abrir certificado</Button><Button size="small" startIcon={<UploadFileOutlined />} onClick={pickFile} disabled={busy}>Substituir certificado</Button><Button size="small" color="error" onClick={() => void mutate(() => deleteFormationCertificate(formation.id), "Certificado removido.")} disabled={busy}>Remover</Button></> : <Button size="small" startIcon={<UploadFileOutlined />} onClick={pickFile} disabled={busy}>Enviar certificado</Button>}</Stack><input ref={inputRef} type="file" accept="application/pdf,.pdf" hidden aria-label={`Selecionar certificado em PDF para ${formation.nome}`} onChange={(event) => void handleFileChange(event)} /></Stack>;
 }
 
 function FormationForm({ item, onClose, onSaved }: { item?: FormacaoResponse; onClose: () => void; onSaved: () => void }) { const [data, setData] = useState<FormacaoRequest>(item ? { tipo: item.tipo, nome: item.nome, instituicao: item.instituicao, dataInicio: formatDateInput(item.dataInicio), dataFim: formatDateInput(item.dataFim), cargaHoraria: item.cargaHoraria, status: item.status, principal: item.principal, ehRioPombaValley: item.ehRioPombaValley } : { tipo: "GRADUACAO", nome: "", instituicao: "", dataInicio: "", dataFim: null, cargaHoraria: null, status: "EM_ANDAMENTO", principal: false, ehRioPombaValley: false }); const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null); const set = <K extends keyof FormacaoRequest,>(key: K, value: FormacaoRequest[K]) => setData((p) => ({ ...p, [key]: value })); const setDate = (key: "dataInicio" | "dataFim", value: string) => { const masked = maskFormationDate(value); set(key, (masked || (key === "dataInicio" ? "" : null)) as FormacaoRequest[typeof key]); }; const submit = async (e: FormEvent) => { e.preventDefault(); const nome = data.nome.trim(); const instituicao = data.instituicao.trim(); const dataInicio = parseDateInput(data.dataInicio); const dataFim = data.dataFim ? parseDateInput(data.dataFim) : null; if (validateAlphanumericWithPunctuation(nome, 2, 200) || validateAlphanumericWithPunctuation(instituicao, 2, 200) || validateBrazilianDateInput(data.dataInicio) || !dataInicio || (data.dataFim && (!dataFim || validateBrazilianDateInput(data.dataFim))) || (dataFim && dataFim < dataInicio) || (data.cargaHoraria !== null && data.cargaHoraria <= 0) || (data.status === "CONCLUIDO" && !dataFim) || (data.status === "EM_ANDAMENTO" && dataFim)) { setError("Revise nome, instituição, datas e carga horária."); return; } setSaving(true); setError(null); try { const request = { ...data, nome, instituicao, dataInicio, dataFim: data.status === "EM_ANDAMENTO" ? null : dataFim }; if (item) { await updateFormacao(item.id, request); } else { await createFormacao(request); } onSaved(); } catch (err) { setError(getApiErrorMessage(err, "Não foi possível salvar a formação.")); } finally { setSaving(false); } }; return <FormDialog title={item ? "Editar formação" : "Adicionar formação"} onClose={onClose} onSubmit={submit} saving={saving} error={error}><Stack spacing={2}><TextField select label="Tipo" value={data.tipo} onChange={(e) => set("tipo", e.target.value as TipoFormacao)}>{Object.entries(formationLabels).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField><TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", sanitizeFormationText(e.target.value))} slotProps={{ htmlInput: { maxLength: 200 } }} /><TextField required label="Instituição" value={data.instituicao} onChange={(e) => set("instituicao", sanitizeFormationText(e.target.value))} slotProps={{ htmlInput: { maxLength: 200 } }} /><Stack direction={{ xs: "column", sm: "row" }} spacing={2}><TextField required type="text" label="Início" value={data.dataInicio} onChange={(e) => setDate("dataInicio", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} /><TextField disabled={data.status === "EM_ANDAMENTO"} type="text" label="Conclusão" value={data.dataFim ?? ""} onChange={(e) => setDate("dataFim", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} /></Stack><TextField type="text" label="Carga horária" value={data.cargaHoraria ?? ""} onChange={(e) => set("cargaHoraria", e.target.value ? Number(sanitizeIntegerInput(e.target.value)) : null)} slotProps={{ htmlInput: { inputMode: "numeric", pattern: "[0-9]*" } }} /><TextField select label="Status" value={data.status} onChange={(e) => set("status", e.target.value as StatusFormacao)}>{Object.entries(formationStatus).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField><FormControlLabel control={<Switch checked={data.principal} onChange={(e) => set("principal", e.target.checked)} />} label="Formação principal" /><FormControlLabel control={<Switch checked={data.ehRioPombaValley} onChange={(e) => set("ehRioPombaValley", e.target.checked)} />} label="Formação no Rio Pomba Valley" /></Stack></FormDialog>; }
