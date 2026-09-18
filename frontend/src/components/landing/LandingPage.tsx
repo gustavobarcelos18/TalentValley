@@ -16,6 +16,7 @@ import { useHeroDepth } from "./motion/useHeroDepth";
 import { useSectionStories } from "./motion/useSectionStories";
 import { ActionMotion } from "./motion/ActionMotion";
 import { StorySteps } from "./motion/StorySteps";
+import "lenis/dist/lenis.css";
 import "./landing.css";
 
 function JoinActions({ audience, hero = false }: { audience?: "talent" | "company"; hero?: boolean }) {
