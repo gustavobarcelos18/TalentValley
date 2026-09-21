@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Avatar, Button, IconButton, Switch, useColorScheme } from "@mui/material";
+import { Avatar, Button, IconButton, useColorScheme } from "@mui/material";
 import { Close, DarkModeOutlined, LightModeOutlined, Menu } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,7 +70,7 @@ export function PublicHeader() {
           {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
         <div className="nav-actions">
-          <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><DarkModeOutlined aria-hidden="true"/><Switch className="theme-toggle" checked={!dark} onChange={(_, checked) => setMode(checked ? "light" : "dark")} slotProps={{ input: { "aria-label": "Tema claro" } }}/><LightModeOutlined aria-hidden="true"/></motion.div>
+          <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><IconButton className="theme-toggle-button" aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"} onClick={() => setMode(dark ? "light" : "dark")}>{dark ? <LightModeOutlined aria-hidden="true"/> : <DarkModeOutlined aria-hidden="true"/>}</IconButton></motion.div>
           {loading ? <span className="identity-placeholder" aria-label="Verificando sessão"/> : user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><Avatar>{user.nome.trim().charAt(0)}</Avatar><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
           <IconButton ref={menuButton} className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <Close/> : <Menu/>}</IconButton>
         </div>

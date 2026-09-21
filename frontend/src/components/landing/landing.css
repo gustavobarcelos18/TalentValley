@@ -60,14 +60,10 @@
 .landing .MuiIconButton-root { color: var(--ink); min-width: 44px; min-height: 44px; }
 .landing .login-button { border-color: var(--teal); color: var(--ink); min-height: 44px; padding: 13px 40px; border-radius: 30px; }
 .landing .menu-toggle { display: none; }
-.theme-control { display: flex; align-items: center; gap: 5px; padding-right: 28px; border-right: 1px solid var(--muted); color: var(--muted); }
+.theme-control { display: flex; align-items: center; padding-right: 28px; border-right: 1px solid var(--muted); color: var(--muted); }
 .theme-control > svg { font-size: 24px; }
-.landing .theme-toggle { width: 60px; height: 44px; padding: 9px 5px; }
-.landing .theme-toggle .MuiSwitch-switchBase { padding: 11px 7px; color: #f4f7f6; }
-.landing .theme-toggle .MuiSwitch-thumb { width: 22px; height: 22px; }
-.landing .theme-toggle .MuiSwitch-track { background: #273238; border: 1px solid #7d918b; border-radius: 20px; opacity: 1; }
-.landing .theme-toggle .Mui-checked + .MuiSwitch-track { background: #00a898; border-color: #00756d; opacity: 1; }
-.landing .theme-toggle:has(input:focus-visible) { outline: 3px solid var(--teal); outline-offset: 3px; border-radius: 25px; }
+.theme-toggle-button { min-width: 44px; width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+.theme-toggle-button:hover { background: var(--raised); }
 .user-link { display: flex; align-items: center; gap: 8px; font-size: .8rem; max-width: 160px; }
 .user-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-link .MuiAvatar-root { background: var(--teal); color: var(--page); width: 36px; height: 36px; font-size: .9rem; }
@@ -162,7 +158,7 @@
 }
 @media (max-width: 767px) {
   .nav-inner { min-height: 80px; padding: 12px 16px; gap: 8px; }.tv-brand { gap: 6px; }.tv-brand > svg { width: 38px; }.tv-brand strong { font-size: 1.25rem; }.tv-brand small { font-size: .53rem; }
-  .nav-actions { gap: 1px; }.landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }.user-link > span { display: none; }.identity-placeholder { width: 50px; }.theme-control { border: 0; padding: 0; gap: 0; }.theme-control > svg { display: none; }.landing .theme-toggle { width: 54px; }
+  .nav-actions { gap: 1px; }.landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }.user-link > span { display: none; }.identity-placeholder { width: 50px; }.theme-control { border: 0; padding: 0; }.theme-toggle-button { width: 44px; height: 44px; }
   .hero { min-height: 770px; height: 100svh; max-height: 950px; }.light .hero-background { background-image: url('/landing/valley-light-mobile.webp'); }.hero-copy { padding: 145px 20px 0; }.hero h1 { font-size: clamp(3.35rem, 9.9vw, 5.5rem); line-height: 1.05; letter-spacing: -.065em; }
   .hero .hero-subtitle { max-width: 310px; margin: 25px auto 0; font-size: 1rem; line-height: 1.6; }.hero .institutional-line { font-size: .78rem; letter-spacing: .06em; margin-top: 20px; }
   .hero .join-actions { gap: 10px; }.landing .join-actions .MuiButton-root { padding: 12px 20px; font-size: .8rem; gap: 8px; }.hero .join-actions .MuiButton-root { min-width: 0; min-height: 54px; }
