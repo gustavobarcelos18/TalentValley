@@ -4,6 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -13,6 +14,7 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -31,10 +33,19 @@ export default function LoginPage() {
 }
 
 function PageFallback() {
+  const theme = useTheme();
   return (
     <Box
       component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      className="flex min-h-screen items-center px-4 py-12"
+      sx={{
+        backgroundColor:
+          theme.palette.mode === "dark"
+            ? "rgba(10,18,20,0.62)"
+            : "rgba(255,255,255,0.55)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+      }}
     />
   );
 }
@@ -43,6 +54,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loginCompleted } = useAuth();
+  const theme = useTheme();
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -107,15 +119,28 @@ function LoginContent() {
     <GuestOnly>
       <Box
         component="main"
-        className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+        className="flex min-h-screen items-center px-4 py-12"
+        sx={{
+          backgroundColor:
+            theme.palette.mode === "dark"
+              ? "rgba(10,18,20,0.62)"
+              : "rgba(255,255,255,0.55)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
       >
         <Container maxWidth="xs">
           <Paper
             component="form"
             onSubmit={handleSubmit}
             elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
             noValidate
+            sx={{
+              border: 1,
+              borderColor: "divider",
+              p: 5,
+              bgcolor: "background.paper",
+            }}
           >
             <Stack spacing={3}>
               <Stack spacing={1} sx={{ textAlign: "center" }}>
@@ -128,15 +153,9 @@ function LoginContent() {
               </Stack>
 
               {error && (
-                <Typography
-                  role="alert"
-                  color="error"
-                  variant="body2"
-                  align="center"
-                  className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                >
+                <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
                   {error}
-                </Typography>
+                </Alert>
               )}
 
               <TextField
@@ -184,12 +203,18 @@ function LoginContent() {
               />
 
               <Box className="text-right">
-                <Link
+                <Typography
+                  component={Link}
                   href="/esqueci-senha"
-                  className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+                  variant="body2"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 500,
+                    "&:hover": { textDecoration: "underline" },
+                  }}
                 >
                   Esqueceu sua senha?
-                </Link>
+                </Typography>
               </Box>
 
               <Button
