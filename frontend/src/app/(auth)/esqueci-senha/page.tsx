@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -52,15 +53,21 @@ export default function EsqueciSenhaPage() {
     <GuestOnly>
       <Box
         component="main"
-        className="flex min-h-screen items-center bg-gradient-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+        className="flex min-h-screen items-center px-4 py-12"
+        sx={{ bgcolor: "background.default" }}
       >
         <Container maxWidth="xs">
           <Paper
             component={submitted ? "div" : "form"}
             onSubmit={submitted ? undefined : handleSubmit}
             elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
             noValidate
+            sx={{
+              border: 1,
+              borderColor: "divider",
+              p: 4,
+              bgcolor: "background.paper",
+            }}
           >
             <Stack spacing={3}>
               <Stack spacing={1} sx={{ textAlign: "center" }}>
@@ -74,14 +81,9 @@ export default function EsqueciSenhaPage() {
 
               {submitted ? (
                 <Stack spacing={3}>
-                  <Typography
-                    role="status"
-                    variant="body1"
-                    align="center"
-                    className="rounded-lg bg-green-50 px-3 py-3 text-green-800 dark:bg-green-950 dark:text-green-200"
-                  >
+                  <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
                     Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
-                  </Typography>
+                  </Alert>
                   <Button
                     component={Link}
                     href="/login"
@@ -95,15 +97,9 @@ export default function EsqueciSenhaPage() {
               ) : (
                 <>
                   {error && (
-                    <Typography
-                      role="alert"
-                      color="error"
-                      variant="body2"
-                      align="center"
-                      className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                    >
+                    <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
                       {error}
-                    </Typography>
+                    </Alert>
                   )}
 
                   <TextField
@@ -131,12 +127,18 @@ export default function EsqueciSenhaPage() {
                   </Button>
 
                   <Box sx={{ textAlign: "center" }}>
-                    <Link
+                    <Typography
+                      component={Link}
                       href="/login"
-                      className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+                      variant="body2"
+                      sx={{
+                        color: "primary.main",
+                        fontWeight: 500,
+                        "&:hover": { textDecoration: "underline" },
+                      }}
                     >
                       Voltar ao login
-                    </Link>
+                    </Typography>
                   </Box>
                 </>
               )}

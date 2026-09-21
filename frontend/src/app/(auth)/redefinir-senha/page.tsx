@@ -4,6 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -36,7 +37,8 @@ function PageFallback() {
   return (
     <Box
       component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      className="flex min-h-screen items-center px-4 py-12"
+      sx={{ bgcolor: "background.default" }}
     />
   );
 }
@@ -102,15 +104,21 @@ function RedefinirSenhaContent() {
     <GuestOnly>
       <Box
         component="main"
-        className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+        className="flex min-h-screen items-center px-4 py-12"
+        sx={{ bgcolor: "background.default" }}
       >
         <Container maxWidth="xs">
           <Paper
             component={success ? "div" : "form"}
             onSubmit={success ? undefined : handleSubmit}
             elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
             noValidate
+            sx={{
+              border: 1,
+              borderColor: "divider",
+              p: 4,
+              bgcolor: "background.paper",
+            }}
           >
             <Stack spacing={3}>
               <Stack spacing={1} sx={{ textAlign: "center" }}>
@@ -127,15 +135,9 @@ function RedefinirSenhaContent() {
               ) : (
                 <>
                   {error && (
-                    <Typography
-                      role="alert"
-                      color="error"
-                      variant="body2"
-                      align="center"
-                      className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                    >
+                    <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
                       {error}
-                    </Typography>
+                    </Alert>
                   )}
 
                   <PasswordField
@@ -187,10 +189,19 @@ function InvalidLinkState() {
   return (
     <Box
       component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      className="flex min-h-screen items-center px-4 py-12"
+      sx={{ bgcolor: "background.default" }}
     >
       <Container maxWidth="xs">
-        <Paper elevation={0} className="border border-zinc-200 p-8 dark:border-zinc-800">
+        <Paper
+          elevation={0}
+          sx={{
+            border: 1,
+            borderColor: "divider",
+            p: 4,
+            bgcolor: "background.paper",
+          }}
+        >
           <Stack spacing={3} sx={{ textAlign: "center" }}>
             <Typography component="h1" variant="h5">
               Link inválido
@@ -217,14 +228,9 @@ function InvalidLinkState() {
 function SuccessState() {
   return (
     <Stack spacing={3}>
-      <Typography
-        role="status"
-        variant="body1"
-        align="center"
-        className="rounded-lg bg-green-50 px-3 py-3 text-green-800 dark:bg-green-950 dark:text-green-200"
-      >
+      <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
         Sua senha foi redefinida com sucesso.
-      </Typography>
+      </Alert>
       <Button
         component={Link}
         href="/login"

@@ -4,6 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -34,7 +35,8 @@ function PageFallback() {
   return (
     <Box
       component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      className="flex min-h-screen items-center px-4 py-12"
+      sx={{ bgcolor: "background.default" }}
     />
   );
 }
@@ -107,15 +109,21 @@ function LoginContent() {
     <GuestOnly>
       <Box
         component="main"
-        className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+        className="flex min-h-screen items-center px-4 py-12"
+        sx={{ bgcolor: "background.default" }}
       >
         <Container maxWidth="xs">
           <Paper
             component="form"
             onSubmit={handleSubmit}
             elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
             noValidate
+            sx={{
+              border: 1,
+              borderColor: "divider",
+              p: 4,
+              bgcolor: "background.paper",
+            }}
           >
             <Stack spacing={3}>
               <Stack spacing={1} sx={{ textAlign: "center" }}>
@@ -128,15 +136,9 @@ function LoginContent() {
               </Stack>
 
               {error && (
-                <Typography
-                  role="alert"
-                  color="error"
-                  variant="body2"
-                  align="center"
-                  className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                >
+                <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
                   {error}
-                </Typography>
+                </Alert>
               )}
 
               <TextField
@@ -184,12 +186,18 @@ function LoginContent() {
               />
 
               <Box className="text-right">
-                <Link
+                <Typography
+                  component={Link}
                   href="/esqueci-senha"
-                  className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
+                  variant="body2"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 500,
+                    "&:hover": { textDecoration: "underline" },
+                  }}
                 >
                   Esqueceu sua senha?
-                </Link>
+                </Typography>
               </Box>
 
               <Button
@@ -202,7 +210,18 @@ function LoginContent() {
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
               <Typography align="center" variant="body2" color="text.secondary">
-                Ainda não possui acesso? <Link href="/cadastro">Solicitar cadastro</Link>
+                Ainda não possui acesso?{" "}
+                <Box
+                  component={Link}
+                  href="/cadastro"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 500,
+                    "&:hover": { textDecoration: "underline" },
+                  }}
+                >
+                  Solicitar cadastro
+                </Box>
               </Typography>
             </Stack>
           </Paper>
