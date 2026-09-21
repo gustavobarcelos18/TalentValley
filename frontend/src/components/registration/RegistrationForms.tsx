@@ -21,8 +21,19 @@ type CommonForm = { nomeCompleto: string; email: string; telefone: string; cidad
 const formations = Object.keys(TIPO_FORMACAO_LABELS) as TipoFormacao[];
 const commonBlank: CommonForm = { nomeCompleto: "", email: "", telefone: "", cidade: "", uf: "" };
 
+// Public registration identity lockup: decorative accent, wordmark and
+// institutional line. It sits above the page title so the registration
+// heading stays the only h1 of the screen.
+function BrandLockup() {
+  return <Stack spacing={0.5}>
+    <Box aria-hidden sx={{ width: 32, height: 3, borderRadius: 1, bgcolor: "primary.main" }} />
+    <Typography component="p" sx={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: { xs: "1.35rem", sm: "1.5rem" }, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.03em" }}>Talent <Box component="span" sx={{ color: "secondary.main" }}>Valley</Box></Typography>
+    <Typography component="p" variant="caption" color="text.secondary">Uma iniciativa Rio Pomba Valley</Typography>
+  </Stack>;
+}
+
 function PublicPage({ title, children }: { title: string; children: React.ReactNode }) {
-  return <GuestOnly><Box component="main" sx={{ minHeight: "100dvh", py: { xs: 4, md: 7 }, px: 2, bgcolor: "background.default" }}><Container maxWidth="sm"><Paper elevation={0} sx={{ p: { xs: 3, sm: 4 }, border: 1, borderColor: "divider" }}><Stack spacing={3}><Stack spacing={0.75}><Typography component="h1" variant="h4">{title}</Typography><Typography color="text.secondary">Seu pedido será analisado pela equipe do Talent Valley antes da criação da conta.</Typography></Stack>{children}</Stack></Paper></Container></Box></GuestOnly>;
+  return <GuestOnly><Box component="main" sx={{ minHeight: "100dvh", py: { xs: 4, md: 7 }, px: 2, bgcolor: "background.default" }}><Container maxWidth="sm"><Paper elevation={0} sx={{ p: { xs: 3, sm: 4 }, border: 1, borderColor: "divider", borderTop: 3, borderTopColor: "primary.main" }}><Stack spacing={3}><Stack spacing={2}><BrandLockup /><Stack spacing={0.75}><Typography component="h1" variant="h4">{title}</Typography><Typography color="text.secondary">Seu pedido será analisado pela equipe do Talent Valley antes da criação da conta.</Typography></Stack></Stack>{children}</Stack></Paper></Container></Box></GuestOnly>;
 }
 
 function Success() { return <Alert severity="success"><Typography sx={{ fontWeight: 700 }}>Solicitação enviada com sucesso.</Typography><Typography variant="body2">Seu cadastro será analisado pela equipe do Talent Valley. Se aprovado, você receberá as instruções para ativar sua conta.</Typography></Alert>; }
