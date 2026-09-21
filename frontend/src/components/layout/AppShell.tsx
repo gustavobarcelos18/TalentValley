@@ -20,6 +20,7 @@ import {
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useAuth } from "@/hooks/useAuth";
+import { TalentValleyMark } from "@/components/brand/TalentValleyMark";
 import { ROLE_LABELS } from "@/lib/labels";
 import { initialsOf } from "@/lib/format";
 import type { UserRole } from "@/types/auth";
@@ -69,26 +70,21 @@ export function AppShell({ children }: AppShellProps) {
 
   function renderBrand() {
     return (
-      <Stack direction="row" spacing={1.5}>
-        <Box
-          aria-hidden
-          sx={{ alignItems: "center",
-            width: 32,
-            height: 32,
-            borderRadius: 2,
-            display: "grid",
-            placeItems: "center",
-            bgcolor: "primary.main",
-            color: "primary.contrastText",
-            fontSize: 13,
-            fontWeight: 800,
+      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+        <TalentValleyMark width={46} />
+        <Typography
+          sx={{
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontWeight: 600,
+            fontSize: 17,
+            letterSpacing: "-0.03em",
+            lineHeight: 1.1,
+            color: "text.primary",
+            whiteSpace: "nowrap",
           }}
         >
-          TV
-        </Box>
-        <Typography sx={{ fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>
           Talent{" "}
-          <Box component="span" sx={{ color: "primary.main" }}>
+          <Box component="span" sx={{ color: "secondary.main" }}>
             Valley
           </Box>
         </Typography>
