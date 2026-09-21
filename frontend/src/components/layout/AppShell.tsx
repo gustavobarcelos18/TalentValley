@@ -47,6 +47,15 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
 };
 
+// The brand always leads to the authenticated user's own home. This is a
+// semantic rule of its own, so it stays explicit and independent from the
+// NAV_BY_ROLE order, array indexes or the current pathname.
+const HOME_BY_ROLE: Record<UserRole, string> = {
+  ALUNO: "/meu-perfil",
+  RECRUTADOR: "/recrutador",
+  ADMIN: "/admin",
+};
+
 interface AppShellProps {
   children: ReactNode;
 }
@@ -68,9 +77,11 @@ export function AppShell({ children }: AppShellProps) {
     router.replace("/login");
   }
 
-  function renderBrand() {
-    return (
-      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+  function renderBrand(onNavigate?: () => void) {
+    const homeHref = user ? HOME_BY_ROLE[user.role] : null;
+
+    const brandContent = (
+      <>
         <TalentValleyMark width={46} />
         <Typography
           sx={{
@@ -88,6 +99,39 @@ export function AppShell({ children }: AppShellProps) {
             Valley
           </Box>
         </Typography>
+      </>
+    );
+
+    // While the authenticated user is unavailable there is no role home to
+    // link to, so the brand stays as plain, non-interactive identity.
+    if (!homeHref) {
+      return (
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+          {brandContent}
+        </Stack>
+      );
+    }
+
+    return (
+      <Stack
+        component={Link}
+        href={homeHref}
+        onClick={onNavigate}
+        direction="row"
+        spacing={1.25}
+        sx={{
+          alignItems: "center",
+          color: "inherit",
+          textDecoration: "none",
+          borderRadius: 1,
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: (theme) => theme.palette.primary.main,
+            outlineOffset: 2,
+          },
+        }}
+      >
+        {brandContent}
       </Stack>
     );
   }
@@ -196,7 +240,7 @@ export function AppShell({ children }: AppShellProps) {
         slotProps={{ paper: { sx: { width: 300, p: 2.5 } } }}
       >
         <Stack spacing={2}>
-          {renderBrand()}
+          {renderBrand(() => setMenuOpen(false))}
           <Divider />
           {user && (
             <Stack direction="row" spacing={1.5}>
