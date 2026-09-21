@@ -5,18 +5,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Alert,
-  Box,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { activateAccount } from "@/lib/auth";
@@ -34,13 +32,7 @@ export default function AtivarContaPage() {
 }
 
 function PageFallback() {
-  return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center px-4 py-12"
-      sx={{ bgcolor: "background.default" }}
-    />
-  );
+  return <AuthPageShell bare />;
 }
 
 function AtivarContaContent() {
@@ -105,136 +97,91 @@ function AtivarContaContent() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center px-4 py-12"
-        sx={{ bgcolor: "background.default" }}
+      <AuthPageShell
+        title="Ativar conta"
+        subtitle="Defina sua senha para ativar seu acesso"
+        onSubmit={success ? undefined : handleSubmit}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component={success ? "div" : "form"}
-            onSubmit={success ? undefined : handleSubmit}
-            elevation={0}
-            noValidate
-            sx={{
-              border: 1,
-              borderColor: "divider",
-              p: 4,
-              bgcolor: "background.paper",
-            }}
-          >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Ativar conta
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Defina sua senha para ativar seu acesso
-                </Typography>
-              </Stack>
+        {success ? (
+          <SuccessState />
+        ) : (
+          <>
+            {error && (
+              <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+                {error}
+              </Alert>
+            )}
 
-              {success ? (
-                <SuccessState />
-              ) : (
-                <>
-                  {error && (
-                    <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
-                      {error}
-                    </Alert>
-                  )}
+            <TextField
+              id="senha"
+              name="senha"
+              label="Senha"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              fullWidth
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              disabled={loading}
+              helperText={PASSWORD_HELPER_TEXT}
+              slotProps={{
+                htmlInput: { "aria-label": "Senha" },
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="button"
+                        aria-label={passwordAriaLabel}
+                        onClick={() => setShowPassword((v) => !v)}
+                        edge="end"
+                      >
+                        {visibilityIcon}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
 
-                  <TextField
-                    id="senha"
-                    name="senha"
-                    label="Senha"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    fullWidth
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    disabled={loading}
-                    helperText={PASSWORD_HELPER_TEXT}
-                    slotProps={{
-                      htmlInput: { "aria-label": "Senha" },
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              type="button"
-                              aria-label={passwordAriaLabel}
-                              onClick={() => setShowPassword((v) => !v)}
-                              edge="end"
-                            >
-                              {visibilityIcon}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
+            <TextField
+              id="confirmacao"
+              name="confirmacao"
+              label="Confirmar senha"
+              type="password"
+              autoComplete="new-password"
+              required
+              fullWidth
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              disabled={loading}
+              slotProps={{ htmlInput: { "aria-label": "Confirmar senha" } }}
+            />
 
-                  <TextField
-                    id="confirmacao"
-                    name="confirmacao"
-                    label="Confirmar senha"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    fullWidth
-                    value={confirmacao}
-                    onChange={(e) => setConfirmacao(e.target.value)}
-                    disabled={loading}
-                    slotProps={{ htmlInput: { "aria-label": "Confirmar senha" } }}
-                  />
-
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? "Ativando..." : "Ativar minha conta"}
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+            >
+              {loading ? "Ativando..." : "Ativar minha conta"}
+            </Button>
+          </>
+        )}
+      </AuthPageShell>
     </GuestOnly>
   );
 }
 
 function InvalidLinkState() {
   return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center px-4 py-12"
-      sx={{ bgcolor: "background.default" }}
-    >
-      <Container maxWidth="xs">
-        <Paper
-          elevation={0}
-          sx={{
-            border: 1,
-            borderColor: "divider",
-            p: 4,
-            bgcolor: "background.paper",
-          }}
-        >
-          <Stack spacing={3} sx={{ textAlign: "center" }}>
-            <Typography component="h1" variant="h5">
-              Link inválido
-            </Typography>
-            <Typography color="text.secondary">
-              Este link de ativação é inválido ou está incompleto. Solicite um novo.
-            </Typography>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+    <AuthPageShell title="Link inválido">
+      <Stack spacing={3} sx={{ textAlign: "center" }}>
+        <Typography color="text.secondary">
+          Este link de ativação é inválido ou está incompleto. Solicite um novo.
+        </Typography>
+      </Stack>
+    </AuthPageShell>
   );
 }
 

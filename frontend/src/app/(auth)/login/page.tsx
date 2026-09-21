@@ -7,16 +7,14 @@ import {
   Alert,
   Box,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Paper,
-  Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
@@ -32,13 +30,7 @@ export default function LoginPage() {
 }
 
 function PageFallback() {
-  return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center px-4 py-12"
-      sx={{ bgcolor: "background.default" }}
-    />
-  );
+  return <AuthPageShell bare />;
 }
 
 function LoginContent() {
@@ -107,126 +99,100 @@ function LoginContent() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center px-4 py-12"
-        sx={{ bgcolor: "background.default" }}
+      <AuthPageShell
+        title="Entrar no Talent Valley"
+        subtitle="Acesse sua conta para continuar"
+        onSubmit={handleSubmit}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component="form"
-            onSubmit={handleSubmit}
-            elevation={0}
-            noValidate
+        {error && (
+          <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+            {error}
+          </Alert>
+        )}
+
+        <TextField
+          id="email"
+          name="email"
+          label="E-mail"
+          type="email"
+          autoComplete="email"
+          required
+          fullWidth
+          value={email}
+          onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+          disabled={loading}
+          slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
+        />
+
+        <TextField
+          id="senha"
+          name="senha"
+          label="Senha"
+          type={showPassword ? "text" : "password"}
+          autoComplete="current-password"
+          required
+          fullWidth
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+          disabled={loading}
+          slotProps={{
+            htmlInput: { "aria-label": "Senha" },
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    type="button"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    onClick={() => setShowPassword((v) => !v)}
+                    edge="end"
+                  >
+                    {visibilityIcon}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+
+        <Box className="text-right">
+          <Typography
+            component={Link}
+            href="/esqueci-senha"
+            variant="body2"
             sx={{
-              border: 1,
-              borderColor: "divider",
-              p: 4,
-              bgcolor: "background.paper",
+              color: "primary.main",
+              fontWeight: 500,
+              "&:hover": { textDecoration: "underline" },
             }}
           >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Entrar no Talent Valley
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Acesse sua conta para continuar
-                </Typography>
-              </Stack>
+            Esqueceu sua senha?
+          </Typography>
+        </Box>
 
-              {error && (
-                <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
-                  {error}
-                </Alert>
-              )}
-
-              <TextField
-                id="email"
-                name="email"
-                label="E-mail"
-                type="email"
-                autoComplete="email"
-                required
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value.slice(0, 254))}
-                disabled={loading}
-                slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
-              />
-
-              <TextField
-                id="senha"
-                name="senha"
-                label="Senha"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                fullWidth
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                disabled={loading}
-                slotProps={{
-                  htmlInput: { "aria-label": "Senha" },
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          type="button"
-                          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                          onClick={() => setShowPassword((v) => !v)}
-                          edge="end"
-                        >
-                          {visibilityIcon}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-
-              <Box className="text-right">
-                <Typography
-                  component={Link}
-                  href="/esqueci-senha"
-                  variant="body2"
-                  sx={{
-                    color: "primary.main",
-                    fontWeight: 500,
-                    "&:hover": { textDecoration: "underline" },
-                  }}
-                >
-                  Esqueceu sua senha?
-                </Typography>
-              </Box>
-
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                fullWidth
-                disabled={loading}
-              >
-                {loading ? "Entrando..." : "Entrar"}
-              </Button>
-              <Typography align="center" variant="body2" color="text.secondary">
-                Ainda não possui acesso?{" "}
-                <Box
-                  component={Link}
-                  href="/cadastro"
-                  sx={{
-                    color: "primary.main",
-                    fontWeight: 500,
-                    "&:hover": { textDecoration: "underline" },
-                  }}
-                >
-                  Solicitar cadastro
-                </Box>
-              </Typography>
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          fullWidth
+          disabled={loading}
+        >
+          {loading ? "Entrando..." : "Entrar"}
+        </Button>
+        <Typography align="center" variant="body2" color="text.secondary">
+          Ainda não possui acesso?{" "}
+          <Box
+            component={Link}
+            href="/cadastro"
+            sx={{
+              color: "primary.main",
+              fontWeight: 500,
+              "&:hover": { textDecoration: "underline" },
+            }}
+          >
+            Solicitar cadastro
+          </Box>
+        </Typography>
+      </AuthPageShell>
     </GuestOnly>
   );
 }

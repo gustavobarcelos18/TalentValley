@@ -5,18 +5,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Alert,
-  Box,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { resetPassword } from "@/lib/auth";
@@ -34,13 +32,7 @@ export default function RedefinirSenhaPage() {
 }
 
 function PageFallback() {
-  return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center px-4 py-12"
-      sx={{ bgcolor: "background.default" }}
-    />
-  );
+  return <AuthPageShell bare />;
 }
 
 function RedefinirSenhaContent() {
@@ -102,84 +94,58 @@ function RedefinirSenhaContent() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center px-4 py-12"
-        sx={{ bgcolor: "background.default" }}
+      <AuthPageShell
+        title="Redefinir senha"
+        subtitle="Digite sua nova senha"
+        onSubmit={success ? undefined : handleSubmit}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component={success ? "div" : "form"}
-            onSubmit={success ? undefined : handleSubmit}
-            elevation={0}
-            noValidate
-            sx={{
-              border: 1,
-              borderColor: "divider",
-              p: 4,
-              bgcolor: "background.paper",
-            }}
-          >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Redefinir senha
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Digite sua nova senha
-                </Typography>
-              </Stack>
+        {success ? (
+          <SuccessState />
+        ) : (
+          <>
+            {error && (
+              <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+                {error}
+              </Alert>
+            )}
 
-              {success ? (
-                <SuccessState />
-              ) : (
-                <>
-                  {error && (
-                    <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
-                      {error}
-                    </Alert>
-                  )}
+            <PasswordField
+              id="novaSenha"
+              label="Nova senha"
+              value={novaSenha}
+              onChange={setNovaSenha}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((v) => !v)}
+              disabled={loading}
+              helperText={PASSWORD_HELPER_TEXT}
+            />
 
-                  <PasswordField
-                    id="novaSenha"
-                    label="Nova senha"
-                    value={novaSenha}
-                    onChange={setNovaSenha}
-                    showPassword={showPassword}
-                    onTogglePassword={() => setShowPassword((v) => !v)}
-                    disabled={loading}
-                    helperText={PASSWORD_HELPER_TEXT}
-                  />
+            <TextField
+              id="confirmacao"
+              name="confirmacao"
+              label="Confirmar nova senha"
+              type="password"
+              autoComplete="new-password"
+              required
+              fullWidth
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              disabled={loading}
+              slotProps={{ htmlInput: { "aria-label": "Confirmar nova senha" } }}
+            />
 
-                  <TextField
-                    id="confirmacao"
-                    name="confirmacao"
-                    label="Confirmar nova senha"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    fullWidth
-                    value={confirmacao}
-                    onChange={(e) => setConfirmacao(e.target.value)}
-                    disabled={loading}
-                    slotProps={{ htmlInput: { "aria-label": "Confirmar nova senha" } }}
-                  />
-
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? "Redefinindo..." : "Redefinir senha"}
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+            >
+              {loading ? "Redefinindo..." : "Redefinir senha"}
+            </Button>
+          </>
+        )}
+      </AuthPageShell>
     </GuestOnly>
   );
 }
@@ -187,41 +153,22 @@ function RedefinirSenhaContent() {
 
 function InvalidLinkState() {
   return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center px-4 py-12"
-      sx={{ bgcolor: "background.default" }}
-    >
-      <Container maxWidth="xs">
-        <Paper
-          elevation={0}
-          sx={{
-            border: 1,
-            borderColor: "divider",
-            p: 4,
-            bgcolor: "background.paper",
-          }}
+    <AuthPageShell title="Link inválido">
+      <Stack spacing={3} sx={{ textAlign: "center" }}>
+        <Typography color="text.secondary">
+          Este link de redefinição é inválido ou está incompleto. Solicite um novo.
+        </Typography>
+        <Button
+          component={Link}
+          href="/esqueci-senha"
+          variant="contained"
+          size="large"
+          fullWidth
         >
-          <Stack spacing={3} sx={{ textAlign: "center" }}>
-            <Typography component="h1" variant="h5">
-              Link inválido
-            </Typography>
-            <Typography color="text.secondary">
-              Este link de redefinição é inválido ou está incompleto. Solicite um novo.
-            </Typography>
-            <Button
-              component={Link}
-              href="/esqueci-senha"
-              variant="contained"
-              size="large"
-              fullWidth
-            >
-              Solicitar novo link
-            </Button>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+          Solicitar novo link
+        </Button>
+      </Stack>
+    </AuthPageShell>
   );
 }
 

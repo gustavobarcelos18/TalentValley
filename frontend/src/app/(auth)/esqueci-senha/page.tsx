@@ -6,12 +6,11 @@ import {
   Alert,
   Box,
   Button,
-  Container,
-  Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { forgotPassword } from "@/lib/auth";
@@ -51,101 +50,75 @@ export default function EsqueciSenhaPage() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center px-4 py-12"
-        sx={{ bgcolor: "background.default" }}
+      <AuthPageShell
+        title="Esqueci minha senha"
+        subtitle="Informe seu e-mail para receber as instruções de redefinição"
+        onSubmit={submitted ? undefined : handleSubmit}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component={submitted ? "div" : "form"}
-            onSubmit={submitted ? undefined : handleSubmit}
-            elevation={0}
-            noValidate
-            sx={{
-              border: 1,
-              borderColor: "divider",
-              p: 4,
-              bgcolor: "background.paper",
-            }}
-          >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Esqueci minha senha
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Informe seu e-mail para receber as instruções de redefinição
-                </Typography>
-              </Stack>
+        {submitted ? (
+          <Stack spacing={3}>
+            <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
+              Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
+            </Alert>
+            <Button
+              component={Link}
+              href="/login"
+              variant="contained"
+              size="large"
+              fullWidth
+            >
+              Voltar ao login
+            </Button>
+          </Stack>
+        ) : (
+          <>
+            {error && (
+              <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+                {error}
+              </Alert>
+            )}
 
-              {submitted ? (
-                <Stack spacing={3}>
-                  <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
-                    Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
-                  </Alert>
-                  <Button
-                    component={Link}
-                    href="/login"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                  >
-                    Voltar ao login
-                  </Button>
-                </Stack>
-              ) : (
-                <>
-                  {error && (
-                    <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
-                      {error}
-                    </Alert>
-                  )}
+            <TextField
+              id="email"
+              name="email"
+              label="E-mail"
+              type="email"
+              autoComplete="email"
+              required
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+              disabled={loading}
+              slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
+            />
 
-                  <TextField
-                    id="email"
-                    name="email"
-                    label="E-mail"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    fullWidth
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value.slice(0, 254))}
-                    disabled={loading}
-                    slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
-                  />
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+            >
+              {loading ? "Enviando..." : "Enviar instruções"}
+            </Button>
 
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? "Enviando..." : "Enviar instruções"}
-                  </Button>
-
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography
-                      component={Link}
-                      href="/login"
-                      variant="body2"
-                      sx={{
-                        color: "primary.main",
-                        fontWeight: 500,
-                        "&:hover": { textDecoration: "underline" },
-                      }}
-                    >
-                      Voltar ao login
-                    </Typography>
-                  </Box>
-                </>
-              )}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography
+                component={Link}
+                href="/login"
+                variant="body2"
+                sx={{
+                  color: "primary.main",
+                  fontWeight: 500,
+                  "&:hover": { textDecoration: "underline" },
+                }}
+              >
+                Voltar ao login
+              </Typography>
+            </Box>
+          </>
+        )}
+      </AuthPageShell>
     </GuestOnly>
   );
 }
