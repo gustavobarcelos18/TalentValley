@@ -239,6 +239,15 @@ function InvalidLinkState() {
         <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
           Este link de ativação é inválido ou está incompleto. Solicite um novo.
         </Alert>
+        <Button
+          component={Link}
+          href="/login"
+          variant="contained"
+          size="large"
+          fullWidth
+        >
+          Ir para o login
+        </Button>
       </Stack>
     </AuthPageShell>
   );
