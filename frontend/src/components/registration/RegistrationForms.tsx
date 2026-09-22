@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import {
   Alert,
   Box,
@@ -92,11 +93,44 @@ function BrandLockup() {
   );
 }
 
+// Prominent, accessible way back to the profile choice page. Kept as a native
+// Next.js Link so it behaves like a normal navigation link.
+function BackLink({ href }: { href: string }) {
+  return (
+    <Typography
+      component={Link}
+      href={href}
+      variant="body2"
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.75,
+        width: "fit-content",
+        color: "primary.main",
+        fontWeight: 600,
+        textDecoration: "none",
+        "&:hover": { textDecoration: "underline" },
+        "&:focus-visible": {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: 2,
+          borderRadius: 1,
+        },
+      }}
+    >
+      <ArrowBackOutlined fontSize="small" />
+      Voltar para escolher perfil
+    </Typography>
+  );
+}
+
 function PublicPage({
   title,
+  backHref,
   children,
 }: {
   title: string;
+  backHref?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -134,6 +168,7 @@ function PublicPage({
                   </Typography>
                 </Stack>
               </Stack>
+              {backHref && <BackLink href={backHref} />}
               {children}
             </Stack>
           </Paper>
@@ -407,7 +442,7 @@ export function StudentRegistrationForm() {
     }
   };
   return (
-    <PublicPage title="Solicitar acesso como aluno">
+    <PublicPage title="Solicitar acesso como aluno" backHref="/cadastro">
       {success ? (
         <Success />
       ) : (
@@ -604,7 +639,7 @@ export function RecruiterRegistrationForm() {
     }
   };
   return (
-    <PublicPage title="Solicitar acesso como recrutador">
+    <PublicPage title="Solicitar acesso como recrutador" backHref="/cadastro">
       {success ? (
         <Success />
       ) : (
