@@ -171,7 +171,7 @@
 @media (prefers-reduced-motion: reduce) { .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
 /* Hero motion layers have separate transform owners for scroll and pointer depth. */
-.hero-background-scroll { position: absolute; inset: -18px -12px -85px; z-index: -3; pointer-events: none; }
+.hero-background-scroll { position: absolute; inset: -60px -12px -85px; z-index: -3; pointer-events: none; }
 .hero-background { position: relative; width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; transform: translateZ(0); }
 .hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
 .hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
@@ -179,30 +179,19 @@
 .hero h1 .hero-title-line { display: inline-block; }
 /* Set before the first paint by the root layout script; the reveal removes it. */
 .tv-motion-pending .landing [data-entrance] { opacity: 0; }
-/* Promote the scroll-scrubbed layers so their transform/opacity changes stay on the compositor instead of forcing a repaint each frame. */
+/* Promote only the full-screen scroll-scrubbed layers so their transforms stay on the
+   compositor. GSAP/Framer promote transform tweens automatically, so persistent will-change
+   on the remaining layers only wastes GPU memory. */
 .hero-background-scroll,
 .hero-atmosphere,
-.hero-technology,
-.hero-headline-scroll,
-.hero-subtitle-scroll,
-.hero-institutional-scroll,
-.hero-actions-scroll,
-.explore-link,
-.hero-exit-shade,
-.value-cover,
-.title-plane { will-change: transform, opacity; }
-/* Section decoration layers are translated every frame; promote them so masks/gradients rasterize once. */
-.valley-scene,
-.story-continuity,
-.story-paths,
-.panel-glow { will-change: transform; }
+.hero-technology { will-change: transform; }
 .landing [data-entrance]:focus-within { opacity: 1 !important; transform: none !important; }
 .landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
 }
 @media (max-width: 767px) {
-  .hero-background-scroll { inset: -4px -2px -20px; }
+  .hero-background-scroll { inset: -24px -2px -20px; }
   .hero-background { background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }
 }
 @media (prefers-reduced-motion: reduce) {

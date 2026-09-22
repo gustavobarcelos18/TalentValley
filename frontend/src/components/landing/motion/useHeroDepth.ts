@@ -21,9 +21,11 @@ export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
         defaults: { ease: "none", duration: 1 },
         scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true, invalidateOnRefresh: true },
       });
-      scroll.to(".hero-background-scroll", { y: 40 * distance, scale: 1.04 }, 0)
+      // Full-screen rasters/SVGs are translated only; per-frame scaling was the heaviest
+      // compositor cost on Full-HD displays, so it is dropped (the oversized inset hides edges).
+      scroll.to(".hero-background-scroll", { y: 40 * distance }, 0)
         .to(".hero-atmosphere", { y: -100 * distance, x: 45 * distance }, 0)
-        .to(".hero-technology", { y: -70 * distance, scale: 1.06 }, 0)
+        .to(".hero-technology", { y: -70 * distance }, 0)
         .to(".hero-headline-scroll", { y: -230 * distance, scale: 0.94, opacity: 0, duration: 0.65 }, 0)
         .to(".hero-subtitle-scroll", { y: -140 * distance, opacity: 0, duration: 0.55 }, 0.08)
         .to(".hero-institutional-scroll", { y: -90 * distance, opacity: 0, duration: 0.5 }, 0.12)
