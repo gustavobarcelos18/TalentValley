@@ -16,7 +16,10 @@ import {
   Stack,
   Toolbar,
   Typography,
+  useColorScheme,
 } from "@mui/material";
+import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
+import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -66,10 +69,12 @@ export function AppShell({ children }: AppShellProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const { mode, systemMode, setMode } = useColorScheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navItems = user ? NAV_BY_ROLE[user.role] : [];
   const roleLabel = user ? ROLE_LABELS[user.role] : "";
+  const dark = (mode === "system" ? systemMode : mode) !== "light";
 
   async function handleLogout() {
     setMenuOpen(false);
@@ -195,40 +200,48 @@ export function AppShell({ children }: AppShellProps) {
               </Stack>
             </Stack>
 
-            {user && (
-              <>
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  sx={{ display: { xs: "none", md: "flex" } }}
-                >
-                  <Chip
-                    label={roleLabel}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                    sx={{alignItems: "center",  fontWeight: 600 }}
-                  />
-                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                    {user.nome}
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    aria-label="Sair da conta"
-                    onClick={handleLogout}
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+              <IconButton
+                aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"}
+                onClick={() => setMode(dark ? "light" : "dark")}
+              >
+                {dark ? <LightModeOutlined /> : <DarkModeOutlined />}
+              </IconButton>
+              {user && (
+                <>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{ display: { xs: "none", md: "flex" } }}
                   >
-                    <LogoutOutlined fontSize="small" />
+                    <Chip
+                      label={roleLabel}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{alignItems: "center",  fontWeight: 600 }}
+                    />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                      {user.nome}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      aria-label="Sair da conta"
+                      onClick={handleLogout}
+                    >
+                      <LogoutOutlined fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                  <IconButton
+                    aria-label="Abrir menu"
+                    onClick={() => setMenuOpen(true)}
+                    sx={{ display: { xs: "inline-flex", md: "none" } }}
+                  >
+                    <MenuIcon />
                   </IconButton>
-                </Stack>
-                <IconButton
-                  aria-label="Abrir menu"
-                  onClick={() => setMenuOpen(true)}
-                  sx={{ display: { xs: "inline-flex", md: "none" } }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              </>
-            )}
+                </>
+              )}
+            </Stack>
           </Stack>
         </Toolbar>
       </AppBar>
