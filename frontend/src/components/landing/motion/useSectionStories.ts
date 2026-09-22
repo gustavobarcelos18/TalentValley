@@ -2,8 +2,8 @@
 
 import { useEffect, type RefObject } from "react";
 import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLandingMotionPolicy } from "./LandingMotion";
+import "./scrollTriggerSetup";
 
 /** One reversible scrub per section; ambient tweens share a visibility observer. */
 export function useSectionStories(ref: RefObject<HTMLElement | null>) {
@@ -12,7 +12,6 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const root = ref.current;
     if (!root || policy === "pending" || policy === "reduced") return;
-    gsap.registerPlugin(ScrollTrigger);
     const mobile = policy === "mobile";
     const d = mobile ? 0.3 : 1;
     const ambient = new Map<Element, gsap.core.Timeline>();
@@ -21,6 +20,20 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
       if (visible.has(section) && !document.hidden) timeline.play();
       else timeline.pause();
     });
+    // Freeze ambient loops while scrolling so they never compete with the scrub for the main thread.
+    let idleTimer: number | undefined;
+    let scrollFrame: number | undefined;
+    const onScroll = () => {
+      ambient.forEach(timeline => timeline.pause());
+      window.clearTimeout(idleTimer);
+      // Throttle the resume timer to once per frame instead of churning a timeout on every scroll event.
+      if (scrollFrame === undefined) {
+        scrollFrame = window.requestAnimationFrame(() => {
+          scrollFrame = undefined;
+          idleTimer = window.setTimeout(updateAmbient, 150);
+        });
+      }
+    };
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) visible.add(entry.target);
@@ -55,10 +68,9 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
           from(".audience-copy > p:not(.eyebrow), .institution-copy > p:not(.eyebrow)", { y: 20 * d, opacity: 0, stagger: 0.04, duration: 0.25 }, 0.1);
         }
         depth(".story-continuity", -90);
-        depth("[data-scene-layer='distant']", 55);
-        depth("[data-scene-layer='facets']", 90);
-        depth("[data-scene-layer='mesh'], [data-scene-layer='contours']", 30);
-        depth("[data-scene-layer='connections']", -65);
+        // SVG <g> groups can't become compositor layers, so per-group parallax forced a full
+        // scene re-rasterization every frame. Move the whole scene as one promotable layer.
+        depth(".valley-scene", 45);
         depth(".panel-glow", -100);
         if (company) {
           from(".network-orbit", { scale: 1.35, rotation: 8, duration: 0.65 });
@@ -82,16 +94,22 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
           const loop = gsap.timeline({ paused: true, repeat: -1, yoyo: true })
             .fromTo(select(".panel-glow"), { opacity: 0.35 }, { opacity: 0.75, duration: 4, ease: "sine.inOut" }, 0)
             .fromTo(select(".network-center svg"), { opacity: 0.65 }, { opacity: 1, duration: 3, ease: "sine.inOut" }, 0)
-            .fromTo(select(".path-light"), { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 4, ease: "none" }, 0);
+            // Opacity pulse instead of stroke-dashoffset: dash animation re-rasterizes the SVG path
+            // every frame, while opacity stays on the compositor.
+            .fromTo(select(".path-light"), { opacity: 0.25 }, { opacity: 0.9, duration: 4, ease: "sine.inOut" }, 0);
           ambient.set(section, loop);
           observer.observe(section);
         }
       });
     }, root);
     document.addEventListener("visibilitychange", updateAmbient);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       observer.disconnect();
       document.removeEventListener("visibilitychange", updateAmbient);
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(idleTimer);
+      if (scrollFrame !== undefined) window.cancelAnimationFrame(scrollFrame);
       context.revert();
     };
   }, [policy, ref]);

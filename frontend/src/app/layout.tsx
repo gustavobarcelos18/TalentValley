@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import { ThemeRegistry } from "@/theme/ThemeRegistry";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
-        <script dangerouslySetInnerHTML={{ __html: entrancePrePaintScript }} />
+        <Script id="tv-motion-pre-paint" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: entrancePrePaintScript }} />
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeRegistry>
           <AuthProvider>{children}</AuthProvider>

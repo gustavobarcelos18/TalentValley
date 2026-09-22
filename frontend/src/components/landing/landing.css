@@ -45,7 +45,7 @@
 .landing p { color: var(--muted); line-height: 1.85; }
 .landing .eyebrow { color: var(--accent); font-size: .67rem; font-weight: 600; letter-spacing: .2em; margin-bottom: 26px; line-height: 1.7; }
 .landing-header { position: fixed; top: 0; width: 100%; z-index: 20; border-bottom: 1px solid rgb(168 178 176 / 18%); transition: background-color .3s, border-color .3s, box-shadow .3s; }
-.landing-header.is-elevated { background: var(--nav); backdrop-filter: blur(18px); border-color: var(--line); box-shadow: 0 8px 28px rgb(0 0 0 / 8%); }
+.landing-header.is-elevated { background: var(--nav); border-color: var(--line); box-shadow: 0 8px 28px rgb(0 0 0 / 8%); }
 .nav-inner { max-width: 1800px; min-height: 92px; margin: auto; padding: 18px 3.2%; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .brand-link { display: inline-flex; flex-shrink: 0; }
 .tv-brand { display: flex; align-items: center; gap: 10px; }
@@ -171,7 +171,7 @@
 @media (prefers-reduced-motion: reduce) { .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
 /* Hero motion layers have separate transform owners for scroll and pointer depth. */
-.hero-background-scroll { position: absolute; inset: -18px -12px -85px; z-index: -3; pointer-events: none; }
+.hero-background-scroll { position: absolute; inset: -60px -12px -85px; z-index: -3; pointer-events: none; }
 .hero-background { position: relative; width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; transform: translateZ(0); }
 .hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
 .hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
@@ -179,13 +179,19 @@
 .hero h1 .hero-title-line { display: inline-block; }
 /* Set before the first paint by the root layout script; the reveal removes it. */
 .tv-motion-pending .landing [data-entrance] { opacity: 0; }
+/* Promote only the full-screen scroll-scrubbed layers so their transforms stay on the
+   compositor. GSAP/Framer promote transform tweens automatically, so persistent will-change
+   on the remaining layers only wastes GPU memory. */
+.hero-background-scroll,
+.hero-atmosphere,
+.hero-technology { will-change: transform; }
 .landing [data-entrance]:focus-within { opacity: 1 !important; transform: none !important; }
 .landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
 }
 @media (max-width: 767px) {
-  .hero-background-scroll { inset: -4px -2px -20px; }
+  .hero-background-scroll { inset: -24px -2px -20px; }
   .hero-background { background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }
 }
 @media (prefers-reduced-motion: reduce) {
