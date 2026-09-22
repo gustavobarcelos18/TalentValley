@@ -10,7 +10,6 @@ import {
   InputAdornment,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -155,9 +154,9 @@ function InvalidLinkState() {
   return (
     <AuthPageShell title="Link inválido">
       <Stack spacing={3} sx={{ textAlign: "center" }}>
-        <Typography color="text.secondary">
+        <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
           Este link de redefinição é inválido ou está incompleto. Solicite um novo.
-        </Typography>
+        </Alert>
         <Button
           component={Link}
           href="/esqueci-senha"
