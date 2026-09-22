@@ -19,7 +19,12 @@ import { GuestOnly } from "@/components/auth/GuestOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
 import { login } from "@/lib/auth";
-import { normalizeEmailInput, validateEmail } from "@/lib/validation";
+import {
+  normalizeEmailInput,
+  stripEmoji,
+  stripEmojiOnPaste,
+  validateEmail,
+} from "@/lib/validation";
 
 export default function LoginPage() {
   return (
@@ -66,12 +71,16 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const response = await login({ email: normalizeEmailInput(email), senha });
+      const response = await login({
+        email: normalizeEmailInput(email),
+        senha,
+      });
       loginCompleted(response.usuario);
 
-      const destination = returnUrl && isValidLocalRedirect(returnUrl)
-        ? returnUrl
-        : response.destinoInicial;
+      const destination =
+        returnUrl && isValidLocalRedirect(returnUrl)
+          ? returnUrl
+          : response.destinoInicial;
 
       router.replace(destination);
     } catch (err) {
@@ -84,7 +93,9 @@ function LoginContent() {
             setError("Acesso indisponível para esta conta.");
             break;
           case 423:
-            setError("Conta temporariamente bloqueada. Tente novamente mais tarde.");
+            setError(
+              "Conta temporariamente bloqueada. Tente novamente mais tarde.",
+            );
             break;
           default:
             setError("Não foi possível fazer login. Tente novamente.");
@@ -105,7 +116,11 @@ function LoginContent() {
         onSubmit={handleSubmit}
       >
         {error && (
-          <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+          <Alert
+            severity="error"
+            variant="filled"
+            sx={{ fontSize: "0.875rem" }}
+          >
             {error}
           </Alert>
         )}
@@ -119,9 +134,11 @@ function LoginContent() {
           required
           fullWidth
           value={email}
-          onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+          onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
           disabled={loading}
-          slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
+          slotProps={{
+            htmlInput: { "aria-label": "E-mail", onPaste: stripEmojiOnPaste },
+          }}
         />
 
         <TextField
@@ -142,7 +159,9 @@ function LoginContent() {
                 <InputAdornment position="end">
                   <IconButton
                     type="button"
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
                     onClick={() => setShowPassword((v) => !v)}
                     edge="end"
                   >
