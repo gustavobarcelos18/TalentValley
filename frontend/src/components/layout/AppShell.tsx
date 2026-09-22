@@ -213,7 +213,7 @@ export function AppShell({ children }: AppShellProps) {
                   <Stack
                     direction="row"
                     spacing={1.5}
-                    sx={{ display: { xs: "none", lg: "flex" } }}
+                    sx={{ alignItems: "center", display: { xs: "none", lg: "flex" } }}
                   >
                     <Chip
                       label={roleLabel}
@@ -222,6 +222,9 @@ export function AppShell({ children }: AppShellProps) {
                       variant="outlined"
                       sx={{alignItems: "center",  fontWeight: 600 }}
                     />
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontWeight: 600 }}>
+                      {initialsOf(user.nome)}
+                    </Avatar>
                     <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                       {user.nome}
                     </Typography>
