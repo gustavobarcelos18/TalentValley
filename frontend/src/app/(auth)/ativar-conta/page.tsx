@@ -39,6 +39,7 @@ function AtivarContaContent() {
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmacao, setShowConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -47,6 +48,14 @@ function AtivarContaContent() {
 
   const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
   const passwordAriaLabel = showPassword ? "Ocultar senha" : "Mostrar senha";
+  const confirmacaoVisibilityIcon = showConfirmacao ? (
+    <VisibilityOff />
+  ) : (
+    <Visibility />
+  );
+  const confirmacaoAriaLabel = showConfirmacao
+    ? "Ocultar confirmação de senha"
+    : "Mostrar confirmação de senha";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -143,14 +152,30 @@ function AtivarContaContent() {
               id="confirmacao"
               name="confirmacao"
               label="Confirmar senha"
-              type="password"
+              type={showConfirmacao ? "text" : "password"}
               autoComplete="new-password"
               required
               fullWidth
               value={confirmacao}
               onChange={(e) => setConfirmacao(e.target.value)}
               disabled={loading}
-              slotProps={{ htmlInput: { "aria-label": "Confirmar senha" } }}
+              slotProps={{
+                htmlInput: { "aria-label": "Confirmar senha" },
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="button"
+                        aria-label={confirmacaoAriaLabel}
+                        onClick={() => setShowConfirmacao((v) => !v)}
+                        edge="end"
+                      >
+                        {confirmacaoVisibilityIcon}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
 
             <Button

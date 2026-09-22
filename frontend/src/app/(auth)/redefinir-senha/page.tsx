@@ -39,6 +39,7 @@ function RedefinirSenhaContent() {
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmacao, setShowConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -116,18 +117,16 @@ function RedefinirSenhaContent() {
               helperText={PASSWORD_HELPER_TEXT}
             />
 
-            <TextField
+            <PasswordField
               id="confirmacao"
-              name="confirmacao"
               label="Confirmar nova senha"
-              type="password"
-              autoComplete="new-password"
-              required
-              fullWidth
               value={confirmacao}
-              onChange={(e) => setConfirmacao(e.target.value)}
+              onChange={setConfirmacao}
+              showPassword={showConfirmacao}
+              onTogglePassword={() => setShowConfirmacao((v) => !v)}
               disabled={loading}
-              slotProps={{ htmlInput: { "aria-label": "Confirmar nova senha" } }}
+              showAriaLabel="Mostrar confirmação da nova senha"
+              hideAriaLabel="Ocultar confirmação da nova senha"
             />
 
             <Button
@@ -196,6 +195,10 @@ interface PasswordFieldProps {
   onTogglePassword: () => void;
   disabled?: boolean;
   helperText?: string;
+  /** Toggle button aria-label when the value is hidden (password type). */
+  showAriaLabel?: string;
+  /** Toggle button aria-label when the value is shown (text type). */
+  hideAriaLabel?: string;
 }
 
 function PasswordField({
@@ -207,9 +210,13 @@ function PasswordField({
   onTogglePassword,
   disabled,
   helperText,
+  showAriaLabel,
+  hideAriaLabel,
 }: PasswordFieldProps) {
   const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
-  const ariaLabel = showPassword ? "Ocultar senha" : "Mostrar senha";
+  const ariaLabel = showPassword
+    ? (hideAriaLabel ?? "Ocultar senha")
+    : (showAriaLabel ?? "Mostrar senha");
   const inputType = showPassword ? "text" : "password";
 
   return (
