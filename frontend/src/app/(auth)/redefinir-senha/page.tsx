@@ -14,6 +14,7 @@ import {
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { AuthSuspenseFallback } from "@/components/auth/AuthSuspenseFallback";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { resetPassword } from "@/lib/auth";
@@ -24,14 +25,10 @@ import {
 
 export default function RedefinirSenhaPage() {
   return (
-    <Suspense fallback={<PageFallback />}>
+    <Suspense fallback={<AuthSuspenseFallback />}>
       <RedefinirSenhaContent />
     </Suspense>
   );
-}
-
-function PageFallback() {
-  return <AuthPageShell bare />;
 }
 
 function RedefinirSenhaContent() {
