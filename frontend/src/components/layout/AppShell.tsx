@@ -18,6 +18,7 @@ import {
   Typography,
   useColorScheme,
 } from "@mui/material";
+import Close from "@mui/icons-material/Close";
 import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
@@ -212,7 +213,7 @@ export function AppShell({ children }: AppShellProps) {
                   <Stack
                     direction="row"
                     spacing={1.5}
-                    sx={{ display: { xs: "none", lg: "flex" } }}
+                    sx={{ alignItems: "center", display: { xs: "none", lg: "flex" } }}
                   >
                     <Chip
                       label={roleLabel}
@@ -221,6 +222,9 @@ export function AppShell({ children }: AppShellProps) {
                       variant="outlined"
                       sx={{alignItems: "center",  fontWeight: 600 }}
                     />
+                    <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontWeight: 600 }}>
+                      {initialsOf(user.nome)}
+                    </Avatar>
                     <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                       {user.nome}
                     </Typography>
@@ -253,7 +257,15 @@ export function AppShell({ children }: AppShellProps) {
         slotProps={{ paper: { sx: { width: 300, p: 2.5 } } }}
       >
         <Stack spacing={2}>
-          {renderBrand(() => setMenuOpen(false))}
+          <Stack
+            direction="row"
+            sx={{ alignItems: "center", justifyContent: "space-between" }}
+          >
+            {renderBrand(() => setMenuOpen(false))}
+            <IconButton aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>
+              <Close />
+            </IconButton>
+          </Stack>
           <Divider />
           {user && (
             <Stack direction="row" spacing={1.5}>
