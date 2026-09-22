@@ -2,8 +2,8 @@
 
 import { useEffect, type RefObject } from "react";
 import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motionQueries, useLandingMotionPolicy } from "./LandingMotion";
+import "./scrollTriggerSetup";
 
 export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
   const policy = useLandingMotionPolicy();
@@ -11,7 +11,6 @@ export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const hero = ref.current;
     if (!hero || policy === "pending" || policy === "reduced") return;
-    gsap.registerPlugin(ScrollTrigger);
     // matchMedia owns a scoped GSAP context and reverts every tween/trigger.
     const media = gsap.matchMedia();
     media.add({ motion: "(prefers-reduced-motion: no-preference)", pointer: motionQueries.pointer }, context => {
