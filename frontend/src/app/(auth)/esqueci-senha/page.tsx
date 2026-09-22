@@ -14,7 +14,7 @@ import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { forgotPassword } from "@/lib/auth";
-import { normalizeEmailInput, validateEmail } from "@/lib/validation";
+import { normalizeEmailInput, stripEmoji, validateEmail } from "@/lib/validation";
 
 export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("");
@@ -73,8 +73,10 @@ export default function EsqueciSenhaPage() {
         reportError(
           "Não foi possível processar sua solicitação. Tente novamente.",
         );
-      } else {
+      } else if (err instanceof ApiError) {
         setSubmitted(true);
+      } else {
+        reportError("Não foi possível conectar ao servidor. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -133,7 +135,9 @@ export default function EsqueciSenhaPage() {
               required
               fullWidth
               value={email}
-              onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+              onChange={(e) =>
+                setEmail(stripEmoji(e.target.value).slice(0, 254))
+              }
               inputRef={emailInputRef}
               disabled={loading}
               slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
