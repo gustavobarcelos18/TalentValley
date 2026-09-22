@@ -172,14 +172,14 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Stack
               direction="row"
-              spacing={{ xs: 1, md: 4 }}
+              spacing={{ xs: 1, lg: 4 }}
               sx={{ alignItems: "center", minWidth: 0 }}
             >
               {renderBrand()}
               <Stack
                 direction="row"
                 spacing={1}
-                sx={{alignItems: "center",  display: { xs: "none", md: "flex" } }}
+                sx={{alignItems: "center",  display: { xs: "none", lg: "flex" } }}
               >
                 {navItems.map((item) => (
                   <ListItemButton
@@ -212,7 +212,7 @@ export function AppShell({ children }: AppShellProps) {
                   <Stack
                     direction="row"
                     spacing={1.5}
-                    sx={{ display: { xs: "none", md: "flex" } }}
+                    sx={{ display: { xs: "none", lg: "flex" } }}
                   >
                     <Chip
                       label={roleLabel}
@@ -235,7 +235,7 @@ export function AppShell({ children }: AppShellProps) {
                   <IconButton
                     aria-label="Abrir menu"
                     onClick={() => setMenuOpen(true)}
-                    sx={{ display: { xs: "inline-flex", md: "none" } }}
+                    sx={{ display: { xs: "inline-flex", lg: "none" } }}
                   >
                     <MenuIcon />
                   </IconButton>
