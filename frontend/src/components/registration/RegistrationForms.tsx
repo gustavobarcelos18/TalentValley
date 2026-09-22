@@ -273,46 +273,67 @@ function CommonFields({
   );
 }
 
+// A selectable profile card. It stays a native Next.js Link (rendered as an
+// anchor through Paper) so keyboard, middle-click and assistive tech keep the
+// default link behavior, while hover/focus/active states make it feel tappable.
+function ChoiceCard({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Paper
+      component={Link}
+      href={href}
+      elevation={0}
+      sx={{
+        p: 2.25,
+        border: 1,
+        borderColor: "divider",
+        textDecoration: "none",
+        color: "text.primary",
+        transition:
+          "background-color 150ms ease, border-color 150ms ease",
+        "&:hover": {
+          bgcolor: "action.hover",
+          borderColor: "primary.main",
+        },
+        "&:active": {
+          bgcolor: "action.selected",
+          borderColor: "primary.dark",
+        },
+        "&:focus-visible": {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: 2,
+        },
+      }}
+    >
+      {children}
+    </Paper>
+  );
+}
+
 export function RegistrationChoice() {
   return (
     <PublicPage title="Solicitar acesso ao Talent Valley">
       <Stack spacing={1.5}>
-        <Paper
-          component={Link}
-          href="/cadastro/aluno"
-          elevation={0}
-          sx={{
-            p: 2.25,
-            border: 1,
-            borderColor: "divider",
-            textDecoration: "none",
-            color: "text.primary",
-          }}
-        >
+        <ChoiceCard href="/cadastro/aluno">
           <Typography sx={{ fontWeight: 700 }}>Sou aluno</Typography>
           <Typography variant="body2" color="text.secondary">
             Envie seus dados para análise. Após aprovação, você receberá acesso
             para criar seu perfil profissional.
           </Typography>
-        </Paper>
-        <Paper
-          component={Link}
-          href="/cadastro/recrutador"
-          elevation={0}
-          sx={{
-            p: 2.25,
-            border: 1,
-            borderColor: "divider",
-            textDecoration: "none",
-            color: "text.primary",
-          }}
-        >
+        </ChoiceCard>
+        <ChoiceCard href="/cadastro/recrutador">
           <Typography sx={{ fontWeight: 700 }}>Sou Recrutador</Typography>
           <Typography variant="body2" color="text.secondary">
             Solicite acesso para pesquisar talentos da comunidade Rio Pomba
             Valley.
           </Typography>
-        </Paper>
+        </ChoiceCard>
         <Typography align="center" variant="body2">
           Já possui acesso? <Link href="/login">Entrar</Link>
         </Typography>
