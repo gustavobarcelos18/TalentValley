@@ -153,14 +153,7 @@ function LoginContent() {
           onChange={(e) => setSenha(e.target.value)}
           disabled={loading}
           slotProps={{
-            htmlInput: {
-              "aria-label": "Senha",
-              style: {
-                fontFamily: showPassword
-                  ? 'inherit, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
-                  : undefined,
-              },
-            },
+            htmlInput: { "aria-label": "Senha" },
             input: {
               endAdornment: (
                 <InputAdornment position="end">
