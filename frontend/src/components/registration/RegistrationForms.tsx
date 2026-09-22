@@ -8,6 +8,7 @@ import {
   Box,
   Button,
   Container,
+  Divider,
   MenuItem,
   Paper,
   Stack,
@@ -449,6 +450,9 @@ export function StudentRegistrationForm() {
         <Box component="form" onSubmit={submit} noValidate>
           <Stack spacing={2}>
             {error && <Alert severity="error">{error}</Alert>}
+            <Typography component="h2" variant="h6">
+              Dados pessoais
+            </Typography>
             <CommonFields
               value={common}
               errors={errors}
@@ -459,6 +463,10 @@ export function StudentRegistrationForm() {
               onBlur={blurCommon}
               disabled={busy}
             />
+            <Divider />
+            <Typography component="h2" variant="h6">
+              Formação acadêmica
+            </Typography>
             <TextField
               required
               label="Instituição de ensino"
@@ -646,6 +654,9 @@ export function RecruiterRegistrationForm() {
         <Box component="form" onSubmit={submit} noValidate>
           <Stack spacing={2}>
             {error && <Alert severity="error">{error}</Alert>}
+            <Typography component="h2" variant="h6">
+              Dados pessoais
+            </Typography>
             <CommonFields
               value={common}
               errors={errors}
@@ -656,6 +667,10 @@ export function RecruiterRegistrationForm() {
               onBlur={blurCommon}
               disabled={busy}
             />
+            <Divider />
+            <Typography component="h2" variant="h6">
+              Dados profissionais
+            </Typography>
             <TextField
               required
               label="Empresa"
