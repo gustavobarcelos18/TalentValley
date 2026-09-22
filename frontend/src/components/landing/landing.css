@@ -67,7 +67,6 @@
 .user-link { display: flex; align-items: center; gap: 8px; font-size: .8rem; max-width: 160px; }
 .user-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-link .MuiAvatar-root { background: var(--teal); color: var(--page); width: 36px; height: 36px; font-size: .9rem; }
-.identity-placeholder { width: 90px; height: 44px; }
 .hero { position: relative; min-height: 760px; height: 100svh; max-height: 1200px; isolation: isolate; display: flex; justify-content: center; text-align: center; background: var(--page); overflow: clip; }
 .light .hero-background { background-image: url('/landing/valley-light.webp'); }
 .hero-atmosphere { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(13 17 20 / 35%), transparent 56%); }
@@ -82,7 +81,6 @@
 .hero .institutional-line { font: 600 .88rem/1.6 var(--font-inter), sans-serif; letter-spacing: .1em; margin: 18px 0 32px; color: var(--ink); text-shadow: 0 1px 12px var(--page); }
 .join-actions { display: flex; flex-wrap: wrap; gap: 14px; min-height: 54px; }
 .hero .join-actions { justify-content: center; gap: 16px; }
-.join-placeholder { min-height: 54px; }
 .landing .join-actions .MuiButton-root { min-height: 54px; padding: 13px 28px; border-radius: 30px; font-size: .88rem; gap: 14px; box-shadow: none; }
 .landing .join-actions .MuiButton-contained { background: #a0d060; color: #15201d; }
 .landing .join-actions .MuiButton-contained:hover { background: #b4df7d; }
@@ -158,7 +156,7 @@
 }
 @media (max-width: 767px) {
   .nav-inner { min-height: 80px; padding: 12px 16px; gap: 8px; }.tv-brand { gap: 6px; }.tv-brand > svg { width: 38px; }.tv-brand strong { font-size: 1.25rem; }.tv-brand small { font-size: .53rem; }
-  .nav-actions { gap: 1px; }.landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }.user-link > span { display: none; }.identity-placeholder { width: 50px; }.theme-control { border: 0; padding: 0; }.theme-toggle-button { width: 44px; height: 44px; }
+  .nav-actions { gap: 1px; }.landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }.user-link > span { display: none; }.theme-control { border: 0; padding: 0; }.theme-toggle-button { width: 44px; height: 44px; }
   .hero { min-height: 770px; height: 100svh; max-height: 950px; }.light .hero-background { background-image: url('/landing/valley-light-mobile.webp'); }.hero-copy { padding: 145px 20px 0; }.hero h1 { font-size: clamp(3.35rem, 9.9vw, 5.5rem); line-height: 1.05; letter-spacing: -.065em; }
   .hero .hero-subtitle { max-width: 310px; margin: 25px auto 0; font-size: 1rem; line-height: 1.6; }.hero .institutional-line { font-size: .78rem; letter-spacing: .06em; margin-top: 20px; }
   .hero .join-actions { gap: 10px; }.landing .join-actions .MuiButton-root { padding: 12px 20px; font-size: .8rem; gap: 8px; }.hero .join-actions .MuiButton-root { min-width: 0; min-height: 54px; }
@@ -174,11 +172,13 @@
 
 /* Hero motion layers have separate transform owners for scroll and pointer depth. */
 .hero-background-scroll { position: absolute; inset: -18px -12px -85px; z-index: -3; pointer-events: none; }
-.hero-background { width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; }
+.hero-background { position: relative; width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; transform: translateZ(0); }
 .hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
 .hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
 .hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
 .hero h1 .hero-title-line { display: inline-block; }
+/* Set before the first paint by the root layout script; the reveal removes it. */
+.tv-motion-pending .landing [data-entrance] { opacity: 0; }
 .landing [data-entrance]:focus-within { opacity: 1 !important; transform: none !important; }
 .landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
@@ -213,7 +213,7 @@
 .landing { overflow-x: clip; }
 .hero { overflow: visible; z-index: 1; }
 .hero-background-scroll { bottom: -26svh; }
-.hero-background { mask-image: linear-gradient(#000 75%, transparent 100%); }
+.hero-background::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 75%, var(--page) 100%); pointer-events: none; }
 .hero-glow { position: absolute; inset: 15% -10% -15%; background: radial-gradient(ellipse at 65% 65%, rgb(32 200 192 / 22%), transparent 55%); }
 .hero-exit-shade { bottom: -26svh; height: 35svh; }
 .hero h1 .hero-title-line { color: inherit; background: none; -webkit-text-fill-color: initial; }
