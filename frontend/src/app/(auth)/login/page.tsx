@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -46,9 +46,35 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const senhaInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"email" | "senha" | null>(null);
+
   const returnUrl = searchParams.get("returnUrl");
 
   const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
+
+  // After a failed submit, move focus to the first invalid field or, for
+  // submission errors, to the error summary. The sequence id re-runs the
+  // effect even when the same error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "email") {
+      emailInputRef.current?.focus();
+    } else if (lastErrorFocus.current === "senha") {
+      senhaInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  function reportError(message: string, focus: "email" | "senha" | null = null) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -56,12 +82,12 @@ function LoginContent() {
 
     const emailError = validateEmail(email.trim());
     if (emailError) {
-      setError(emailError);
+      reportError(emailError, "email");
       return;
     }
 
     if (!senha) {
-      setError("Informe sua senha.");
+      reportError("Informe sua senha.", "senha");
       return;
     }
 
@@ -84,21 +110,21 @@ function LoginContent() {
       if (err instanceof ApiError) {
         switch (err.status) {
           case 401:
-            setError("E-mail ou senha incorretos.");
+            reportError("E-mail ou senha incorretos.");
             break;
           case 403:
-            setError("Acesso indisponível para esta conta.");
+            reportError("Acesso indisponível para esta conta.");
             break;
           case 423:
-            setError(
+            reportError(
               "Conta temporariamente bloqueada. Tente novamente mais tarde.",
             );
             break;
           default:
-            setError("Não foi possível fazer login. Tente novamente.");
+            reportError("Não foi possível fazer login. Tente novamente.");
         }
       } else {
-        setError("Não foi possível conectar ao servidor. Tente novamente.");
+        reportError("Não foi possível conectar ao servidor. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -111,9 +137,12 @@ function LoginContent() {
         title="Entrar no Talent Valley"
         subtitle="Acesse sua conta para continuar"
         onSubmit={handleSubmit}
+        ariaBusy={loading}
       >
         {error && (
           <Alert
+            ref={errorAlertRef}
+            tabIndex={-1}
             severity="error"
             variant="filled"
             sx={{ fontSize: "0.875rem" }}
@@ -132,6 +161,7 @@ function LoginContent() {
           fullWidth
           value={email}
           onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
+          inputRef={emailInputRef}
           disabled={loading}
           slotProps={{
             htmlInput: { "aria-label": "E-mail", onPaste: stripEmojiOnPaste },
@@ -148,6 +178,7 @@ function LoginContent() {
           fullWidth
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
+          inputRef={senhaInputRef}
           disabled={loading}
           slotProps={{
             htmlInput: { "aria-label": "Senha" },
