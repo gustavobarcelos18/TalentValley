@@ -150,7 +150,7 @@ function LoginContent() {
           required
           fullWidth
           value={senha}
-          onChange={(e) => setSenha(stripEmoji(e.target.value))}
+          onChange={(e) => setSenha(e.target.value)}
           disabled={loading}
           slotProps={{
             htmlInput: { "aria-label": "Senha", onPaste: stripEmojiOnPaste },
