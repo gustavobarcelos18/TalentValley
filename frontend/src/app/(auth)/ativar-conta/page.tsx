@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -44,6 +44,12 @@ function AtivarContaContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const senhaInputRef = useRef<HTMLInputElement | null>(null);
+  const confirmacaoInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"senha" | "confirmacao" | null>(null);
+
   const missingParams = !email || !token;
 
   const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
@@ -57,18 +63,41 @@ function AtivarContaContent() {
     ? "Ocultar confirmação de senha"
     : "Mostrar confirmação de senha";
 
+  // After a failed submit, move focus to the first invalid field or, for
+  // submission errors, to the error summary. The sequence id re-runs the
+  // effect even when the same error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "senha") {
+      senhaInputRef.current?.focus();
+    } else if (lastErrorFocus.current === "confirmacao") {
+      confirmacaoInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  function reportError(
+    message: string,
+    focus: "senha" | "confirmacao" | null = null,
+  ) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
 
     const senhaError = validatePassword(senha);
     if (senhaError) {
-      setError(senhaError);
+      reportError(senhaError, "senha");
       return;
     }
 
     if (senha !== confirmacao) {
-      setError("As senhas não coincidem.");
+      reportError("As senhas não coincidem.", "confirmacao");
       return;
     }
 
@@ -79,13 +108,13 @@ function AtivarContaContent() {
       setSuccess(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(
+        reportError(
           err.status === 400
             ? "Não foi possível ativar a conta. Verifique o link."
-            : "Não foi possível processar. Tente novamente."
+            : "Não foi possível processar. Tente novamente.",
         );
       } else {
-        setError("Não foi possível conectar. Tente novamente.");
+        reportError("Não foi possível conectar. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -106,13 +135,20 @@ function AtivarContaContent() {
         title="Ativar conta"
         subtitle="Defina sua senha para ativar seu acesso"
         onSubmit={success ? undefined : handleSubmit}
+        ariaBusy={loading}
       >
         {success ? (
           <SuccessState />
         ) : (
           <>
             {error && (
-              <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+              <Alert
+                ref={errorAlertRef}
+                tabIndex={-1}
+                severity="error"
+                variant="filled"
+                sx={{ fontSize: "0.875rem" }}
+              >
                 {error}
               </Alert>
             )}
@@ -127,6 +163,7 @@ function AtivarContaContent() {
               fullWidth
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
+              inputRef={senhaInputRef}
               disabled={loading}
               helperText={PASSWORD_HELPER_TEXT}
               slotProps={{
@@ -158,6 +195,7 @@ function AtivarContaContent() {
               fullWidth
               value={confirmacao}
               onChange={(e) => setConfirmacao(e.target.value)}
+              inputRef={confirmacaoInputRef}
               disabled={loading}
               slotProps={{
                 htmlInput: { "aria-label": "Confirmar senha" },
@@ -207,9 +245,22 @@ function InvalidLinkState() {
 }
 
 function SuccessState() {
+  const alertRef = useRef<HTMLDivElement | null>(null);
+
+  // Move focus to the success message when the form is replaced by it.
+  useEffect(() => {
+    alertRef.current?.focus();
+  }, []);
+
   return (
     <Stack spacing={3}>
-      <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
+      <Alert
+        ref={alertRef}
+        tabIndex={-1}
+        severity="success"
+        variant="filled"
+        sx={{ fontSize: "0.9375rem" }}
+      >
         Conta ativada com sucesso! Você já pode fazer login.
       </Alert>
       <Button

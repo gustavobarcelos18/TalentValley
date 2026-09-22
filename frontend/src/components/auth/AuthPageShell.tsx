@@ -9,6 +9,8 @@ interface AuthPageShellProps {
   subtitle?: string;
   /** Supplying a handler turns the card surface into a form. */
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
+  /** Marks the form as busy while a submission is in progress. */
+  ariaBusy?: boolean;
   /** Renders only the page background, without the card. */
   bare?: boolean;
   children?: ReactNode;
@@ -22,6 +24,7 @@ export function AuthPageShell({
   title,
   subtitle,
   onSubmit,
+  ariaBusy,
   bare = false,
   children,
 }: AuthPageShellProps) {
@@ -36,6 +39,7 @@ export function AuthPageShell({
           <Paper
             component={onSubmit ? "form" : "div"}
             onSubmit={onSubmit}
+            aria-busy={ariaBusy || undefined}
             elevation={0}
             noValidate={onSubmit !== undefined}
             sx={{

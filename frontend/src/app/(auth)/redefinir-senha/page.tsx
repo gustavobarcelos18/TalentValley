@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import {
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type Ref,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -44,7 +51,36 @@ function RedefinirSenhaContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const novaSenhaInputRef = useRef<HTMLInputElement | null>(null);
+  const confirmacaoInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"novaSenha" | "confirmacao" | null>(null);
+
   const missingParams = !email || !token;
+
+  // After a failed submit, move focus to the first invalid field or, for
+  // submission errors, to the error summary. The sequence id re-runs the
+  // effect even when the same error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "novaSenha") {
+      novaSenhaInputRef.current?.focus();
+    } else if (lastErrorFocus.current === "confirmacao") {
+      confirmacaoInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  function reportError(
+    message: string,
+    focus: "novaSenha" | "confirmacao" | null = null,
+  ) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -52,12 +88,12 @@ function RedefinirSenhaContent() {
 
     const senhaError = validatePassword(novaSenha);
     if (senhaError) {
-      setError(senhaError);
+      reportError(senhaError, "novaSenha");
       return;
     }
 
     if (novaSenha !== confirmacao) {
-      setError("As senhas não coincidem.");
+      reportError("As senhas não coincidem.", "confirmacao");
       return;
     }
 
@@ -68,13 +104,13 @@ function RedefinirSenhaContent() {
       setSuccess(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(
+        reportError(
           err.status === 400
             ? "Não foi possível redefinir a senha. Verifique o link."
-            : "Não foi possível processar. Tente novamente."
+            : "Não foi possível processar. Tente novamente.",
         );
       } else {
-        setError("Não foi possível conectar. Tente novamente.");
+        reportError("Não foi possível conectar. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -95,13 +131,20 @@ function RedefinirSenhaContent() {
         title="Redefinir senha"
         subtitle="Digite sua nova senha"
         onSubmit={success ? undefined : handleSubmit}
+        ariaBusy={loading}
       >
         {success ? (
           <SuccessState />
         ) : (
           <>
             {error && (
-              <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+              <Alert
+                ref={errorAlertRef}
+                tabIndex={-1}
+                severity="error"
+                variant="filled"
+                sx={{ fontSize: "0.875rem" }}
+              >
                 {error}
               </Alert>
             )}
@@ -111,6 +154,7 @@ function RedefinirSenhaContent() {
               label="Nova senha"
               value={novaSenha}
               onChange={setNovaSenha}
+              inputRef={novaSenhaInputRef}
               showPassword={showPassword}
               onTogglePassword={() => setShowPassword((v) => !v)}
               disabled={loading}
@@ -122,6 +166,7 @@ function RedefinirSenhaContent() {
               label="Confirmar nova senha"
               value={confirmacao}
               onChange={setConfirmacao}
+              inputRef={confirmacaoInputRef}
               showPassword={showConfirmacao}
               onTogglePassword={() => setShowConfirmacao((v) => !v)}
               disabled={loading}
@@ -168,9 +213,22 @@ function InvalidLinkState() {
 }
 
 function SuccessState() {
+  const alertRef = useRef<HTMLDivElement | null>(null);
+
+  // Move focus to the success message when the form is replaced by it.
+  useEffect(() => {
+    alertRef.current?.focus();
+  }, []);
+
   return (
     <Stack spacing={3}>
-      <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
+      <Alert
+        ref={alertRef}
+        tabIndex={-1}
+        severity="success"
+        variant="filled"
+        sx={{ fontSize: "0.9375rem" }}
+      >
         Sua senha foi redefinida com sucesso.
       </Alert>
       <Button
@@ -191,6 +249,7 @@ interface PasswordFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  inputRef?: Ref<HTMLInputElement>;
   showPassword: boolean;
   onTogglePassword: () => void;
   disabled?: boolean;
@@ -206,6 +265,7 @@ function PasswordField({
   label,
   value,
   onChange,
+  inputRef,
   showPassword,
   onTogglePassword,
   disabled,
@@ -230,6 +290,7 @@ function PasswordField({
       fullWidth
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      inputRef={inputRef}
       disabled={disabled}
       helperText={helperText}
       slotProps={{

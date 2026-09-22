@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   Alert,
@@ -22,13 +22,44 @@ export default function EsqueciSenhaPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const successAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"email" | null>(null);
+
+  // After a failed submit, move focus to the invalid e-mail field or to the
+  // error summary. The sequence id re-runs the effect even when the same
+  // error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "email") {
+      emailInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  // Move focus to the success message once the form is replaced by it.
+  useEffect(() => {
+    if (submitted) {
+      successAlertRef.current?.focus();
+    }
+  }, [submitted]);
+
+  function reportError(message: string, focus: "email" | null = null) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
 
     const emailError = validateEmail(email.trim());
     if (emailError) {
-      setError(emailError);
+      reportError(emailError, "email");
       return;
     }
 
@@ -39,7 +70,9 @@ export default function EsqueciSenhaPage() {
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) {
-        setError("Não foi possível processar sua solicitação. Tente novamente.");
+        reportError(
+          "Não foi possível processar sua solicitação. Tente novamente.",
+        );
       } else {
         setSubmitted(true);
       }
@@ -54,10 +87,17 @@ export default function EsqueciSenhaPage() {
         title="Esqueci minha senha"
         subtitle="Informe seu e-mail para receber as instruções de redefinição"
         onSubmit={submitted ? undefined : handleSubmit}
+        ariaBusy={loading}
       >
         {submitted ? (
           <Stack spacing={3}>
-            <Alert severity="success" variant="filled" sx={{ fontSize: "0.9375rem" }}>
+            <Alert
+              ref={successAlertRef}
+              tabIndex={-1}
+              severity="success"
+              variant="filled"
+              sx={{ fontSize: "0.9375rem" }}
+            >
               Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
             </Alert>
             <Button
@@ -73,7 +113,13 @@ export default function EsqueciSenhaPage() {
         ) : (
           <>
             {error && (
-              <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+              <Alert
+                ref={errorAlertRef}
+                tabIndex={-1}
+                severity="error"
+                variant="filled"
+                sx={{ fontSize: "0.875rem" }}
+              >
                 {error}
               </Alert>
             )}
@@ -88,6 +134,7 @@ export default function EsqueciSenhaPage() {
               fullWidth
               value={email}
               onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+              inputRef={emailInputRef}
               disabled={loading}
               slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
             />
