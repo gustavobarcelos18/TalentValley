@@ -15,6 +15,7 @@ import {
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { AuthSuspenseFallback } from "@/components/auth/AuthSuspenseFallback";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
@@ -28,14 +29,10 @@ import {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<PageFallback />}>
+    <Suspense fallback={<AuthSuspenseFallback />}>
       <LoginContent />
     </Suspense>
   );
-}
-
-function PageFallback() {
-  return <AuthPageShell bare />;
 }
 
 function LoginContent() {
