@@ -74,8 +74,8 @@ export function TrajetoriaSection({ onChanged, notify }: SectionProps) {
     </Box>
     {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
     {items === null ? <Stack sx={{ alignItems: "center", py: 4 }}><CircularProgress size={28} /></Stack> : <Stack spacing={4} sx={{ mt: 2 }}>
-      <TrajectoryGroup title="Formação e certificados" emptyMessage="Nenhuma formação ou certificado adicionado." actionLabel="Adicionar formação" items={formations} onAdd={() => setEditor({ kind: "formation" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
-      <TrajectoryGroup title="Experiência" emptyMessage="Nenhuma experiência adicionada." actionLabel="Adicionar experiência" items={experiences} onAdd={() => setEditor({ kind: "experience" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
+      <TrajectoryGroup title="Formação e certificados" emptyMessage="Adicione formações acadêmicas, cursos e certificados para destacar seu preparo." actionLabel="Adicionar formação" items={formations} onAdd={() => setEditor({ kind: "formation" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
+      <TrajectoryGroup title="Experiência" emptyMessage="Adicione experiências profissionais ou estágios para mostrar sua trajetória." actionLabel="Adicionar experiência" items={experiences} onAdd={() => setEditor({ kind: "experience" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
     </Stack>}
     {editor?.kind === "formation" ? <FormationForm item={editor.item} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void changed(editor.item ? "Formação atualizada." : "Formação adicionada."); }} /> : editor?.kind === "experience" ? <ExperienceForm item={editor.item} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void changed(editor.item ? "Experiência atualizada." : "Experiência adicionada."); }} /> : null}
     <DeleteDialog item={removing} onClose={() => setRemoving(null)} onDeleted={() => { setRemoving(null); void changed("Item removido da trajetória."); }} />
@@ -95,7 +95,7 @@ function TrajectoryGroup({ title, emptyMessage, actionLabel, items, onAdd, onEdi
   return <Box component="section">
     <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between", alignItems: "center" }}>
       <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
-      <Button size="small" startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button>
+      {items.length > 0 && <Button size="small" startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button>}
     </Stack>
     {items.length === 0 ? <Stack spacing={1.5} sx={{ mt: 2, p: 3, border: 1, borderStyle: "dashed", borderColor: "divider", borderRadius: 2, alignItems: "center" }}><Typography color="text.secondary" align="center">{emptyMessage}</Typography><Button startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button></Stack> : <Stack divider={<Divider flexItem />} sx={{ mt: 1 }}>{items.map((item) => <TimelineItem key={`${item.tipoItem}-${item.id}`} item={item} onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} onChanged={onChanged} />)}</Stack>}
   </Box>;
