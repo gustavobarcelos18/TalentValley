@@ -18,6 +18,7 @@ import type { PaginatedResponse, TalentListItem, TalentSearchFilters, TalentSort
 import { TalentCard } from "./TalentCard";
 import { TalentFilters } from "./TalentFilters";
 import { ComparisonBar } from "./ComparisonBar";
+import { TalentPreviewDialog } from "./TalentPreviewDialog";
 
 export function TalentDiscoveryView() {
   const searchParams = useSearchParams();
@@ -35,6 +36,7 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
   const [competencies, setCompetencies] = useState<CatalogoCompetenciaResponse[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null); const [catalogVersion, setCatalogVersion] = useState(0);
   const [selected, setSelected] = useState<TalentListItem[]>([]); const [selectionMessage, setSelectionMessage] = useState<string | null>(null); const [unavailableMessage, setUnavailableMessage] = useState<string | null>(null);
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
 
   const navigate = useCallback((filters: TalentSearchFilters) => {
     const query = talentSearchParams(filters).toString(); router.push(`${pathname}${query ? `?${query}` : ""}`);
@@ -83,6 +85,16 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
     setSelected((items) => items.filter((item) => item.id !== talent.id));
     setResultVersion((value) => value + 1);
   }
+  function previewFavoriteChange(favorite: boolean) {
+    if (!previewSlug) return;
+    setResult((current) => current ? { ...current, items: current.items.map((item) => item.slug === previewSlug ? { ...item, favorito: favorite } : item) } : current);
+  }
+  function previewUnavailable() {
+    if (!previewSlug) return;
+    const talent = result?.items.find((item) => item.slug === previewSlug);
+    if (talent) talentUnavailable(talent);
+    else setUnavailableMessage("Este perfil não está mais disponível.");
+  }
   function updateSelection(talent: TalentListItem, checked: boolean) {
     setSelectionMessage(null);
     if (checked) {
@@ -110,7 +122,7 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
         {unavailableMessage && <Alert severity="info" onClose={() => setUnavailableMessage(null)}>{unavailableMessage}</Alert>}
         <ComparisonBar selected={selected} message={selectionMessage} />
         {loading ? [1, 2, 3].map((item) => <Skeleton key={item} variant="rounded" height={190} />)
-          : result && result.items.length > 0 ? result.items.map((talent) => <TalentCard key={talent.id} talent={talent} onFavoriteChange={(favorite) => updateFavorite(talent.id, favorite)} onUnavailable={() => talentUnavailable(talent)} comparisonSelected={selected.some((item) => item.id === talent.id)} onComparisonChange={(checked) => updateSelection(talent, checked)} />)
+          : result && result.items.length > 0 ? result.items.map((talent) => <TalentCard key={talent.id} talent={talent} onFavoriteChange={(favorite) => updateFavorite(talent.id, favorite)} onUnavailable={() => talentUnavailable(talent)} comparisonSelected={selected.some((item) => item.id === talent.id)} onComparisonChange={(checked) => updateSelection(talent, checked)} onPreview={() => setPreviewSlug(talent.slug)} />)
           : !error && <Paper elevation={0} sx={{ p: 5, border: 1, borderColor: "divider", textAlign: "center" }}><SearchOffOutlined color="action" sx={{ fontSize: 48 }} />
             <Typography variant="h6" sx={{ mt: 1 }}>Nenhum talento encontrado</Typography><Typography color="text.secondary" sx={{ mt: .5 }}>Tente ajustar os critérios da busca.</Typography>
             {hasTalentFilters(initial) && <Button onClick={clear} sx={{ mt: 2 }}>Limpar filtros</Button>}</Paper>}
@@ -130,5 +142,7 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
       </Stack>
       {filters}
     </Drawer>
+    <TalentPreviewDialog open={Boolean(previewSlug)} slug={previewSlug} onClose={() => setPreviewSlug(null)}
+      onFavoriteChange={previewFavoriteChange} onUnavailable={previewUnavailable} />
   </Stack></Container>;
 }
