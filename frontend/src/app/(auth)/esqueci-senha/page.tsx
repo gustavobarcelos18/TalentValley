@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
+  Alert,
   Box,
   Button,
-  Container,
-  Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { forgotPassword } from "@/lib/auth";
-import { normalizeEmailInput, validateEmail } from "@/lib/validation";
+import { normalizeEmailInput, stripEmoji, validateEmail } from "@/lib/validation";
 
 export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("");
@@ -22,13 +22,44 @@ export default function EsqueciSenhaPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const successAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"email" | null>(null);
+
+  // After a failed submit, move focus to the invalid e-mail field or to the
+  // error summary. The sequence id re-runs the effect even when the same
+  // error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "email") {
+      emailInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  // Move focus to the success message once the form is replaced by it.
+  useEffect(() => {
+    if (submitted) {
+      successAlertRef.current?.focus();
+    }
+  }, [submitted]);
+
+  function reportError(message: string, focus: "email" | null = null) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
 
     const emailError = validateEmail(email.trim());
     if (emailError) {
-      setError(emailError);
+      reportError(emailError, "email");
       return;
     }
 
@@ -39,9 +70,13 @@ export default function EsqueciSenhaPage() {
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiError && err.status >= 500) {
-        setError("Não foi possível processar sua solicitação. Tente novamente.");
-      } else {
+        reportError(
+          "Não foi possível processar sua solicitação. Tente novamente.",
+        );
+      } else if (err instanceof ApiError) {
         setSubmitted(true);
+      } else {
+        reportError("Não foi possível conectar ao servidor. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -50,100 +85,91 @@ export default function EsqueciSenhaPage() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center bg-gradient-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      <AuthPageShell
+        title="Esqueci minha senha"
+        subtitle="Informe seu e-mail para receber as instruções de redefinição"
+        onSubmit={submitted ? undefined : handleSubmit}
+        ariaBusy={loading}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component={submitted ? "div" : "form"}
-            onSubmit={submitted ? undefined : handleSubmit}
-            elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
-            noValidate
-          >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Esqueci minha senha
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Informe seu e-mail para receber as instruções de redefinição
-                </Typography>
-              </Stack>
+        {submitted ? (
+          <Stack spacing={3}>
+            <Alert
+              ref={successAlertRef}
+              tabIndex={-1}
+              severity="success"
+              variant="filled"
+              sx={{ fontSize: "0.9375rem" }}
+            >
+              Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
+            </Alert>
+            <Button
+              component={Link}
+              href="/login"
+              variant="contained"
+              size="large"
+              fullWidth
+            >
+              Voltar ao login
+            </Button>
+          </Stack>
+        ) : (
+          <>
+            {error && (
+              <Alert
+                ref={errorAlertRef}
+                tabIndex={-1}
+                severity="error"
+                variant="filled"
+                sx={{ fontSize: "0.875rem" }}
+              >
+                {error}
+              </Alert>
+            )}
 
-              {submitted ? (
-                <Stack spacing={3}>
-                  <Typography
-                    role="status"
-                    variant="body1"
-                    align="center"
-                    className="rounded-lg bg-green-50 px-3 py-3 text-green-800 dark:bg-green-950 dark:text-green-200"
-                  >
-                    Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
-                  </Typography>
-                  <Button
-                    component={Link}
-                    href="/login"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                  >
-                    Voltar ao login
-                  </Button>
-                </Stack>
-              ) : (
-                <>
-                  {error && (
-                    <Typography
-                      role="alert"
-                      color="error"
-                      variant="body2"
-                      align="center"
-                      className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                    >
-                      {error}
-                    </Typography>
-                  )}
+            <TextField
+              id="email"
+              name="email"
+              label="E-mail"
+              type="email"
+              autoComplete="email"
+              required
+              fullWidth
+              value={email}
+              onChange={(e) =>
+                setEmail(stripEmoji(e.target.value).slice(0, 254))
+              }
+              inputRef={emailInputRef}
+              disabled={loading}
+              slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
+            />
 
-                  <TextField
-                    id="email"
-                    name="email"
-                    label="E-mail"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    fullWidth
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value.slice(0, 254))}
-                    disabled={loading}
-                    slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
-                  />
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+            >
+              {loading ? "Enviando..." : "Enviar instruções"}
+            </Button>
 
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? "Enviando..." : "Enviar instruções"}
-                  </Button>
-
-                  <Box sx={{ textAlign: "center" }}>
-                    <Link
-                      href="/login"
-                      className="text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
-                    >
-                      Voltar ao login
-                    </Link>
-                  </Box>
-                </>
-              )}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography
+                component={Link}
+                href="/login"
+                variant="body2"
+                sx={{
+                  color: "primary.main",
+                  fontWeight: 500,
+                  "&:hover": { textDecoration: "underline" },
+                }}
+              >
+                Voltar ao login
+              </Typography>
+            </Box>
+          </>
+        )}
+      </AuthPageShell>
     </GuestOnly>
   );
 }

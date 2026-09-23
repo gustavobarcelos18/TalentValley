@@ -18,9 +18,9 @@ import { ActionMotion } from "./motion/ActionMotion";
 import { StorySteps } from "./motion/StorySteps";
 import "./landing.css";
 
+/** Public CTA set is the default first-paint state; a confirmed session only upgrades it. */
 function JoinActions({ audience, hero = false }: { audience?: "talent" | "company"; hero?: boolean }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="join-placeholder" role="status"><span className="sr-only">Verificando sessão…</span></div>;
+  const { user } = useAuth();
   if (hero) return <HeroActions user={user} />;
   if (user) return <div className="join-actions"><ActionMotion><Button component={Link} href={destinations[user.role]} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></ActionMotion></div>;
   return <div className="join-actions">

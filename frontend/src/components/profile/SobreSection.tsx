@@ -26,7 +26,12 @@ export function SobreSection({ profile, onChanged, notify }: SectionProps) {
     >
       <Typography
         variant="body2"
-        sx={{ whiteSpace: "pre-line", color: "text.primary" }}
+        sx={{
+          whiteSpace: "pre-wrap",
+          overflowWrap: "anywhere",
+          wordBreak: "break-word",
+          color: "text.primary",
+        }}
       >
         {bio}
       </Typography>

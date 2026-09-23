@@ -2,7 +2,9 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useAuth } from "@/hooks/useAuth";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 
 interface GuestOnlyProps {
   children: ReactNode;
@@ -21,11 +23,39 @@ export function GuestOnly({ children }: GuestOnlyProps) {
     }
   }, [user, loading, router]);
 
-  if (loading || user) {
-    return null;
+  if (loading) {
+    return (
+      <AuthPageShell>
+        <LoadingStatus message="Verificando acesso..." />
+      </AuthPageShell>
+    );
+  }
+
+  if (user) {
+    return (
+      <AuthPageShell>
+        <LoadingStatus message="Redirecionando..." />
+      </AuthPageShell>
+    );
   }
 
   return <>{children}</>;
+}
+
+function LoadingStatus({ message }: { message: string }) {
+  return (
+    <Stack
+      spacing={2}
+      sx={{ alignItems: "center", justifyContent: "center" }}
+      role="status"
+      aria-live="polite"
+    >
+      <CircularProgress />
+      <Typography variant="body2" color="text.secondary">
+        {message}
+      </Typography>
+    </Stack>
+  );
 }
 
 function getRoleDestination(role: string): string {

@@ -1,21 +1,20 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  Box,
+  Alert,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Paper,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { AuthSuspenseFallback } from "@/components/auth/AuthSuspenseFallback";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { activateAccount } from "@/lib/auth";
@@ -26,18 +25,9 @@ import {
 
 export default function AtivarContaPage() {
   return (
-    <Suspense fallback={<PageFallback />}>
+    <Suspense fallback={<AuthSuspenseFallback />}>
       <AtivarContaContent />
     </Suspense>
-  );
-}
-
-function PageFallback() {
-  return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
-    />
   );
 }
 
@@ -49,14 +39,52 @@ function AtivarContaContent() {
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmacao, setShowConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const senhaInputRef = useRef<HTMLInputElement | null>(null);
+  const confirmacaoInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"senha" | "confirmacao" | null>(null);
 
   const missingParams = !email || !token;
 
   const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
   const passwordAriaLabel = showPassword ? "Ocultar senha" : "Mostrar senha";
+  const confirmacaoVisibilityIcon = showConfirmacao ? (
+    <VisibilityOff />
+  ) : (
+    <Visibility />
+  );
+  const confirmacaoAriaLabel = showConfirmacao
+    ? "Ocultar confirmação de senha"
+    : "Mostrar confirmação de senha";
+
+  // After a failed submit, move focus to the first invalid field or, for
+  // submission errors, to the error summary. The sequence id re-runs the
+  // effect even when the same error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "senha") {
+      senhaInputRef.current?.focus();
+    } else if (lastErrorFocus.current === "confirmacao") {
+      confirmacaoInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  function reportError(
+    message: string,
+    focus: "senha" | "confirmacao" | null = null,
+  ) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -64,12 +92,12 @@ function AtivarContaContent() {
 
     const senhaError = validatePassword(senha);
     if (senhaError) {
-      setError(senhaError);
+      reportError(senhaError, "senha");
       return;
     }
 
     if (senha !== confirmacao) {
-      setError("As senhas não coincidem.");
+      reportError("As senhas não coincidem.", "confirmacao");
       return;
     }
 
@@ -80,13 +108,13 @@ function AtivarContaContent() {
       setSuccess(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(
+        reportError(
           err.status === 400
             ? "Não foi possível ativar a conta. Verifique o link."
-            : "Não foi possível processar. Tente novamente."
+            : "Não foi possível processar. Tente novamente.",
         );
       } else {
-        setError("Não foi possível conectar. Tente novamente.");
+        reportError("Não foi possível conectar. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -103,141 +131,147 @@ function AtivarContaContent() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      <AuthPageShell
+        title="Ativar conta"
+        subtitle="Defina sua senha para ativar seu acesso"
+        onSubmit={success ? undefined : handleSubmit}
+        ariaBusy={loading}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component={success ? "div" : "form"}
-            onSubmit={success ? undefined : handleSubmit}
-            elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
-            noValidate
-          >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Ativar conta
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Defina sua senha para ativar seu acesso
-                </Typography>
-              </Stack>
+        {success ? (
+          <SuccessState />
+        ) : (
+          <>
+            {error && (
+              <Alert
+                ref={errorAlertRef}
+                tabIndex={-1}
+                severity="error"
+                variant="filled"
+                sx={{ fontSize: "0.875rem" }}
+              >
+                {error}
+              </Alert>
+            )}
 
-              {success ? (
-                <SuccessState />
-              ) : (
-                <>
-                  {error && (
-                    <Typography
-                      role="alert"
-                      color="error"
-                      variant="body2"
-                      align="center"
-                      className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                    >
-                      {error}
-                    </Typography>
-                  )}
+            <TextField
+              id="senha"
+              name="senha"
+              label="Senha"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              fullWidth
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              inputRef={senhaInputRef}
+              disabled={loading}
+              helperText={PASSWORD_HELPER_TEXT}
+              slotProps={{
+                htmlInput: { "aria-label": "Senha" },
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="button"
+                        aria-label={passwordAriaLabel}
+                        onClick={() => setShowPassword((v) => !v)}
+                        edge="end"
+                      >
+                        {visibilityIcon}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
 
-                  <TextField
-                    id="senha"
-                    name="senha"
-                    label="Senha"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    fullWidth
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    disabled={loading}
-                    helperText={PASSWORD_HELPER_TEXT}
-                    slotProps={{
-                      htmlInput: { "aria-label": "Senha" },
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              type="button"
-                              aria-label={passwordAriaLabel}
-                              onClick={() => setShowPassword((v) => !v)}
-                              edge="end"
-                            >
-                              {visibilityIcon}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
+            <TextField
+              id="confirmacao"
+              name="confirmacao"
+              label="Confirmar senha"
+              type={showConfirmacao ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              fullWidth
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              inputRef={confirmacaoInputRef}
+              disabled={loading}
+              slotProps={{
+                htmlInput: { "aria-label": "Confirmar senha" },
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="button"
+                        aria-label={confirmacaoAriaLabel}
+                        onClick={() => setShowConfirmacao((v) => !v)}
+                        edge="end"
+                      >
+                        {confirmacaoVisibilityIcon}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
 
-                  <TextField
-                    id="confirmacao"
-                    name="confirmacao"
-                    label="Confirmar senha"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    fullWidth
-                    value={confirmacao}
-                    onChange={(e) => setConfirmacao(e.target.value)}
-                    disabled={loading}
-                    slotProps={{ htmlInput: { "aria-label": "Confirmar senha" } }}
-                  />
-
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? "Ativando..." : "Ativar minha conta"}
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+            >
+              {loading ? "Ativando..." : "Ativar minha conta"}
+            </Button>
+          </>
+        )}
+      </AuthPageShell>
     </GuestOnly>
   );
 }
 
 function InvalidLinkState() {
   return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
-    >
-      <Container maxWidth="xs">
-        <Paper elevation={0} className="border border-zinc-200 p-8 dark:border-zinc-800">
-          <Stack spacing={3} sx={{ textAlign: "center" }}>
-            <Typography component="h1" variant="h5">
-              Link inválido
-            </Typography>
-            <Typography color="text.secondary">
-              Este link de ativação é inválido ou está incompleto. Solicite um novo.
-            </Typography>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+    <AuthPageShell title="Link inválido">
+      <Stack spacing={3} sx={{ textAlign: "center" }}>
+        <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+          Este link de ativação é inválido ou está incompleto. Solicite um novo.
+        </Alert>
+        <Button
+          component={Link}
+          href="/login"
+          variant="contained"
+          size="large"
+          fullWidth
+        >
+          Ir para o login
+        </Button>
+      </Stack>
+    </AuthPageShell>
   );
 }
 
 function SuccessState() {
+  const alertRef = useRef<HTMLDivElement | null>(null);
+
+  // Move focus to the success message when the form is replaced by it.
+  useEffect(() => {
+    alertRef.current?.focus();
+  }, []);
+
   return (
     <Stack spacing={3}>
-      <Typography
-        role="status"
-        variant="body1"
-        align="center"
-        className="rounded-lg bg-green-50 px-3 py-3 text-green-800 dark:bg-green-950 dark:text-green-200"
+      <Alert
+        ref={alertRef}
+        tabIndex={-1}
+        severity="success"
+        variant="filled"
+        sx={{ fontSize: "0.9375rem" }}
       >
         Conta ativada com sucesso! Você já pode fazer login.
-      </Typography>
+      </Alert>
       <Button
         component={Link}
         href="/login"
