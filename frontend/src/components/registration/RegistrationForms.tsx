@@ -164,7 +164,11 @@ function useMunicipios(uf: string): {
     if (municipioCache.has(uf)) return;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 10000);
 
     fetchMunicipios(uf, controller.signal)
       .then((municipios) => {
@@ -174,7 +178,9 @@ function useMunicipios(uf: string): {
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted) {
+        // A real timeout must reach the error state; an abort caused by a UF
+        // change or unmount must stay silent.
+        if (timedOut || !controller.signal.aborted) {
           setState({ type: "error" });
         }
       })
@@ -340,30 +346,39 @@ function useCepLookup({
             if (!cached) municipioCache.set(result.uf, municipios);
             if (controller.signal.aborted) return;
             matched = findMunicipio(municipios, result.cidade)?.nome ?? null;
-          } catch {
-            // IBGE unavailable: still fill the UF and leave Cidade unselected.
+          } catch (reason) {
+            // A timeout during the municipality lookup must surface the lookup
+            // error below; an obsolete abort (changed CEP/UF) stays silent.
+            // Other failures still fill the UF and leave Cidade unselected.
+            if (timedOut) throw reason;
             if (controller.signal.aborted) return;
           }
 
           const latest = latestRef.current;
           const ufUnchanged = latest.uf === snapshot.uf;
           const cidadeUnchanged = latest.cidade === snapshot.cidade;
+          const applied = ufUnchanged && cidadeUnchanged;
 
           // Apply UF and Cidade together so a CEP autofill never leaves a
           // Cidade/Estado mismatch, and never overrides a newer user edit.
-          if (ufUnchanged && cidadeUnchanged) {
+          if (applied) {
             latest.onChange("uf", result.uf);
             latest.onChange("cidade", matched ?? "");
           }
 
           setLookup({
             cep: digits,
-            status: matched
-              ? { type: "success" }
-              : {
-                  type: "success",
-                  message: "UF preenchida pelo CEP. Selecione a cidade na lista.",
-                },
+            // Only advertise an autofill when it was actually applied; a stale
+            // response (the user edited Cidade/UF while it was pending) must
+            // not claim both fields were populated.
+            status: applied
+              ? matched
+                ? { type: "success" }
+                : {
+                    type: "success",
+                    message: "UF preenchida pelo CEP. Selecione a cidade na lista.",
+                  }
+              : { type: "idle" },
           });
         } catch {
           if (timedOut || !controller.signal.aborted) {
@@ -641,13 +656,26 @@ function Success() {
     </Stack>
   );
 }
+// The submitted city must belong to the selected UF. This only enforces the
+// combination when the official municipality list for that UF is already
+// loaded, so an IBGE lookup failure never invalidates a legitimate selection.
+function validateCityState(form: CommonForm): string | null {
+  const city = normalizeWhitespace(form.cidade);
+  if (!city) return null;
+  const municipios = municipioCache.get(form.uf);
+  if (!municipios) return null;
+  return findMunicipio(municipios, city)
+    ? null
+    : "A cidade informada não pertence ao estado selecionado.";
+}
+
 function commonErrors(form: CommonForm): FieldErrors {
   return {
     nomeCompleto: validatePersonName(form.nomeCompleto),
     email: validateEmail(form.email),
     telefone: validateBrazilianPhone(form.telefone),
     cep: validateCep(form.cep),
-    cidade: validateCityName(form.cidade),
+    cidade: validateCityName(form.cidade) ?? validateCityState(form),
     uf: validateUF(form.uf),
   };
 }
