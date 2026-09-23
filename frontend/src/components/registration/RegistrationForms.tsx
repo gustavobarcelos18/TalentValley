@@ -110,6 +110,31 @@ function caretAfterDigits(formatted: string, digitsBeforeCaret: number): number 
   return formatted.length;
 }
 
+// Pasted CEPs arrive in many shapes ("36700120", "36700-120", "36.700-120",
+// sometimes padded with whitespace). Because the field keeps maxLength 9, the
+// native paste would truncate "36.700-120" to "36.700-12" and lose the last
+// digit before the formatter ever runs. The paste handler therefore rebuilds
+// the value from the digits only, replacing the current selection.
+function applyCepPaste(
+  currentValue: string,
+  selectionStart: number,
+  selectionEnd: number,
+  clipboardText: string,
+): { value: string; digitsBeforeCaret: number } | null {
+  const digits = clipboardText.replace(/\D/g, "");
+  if (!digits) return null;
+  const merged =
+    currentValue.slice(0, selectionStart) +
+    digits +
+    currentValue.slice(selectionEnd);
+  return {
+    value: formatCep(merged),
+    digitsBeforeCaret: merged
+      .slice(0, selectionStart + digits.length)
+      .replace(/\D/g, "").length,
+  };
+}
+
 interface ViaCepResult {
   cidade: string;
   uf: string;
@@ -585,6 +610,31 @@ function CommonFields({
           htmlInput: {
             inputMode: "numeric",
             maxLength: 9,
+            onPaste: (event: React.ClipboardEvent<HTMLInputElement>) => {
+              const input = event.currentTarget;
+              const selectionStart = input.selectionStart ?? input.value.length;
+              const selectionEnd = input.selectionEnd ?? selectionStart;
+              const pasted = applyCepPaste(
+                input.value,
+                selectionStart,
+                selectionEnd,
+                event.clipboardData.getData("text/plain"),
+              );
+              // Clipboard without digits: keep the native paste and let the
+              // regular onChange formatter normalize the field.
+              if (!pasted) return;
+              // Take over the paste so maxLength cannot truncate the raw
+              // clipboard text before formatting.
+              event.preventDefault();
+              onChange("cep", pasted.value);
+              requestAnimationFrame(() => {
+                const position = caretAfterDigits(
+                  pasted.value,
+                  pasted.digitsBeforeCaret,
+                );
+                input.setSelectionRange(position, position);
+              });
+            },
             onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
               if (event.key !== "Backspace") return;
               const input = event.currentTarget;
