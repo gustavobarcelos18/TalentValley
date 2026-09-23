@@ -16,7 +16,8 @@
   --scene-node: #c8ef9a;
   color: var(--ink);
   background: var(--page);
-  overflow: clip;
+  overflow-x: clip;
+  overflow-y: visible;
   font-family: var(--font-inter), sans-serif;
 }
 .light .landing {
@@ -214,7 +215,6 @@
 }
 
 /* Phase 2.2: the landscape bleeds into a rising, feathered value backdrop. */
-.landing { overflow-x: clip; }
 .hero { overflow: visible; z-index: 1; }
 .hero-background-scroll { bottom: -26svh; }
 .hero-background { mask-image: linear-gradient(#000 75%, transparent 100%); }
@@ -225,7 +225,7 @@
 .value-section { z-index: 2; isolation: isolate; padding-top: 13svh; }
 .value-cover { position: absolute; inset: -8svh calc((100% - 100vw) / 2) -1px; z-index: -1; background: linear-gradient(transparent, var(--page) 24svh); pointer-events: none; }
 .value-section > .story-continuity { display: none; }
-.title-mask { display: block; overflow: clip; padding-bottom: .12em; margin-bottom: -.12em; }
+.title-mask { display: block; overflow: visible; }
 .title-plane { display: inline-block; transform-origin: 50% 100%; }
 [data-story]:not(.value-section) { z-index: 2; }
 .audience-section { border-top: 0; }

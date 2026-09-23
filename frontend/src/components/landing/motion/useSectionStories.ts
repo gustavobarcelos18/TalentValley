@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLandingMotionPolicy } from "./LandingMotion";
 
-/** One reversible scrub per section; ambient tweens share a visibility observer. */
+/** Independent content reveals and reversible depth scrubs; ambient tweens share a visibility observer. */
 export function useSectionStories(ref: RefObject<HTMLElement | null>) {
   const policy = useLandingMotionPolicy();
 
@@ -33,26 +33,34 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
         const select = gsap.utils.selector(section);
         const value = section.dataset.story === "value";
         const company = section.dataset.story === "company";
-        const timeline = gsap.timeline({
-          defaults: { ease: "none", duration: 1 },
-          scrollTrigger: { trigger: section, start: value ? "top bottom" : "top 95%", end: "bottom top", scrub: true, invalidateOnRefresh: true },
+        const reveal = gsap.timeline({
+          defaults: { ease: "power3.out" },
+          scrollTrigger: { trigger: section, start: "top 80%", once: true },
         });
-        const from = (selector: string, vars: gsap.TweenVars, at = 0) => {
+        const depthTimeline = gsap.timeline({
+          defaults: { ease: "none", duration: 1 },
+          scrollTrigger: { trigger: section, start: value ? "top bottom" : "top 95%", end: "bottom top", scrub: 0.6, invalidateOnRefresh: true },
+        });
+        const revealFrom = (selector: string, vars: gsap.TweenVars, at = 0) => {
           const elements = select(selector);
-          if (elements.length) timeline.from(elements, vars, at);
+          if (elements.length) reveal.from(elements, { ...vars, clearProps: "transform,opacity,visibility" }, at);
+        };
+        const depthFrom = (selector: string, vars: gsap.TweenVars, at = 0) => {
+          const elements = select(selector);
+          if (elements.length) depthTimeline.from(elements, vars, at);
         };
         const depth = (selector: string, y: number) => {
           const elements = select(selector);
-          if (elements.length) timeline.fromTo(elements, { y: -y * d }, { y: y * d }, 0);
+          if (elements.length) depthTimeline.fromTo(elements, { y: -y * d }, { y: y * d }, 0);
         };
-        from(".eyebrow", { y: 50 * d, opacity: 0, duration: 0.25 });
+        revealFrom(".eyebrow", { y: mobile ? 15 : 24, autoAlpha: 0, duration: mobile ? 0.45 : 0.55 });
         if (value) {
-          from(".value-cover", { y: mobile ? 70 : 190, duration: 0.6 });
-          from(".title-plane", { yPercent: 115, opacity: 0, scale: 0.97, stagger: mobile ? 0.04 : 0.08, duration: mobile ? 0.16 : 0.32 }, mobile ? 0.02 : 0.08);
-          from(".value-grid article", { y: 45 * d, opacity: 0, stagger: 0.04, duration: mobile ? 0.16 : 0.25 }, mobile ? 0.12 : 0.24);
+          depthFrom(".value-cover", { y: mobile ? 70 : 190, duration: 0.6 });
+          revealFrom(".title-plane", { y: mobile ? 24 : 32, autoAlpha: 0, scale: 0.98, stagger: 0.08, duration: mobile ? 0.55 : 0.7 }, 0.08);
+          revealFrom(".value-grid article", { y: mobile ? 18 : 32, autoAlpha: 0, stagger: 0.08, duration: mobile ? 0.45 : 0.6 }, 0.24);
         } else {
-          from("h2", { y: (company ? 115 : 85) * d, opacity: 0, duration: mobile ? 0.2 : 0.35 }, 0.04);
-          from(".audience-copy > p:not(.eyebrow), .institution-copy > p:not(.eyebrow)", { y: 20 * d, opacity: 0, stagger: 0.04, duration: 0.25 }, 0.1);
+          revealFrom("h2", { y: mobile ? 24 : company ? 48 : 36, autoAlpha: 0, duration: mobile ? 0.55 : 0.7 }, 0.06);
+          revealFrom(".audience-copy > p:not(.eyebrow), .institution-copy > p:not(.eyebrow)", { y: mobile ? 12 : 20, autoAlpha: 0, stagger: 0.08, duration: mobile ? 0.45 : 0.55 }, 0.16);
         }
         depth(".story-continuity", -90);
         depth("[data-scene-layer='distant']", 55);
@@ -61,22 +69,22 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
         depth("[data-scene-layer='connections']", -65);
         depth(".panel-glow", -100);
         if (company) {
-          from(".network-orbit", { scale: 1.35, rotation: 8, duration: 0.65 });
-          from(".story-paths", { scale: 1.3, opacity: 0.15, duration: 0.65 });
-          from(".label-one", { x: -55 * d, y: -65 * d, duration: 0.65 });
-          from(".label-two", { x: 65 * d, y: -40 * d, duration: 0.65 });
-          from(".label-three", { y: 80 * d, duration: 0.65 });
+          depthFrom(".network-orbit", { scale: 1.35, rotation: 8, duration: 0.65 });
+          depthFrom(".story-paths", { scale: 1.3, opacity: 0.15, duration: 0.65 });
+          depthFrom(".label-one", { x: -55 * d, y: -65 * d, duration: 0.65 });
+          depthFrom(".label-two", { x: 65 * d, y: -40 * d, duration: 0.65 });
+          depthFrom(".label-three", { y: 80 * d, duration: 0.65 });
         } else {
           depth(".story-paths", -45);
           depth(".label-one", -55);
           depth(".label-two", 38);
           depth(".label-three", -28);
-          from(".network-orbit", { rotation: -7, scale: 1.12 });
+          depthFrom(".network-orbit", { rotation: -7, scale: 1.12 });
         }
-        from(".network-center", { scale: 0.88, duration: 0.5 });
-        from(".ecosystem-words span", { y: (index: number) => (24 + index * 9) * d, opacity: 0, stagger: 0.035, duration: 0.4 }, 0.1);
+        depthFrom(".network-center", { scale: 0.88, duration: 0.5 });
+        revealFrom(".ecosystem-words span", { y: (index: number) => (12 + index * 4) * d, autoAlpha: 0, stagger: 0.06, duration: 0.45 }, 0.24);
         // The original institutional logo is never transformed or filtered.
-        from(".institution-brand", { opacity: 0, duration: 0.3 });
+        revealFrom(".institution-brand", { autoAlpha: 0, duration: 0.55 }, 0.12);
 
         if (!mobile && select(".panel-glow").length) {
           const loop = gsap.timeline({ paused: true, repeat: -1, yoyo: true })
