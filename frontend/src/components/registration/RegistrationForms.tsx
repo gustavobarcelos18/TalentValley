@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
+import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
+import BusinessCenterOutlined from "@mui/icons-material/BusinessCenterOutlined";
+import LoginOutlined from "@mui/icons-material/LoginOutlined";
+import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import {
   Alert,
   Box,
@@ -15,6 +19,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { registrationApi } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/api";
@@ -156,10 +161,12 @@ function BackLink({ href }: { href: string }) {
 
 function PublicPage({
   title,
+  subtitle,
   backHref,
   children,
 }: {
   title: string;
+  subtitle?: string;
   backHref?: string;
   children: React.ReactNode;
 }) {
@@ -192,7 +199,13 @@ function PublicPage({
                   <Typography component="h1" variant="h4">
                     {title}
                   </Typography>
-                  <Typography color="text.secondary">
+                  {subtitle && (
+                    <Typography color="text.secondary">{subtitle}</Typography>
+                  )}
+                  <Typography
+                    variant={subtitle ? "body2" : undefined}
+                    color="text.secondary"
+                  >
                     Seu pedido será analisado pela equipe do Talent Valley antes
                     da criação da conta.
                   </Typography>
@@ -350,10 +363,14 @@ function CommonFields({
 // default link behavior, while hover/focus/active states make it feel tappable.
 function ChoiceCard({
   href,
-  children,
+  icon,
+  title,
+  description,
 }: {
   href: string;
-  children: React.ReactNode;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
 }) {
   return (
     <Paper
@@ -361,54 +378,131 @@ function ChoiceCard({
       href={href}
       elevation={0}
       sx={{
-        p: 2.25,
+        display: "flex",
+        alignItems: "center",
+        gap: 2,
+        p: { xs: 2, sm: 2.5 },
         border: 1,
         borderColor: "divider",
+        bgcolor: "background.paper",
         textDecoration: "none",
         color: "text.primary",
-        transition:
-          "background-color 150ms ease, border-color 150ms ease",
+        transition: (theme) =>
+          theme.transitions.create(
+            ["background-color", "border-color", "box-shadow"],
+            { duration: theme.transitions.duration.shorter },
+          ),
         "&:hover": {
           bgcolor: "action.hover",
           borderColor: "primary.main",
+          boxShadow: (theme) => theme.shadows[2],
         },
         "&:active": {
           bgcolor: "action.selected",
           borderColor: "primary.dark",
+          boxShadow: "none",
         },
         "&:focus-visible": {
           outline: "2px solid",
           outlineColor: "primary.main",
           outlineOffset: 2,
         },
+        "@media (hover: hover) and (prefers-reduced-motion: no-preference)": {
+          "&:hover .ChoiceCard-arrow": {
+            transform: "translateX(3px)",
+          },
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "none",
+          "& .ChoiceCard-arrow": { transition: "none" },
+        },
       }}
     >
-      {children}
+      <Box
+        aria-hidden
+        sx={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 44,
+          height: 44,
+          borderRadius: 2,
+          color: "primary.main",
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+        }}
+      >
+        {icon}
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {description}
+        </Typography>
+      </Box>
+      <ArrowForwardOutlined
+        aria-hidden
+        fontSize="small"
+        className="ChoiceCard-arrow"
+        sx={{
+          flexShrink: 0,
+          color: "action.active",
+          transition: (theme) =>
+            theme.transitions.create("transform", {
+              duration: theme.transitions.duration.shorter,
+            }),
+        }}
+      />
     </Paper>
   );
 }
 
 export function RegistrationChoice() {
   return (
-    <PublicPage title="Solicitar acesso ao Talent Valley">
-      <Stack spacing={1.5}>
-        <ChoiceCard href="/cadastro/aluno">
-          <Typography sx={{ fontWeight: 700 }}>Sou aluno</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Envie seus dados para análise. Após aprovação, você receberá acesso
-            para criar seu perfil profissional.
-          </Typography>
-        </ChoiceCard>
-        <ChoiceCard href="/cadastro/recrutador">
-          <Typography sx={{ fontWeight: 700 }}>Sou Recrutador</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Solicite acesso para pesquisar talentos da comunidade Rio Pomba
-            Valley.
-          </Typography>
-        </ChoiceCard>
-        <Typography align="center" variant="body2">
-          Já possui acesso? <Link href="/login">Entrar</Link>
-        </Typography>
+    <PublicPage
+      title="Como deseja participar?"
+      subtitle="Escolha seu perfil para solicitar acesso ao Talent Valley."
+    >
+      <Stack spacing={2}>
+        <ChoiceCard
+          href="/cadastro/aluno"
+          icon={<SchoolOutlined />}
+          title="Sou aluno"
+          description="Envie seus dados para análise. Após aprovação, você receberá acesso para criar seu perfil profissional."
+        />
+        <ChoiceCard
+          href="/cadastro/recrutador"
+          icon={<BusinessCenterOutlined />}
+          title="Sou Recrutador"
+          description="Solicite acesso para pesquisar talentos da comunidade Rio Pomba Valley."
+        />
+        <Stack spacing={2}>
+          <Divider />
+          <Stack
+            direction="row"
+            spacing={1.5}
+            useFlexGap
+            sx={{
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Já possui acesso?
+            </Typography>
+            <Button
+              component={Link}
+              href="/login"
+              variant="outlined"
+              startIcon={<LoginOutlined />}
+            >
+              Entrar
+            </Button>
+          </Stack>
+        </Stack>
       </Stack>
     </PublicPage>
   );
