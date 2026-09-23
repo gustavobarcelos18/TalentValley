@@ -5,7 +5,6 @@ import {
   Alert,
   Autocomplete,
   Chip,
-  Dialog,
   MenuItem,
   Stack,
   TextField,
@@ -47,44 +46,24 @@ export function IdiomasSection({ profile, onChanged, notify }: SectionProps) {
           />
         ))}
       </Stack>
-      <IdiomasDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        selecionados={idiomas.map((idioma) => ({
-          id: idioma.idiomaId,
-          nome: idioma.nome,
-          nivel: idioma.nivel,
-        }))}
-        onSaved={() => {
-          setOpen(false);
-          onChanged();
-          notify("Idiomas atualizados.");
-        }}
-      />
+      {open && (
+        <IdiomasForm
+          selecionados={idiomas.map((idioma) => ({
+            id: idioma.idiomaId,
+            nome: idioma.nome,
+            nivel: idioma.nivel,
+          }))}
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            onChanged();
+            notify("Idiomas atualizados.");
+          }}
+        />
+      )}
     </SectionCard>
   );
 }
-interface IdiomasDialogProps {
-  open: boolean;
-  onClose: () => void;
-  selecionados: IdiomaSelecionado[];
-  onSaved: () => void;
-}
-
-function IdiomasDialog({ open, onClose, selecionados, onSaved }: IdiomasDialogProps) {
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      {open && (
-        <IdiomasForm
-          selecionados={selecionados}
-          onClose={onClose}
-          onSaved={onSaved}
-        />
-      )}
-    </Dialog>
-  );
-}
-
 interface IdiomasFormProps {
   selecionados: IdiomaSelecionado[];
   onClose: () => void;

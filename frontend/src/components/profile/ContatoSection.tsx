@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
-  Dialog,
   Divider,
   Stack,
   TextField,
@@ -67,16 +66,17 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
             </Stack>
           ))}
       </Stack>
-      <ContatoDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        contato={contato}
-        onSaved={() => {
-          setOpen(false);
-          onChanged();
-          notify("Contato atualizado.");
-        }}
-      />
+      {open && (
+        <ContatoForm
+          contato={contato}
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            onChanged();
+            notify("Contato atualizado.");
+          }}
+        />
+      )}
     </SectionCard>
   );
 }
@@ -136,25 +136,6 @@ function ContactValue({ item }: { item: ContactItem }) {
     >
       {display}
     </Typography>
-  );
-}
-
-interface ContatoDialogProps {
-  open: boolean;
-  onClose: () => void;
-  contato: ContatoResponse;
-  onSaved: () => void;
-}
-
-// The dialog stays mounted for the open/close transition; the form only mounts
-// while open, so its state always starts from the current profile values.
-function ContatoDialog({ open, onClose, contato, onSaved }: ContatoDialogProps) {
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      {open && (
-        <ContatoForm contato={contato} onClose={onClose} onSaved={onSaved} />
-      )}
-    </Dialog>
   );
 }
 

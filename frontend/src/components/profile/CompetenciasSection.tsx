@@ -5,7 +5,6 @@ import {
   Alert,
   Autocomplete,
   Chip,
-  Dialog,
   Stack,
   TextField,
   Typography,
@@ -41,42 +40,20 @@ export function CompetenciasSection({ profile, onChanged, notify }: SectionProps
           />
         ))}
       </Stack>
-      <CompetenciasDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        selecionadas={competencias}
-        onSaved={() => {
-          setOpen(false);
-          onChanged();
-          notify("Competências atualizadas.");
-        }}
-      />
+      {open && (
+        <CompetenciasForm
+          selecionadas={competencias}
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            onChanged();
+            notify("Competências atualizadas.");
+          }}
+        />
+      )}
     </SectionCard>
   );
 }
-interface CompetenciasDialogProps {
-  open: boolean;
-  onClose: () => void;
-  selecionadas: { id: number; nome: string }[];
-  onSaved: () => void;
-}
-
-// The dialog stays mounted for the open/close transition; the form only mounts
-// while open, so its state always starts from the current profile values.
-function CompetenciasDialog({ open, onClose, selecionadas, onSaved }: CompetenciasDialogProps) {
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      {open && (
-        <CompetenciasForm
-          selecionadas={selecionadas}
-          onClose={onClose}
-          onSaved={onSaved}
-        />
-      )}
-    </Dialog>
-  );
-}
-
 interface CompetenciasFormProps {
   selecionadas: { id: number; nome: string }[];
   onClose: () => void;
