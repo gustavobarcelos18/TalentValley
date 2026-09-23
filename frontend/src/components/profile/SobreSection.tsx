@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Dialog, Stack, TextField, Typography } from "@mui/material";
+import { Stack, TextField, Typography } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
 import { sanitizeBio } from "@/lib/validation";
 import { updateSobre } from "@/lib/student";
@@ -35,34 +35,18 @@ export function SobreSection({ profile, onChanged, notify }: SectionProps) {
       >
         {bio}
       </Typography>
-      <SobreDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        bio={bio}
-        onSaved={() => {
-          setOpen(false);
-          onChanged();
-          notify("Sobre atualizado.");
-        }}
-      />
+      {open && (
+        <SobreForm
+          bio={bio}
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            onChanged();
+            notify("Sobre atualizado.");
+          }}
+        />
+      )}
     </SectionCard>
-  );
-}
-
-interface SobreDialogProps {
-  open: boolean;
-  onClose: () => void;
-  bio: string | null;
-  onSaved: () => void;
-}
-
-// The dialog stays mounted for the open/close transition; the form only mounts
-// while open, so its state always starts from the current profile values.
-function SobreDialog({ open, onClose, bio, onSaved }: SobreDialogProps) {
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      {open && <SobreForm bio={bio} onClose={onClose} onSaved={onSaved} />}
-    </Dialog>
   );
 }
 

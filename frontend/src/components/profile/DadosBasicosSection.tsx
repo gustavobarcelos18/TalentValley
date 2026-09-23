@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Dialog, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   BRAZILIAN_UFS,
@@ -42,41 +42,18 @@ export function DadosBasicosSection({
             "Localização não informada"}
         </Typography>
       </Stack>
-      <DadosBasicosDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        dados={dados}
-        onSaved={() => {
-          setOpen(false);
-          onChanged();
-          notify("Dados básicos atualizados.");
-        }}
-      />
-    </SectionCard>
-  );
-}
-
-interface DadosBasicosDialogProps {
-  open: boolean;
-  onClose: () => void;
-  dados: DadosBasicosResponse;
-  onSaved: () => void;
-}
-
-// The dialog stays mounted for the open/close transition; the form only mounts
-// while open, so its state always starts from the current profile values.
-function DadosBasicosDialog({
-  open,
-  onClose,
-  dados,
-  onSaved,
-}: DadosBasicosDialogProps) {
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       {open && (
-        <DadosBasicosForm dados={dados} onClose={onClose} onSaved={onSaved} />
+        <DadosBasicosForm
+          dados={dados}
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            onChanged();
+            notify("Dados básicos atualizados.");
+          }}
+        />
       )}
-    </Dialog>
+    </SectionCard>
   );
 }
 

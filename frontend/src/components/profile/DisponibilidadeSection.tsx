@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Autocomplete, Checkbox, Chip, Dialog, Stack, TextField, Typography } from "@mui/material";
+import { Autocomplete, Checkbox, Chip, Stack, TextField, Typography } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
 import {
   DISPONIBILIDADE_LABELS,
@@ -65,45 +65,21 @@ export function DisponibilidadeSection({ profile, onChanged, notify }: SectionPr
           </Stack>
         </Stack>
       </Stack>
-      <DisponibilidadeDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        disponibilidades={disponibilidades}
-        modalidades={modalidades}
-        onSaved={() => {
-          setOpen(false);
-          onChanged();
-          notify("Disponibilidade atualizada.");
-        }}
-      />
-    </SectionCard>
-  );
-}
-interface DisponibilidadeDialogProps {
-  open: boolean;
-  onClose: () => void;
-  disponibilidades: TipoDisponibilidade[];
-  modalidades: ModalidadeTrabalho[];
-  onSaved: () => void;
-}
-
-// The dialog stays mounted for the open/close transition; the form only mounts
-// while open, so its state always starts from the current profile values.
-function DisponibilidadeDialog({ open, onClose, disponibilidades, modalidades, onSaved }: DisponibilidadeDialogProps) {
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       {open && (
         <DisponibilidadeForm
           disponibilidades={disponibilidades}
           modalidades={modalidades}
-          onClose={onClose}
-          onSaved={onSaved}
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            onChanged();
+            notify("Disponibilidade atualizada.");
+          }}
         />
       )}
-    </Dialog>
+    </SectionCard>
   );
 }
-
 interface DisponibilidadeFormProps {
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
