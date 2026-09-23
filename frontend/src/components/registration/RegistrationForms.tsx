@@ -5,6 +5,7 @@ import Link from "next/link";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import BusinessCenterOutlined from "@mui/icons-material/BusinessCenterOutlined";
+import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded";
 import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import {
@@ -221,17 +222,66 @@ function PublicPage({
   );
 }
 
+// Confirmation shown in place of the form after a successful submission.
+// Shared by the student and recruiter flows so both stay identical.
 function Success() {
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+
+  // The form is replaced by the confirmation, so focus moves to its heading.
+  // A focused heading is announced by assistive tech on its own, which is why
+  // this container is not an additional live region.
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
-    <Alert severity="success">
-      <Typography sx={{ fontWeight: 700 }}>
-        Solicitação enviada com sucesso.
-      </Typography>
-      <Typography variant="body2">
-        Seu cadastro será analisado pela equipe do Talent Valley. Se aprovado,
-        você receberá as instruções para ativar sua conta.
-      </Typography>
-    </Alert>
+    <Stack
+      component="section"
+      aria-labelledby="registration-success-heading"
+      spacing={2}
+    >
+      <Box
+        aria-hidden
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          color: "primary.main",
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+        }}
+      >
+        <CheckCircleOutlineRounded fontSize="large" />
+      </Box>
+      <Stack spacing={1}>
+        <Typography
+          id="registration-success-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          component="h2"
+          variant="h5"
+          sx={{
+            "&:focus-visible": {
+              outline: "2px solid",
+              outlineColor: "primary.main",
+              outlineOffset: 3,
+              borderRadius: 1,
+            },
+          }}
+        >
+          Solicitação recebida!
+        </Typography>
+        <Typography color="text.secondary">
+          Sua solicitação foi enviada e será analisada pela equipe do Talent
+          Valley.
+        </Typography>
+        <Typography color="text.secondary">
+          Se aprovada, você receberá as instruções para ativar sua conta.
+        </Typography>
+      </Stack>
+    </Stack>
   );
 }
 function commonErrors(form: CommonForm): FieldErrors {
