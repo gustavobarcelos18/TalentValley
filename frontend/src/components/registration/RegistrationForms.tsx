@@ -6,6 +6,7 @@ import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import BusinessCenterOutlined from "@mui/icons-material/BusinessCenterOutlined";
 import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded";
+import HomeOutlined from "@mui/icons-material/HomeOutlined";
 import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import {
@@ -280,6 +281,39 @@ function Success() {
         <Typography color="text.secondary">
           Se aprovada, você receberá as instruções para ativar sua conta.
         </Typography>
+      </Stack>
+      <Divider />
+      <Button
+        component={Link}
+        href="/"
+        variant="contained"
+        size="large"
+        startIcon={<HomeOutlined />}
+        fullWidth
+      >
+        Voltar à página inicial
+      </Button>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          Já tem uma conta ativa? Entre para continuar.
+        </Typography>
+        <Button
+          component={Link}
+          href="/login"
+          variant="outlined"
+          startIcon={<LoginOutlined />}
+        >
+          Entrar
+        </Button>
       </Stack>
     </Stack>
   );
@@ -651,7 +685,10 @@ export function StudentRegistrationForm() {
     }
   };
   return (
-    <PublicPage title="Solicitar acesso como aluno" backHref="/cadastro">
+    <PublicPage
+      title="Solicitar acesso como aluno"
+      backHref={success ? undefined : "/cadastro"}
+    >
       {success ? (
         <Success />
       ) : (
@@ -951,7 +988,10 @@ export function RecruiterRegistrationForm() {
     }
   };
   return (
-    <PublicPage title="Solicitar acesso como recrutador" backHref="/cadastro">
+    <PublicPage
+      title="Solicitar acesso como recrutador"
+      backHref={success ? undefined : "/cadastro"}
+    >
       {success ? (
         <Success />
       ) : (
