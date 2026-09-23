@@ -11,6 +11,7 @@ import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -22,6 +23,7 @@ import {
   Stack,
   TextField,
   Typography,
+  createFilterOptions,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { GuestOnly } from "@/components/auth/GuestOnly";
@@ -74,6 +76,128 @@ const commonBlank: CommonForm = {
 };
 
 // ---------------------------------------------------------------------------
+// IBGE municipality lookup (frontend-only). Fetches the official city list for
+// a Brazilian state so the Cidade field is always restricted to real options.
+// The list is cached per UF to avoid redundant requests for the same state.
+// ---------------------------------------------------------------------------
+
+type Municipio = {
+  id: number;
+  nome: string;
+};
+
+type MunicipiosState =
+  | { type: "idle" }
+  | { type: "loading" }
+  | { type: "success"; municipios: Municipio[] }
+  | { type: "error" };
+
+const municipioCache = new Map<string, Municipio[]>();
+
+const municipioFilter = createFilterOptions<Municipio>({
+  ignoreAccents: true,
+  ignoreCase: true,
+  limit: 100,
+});
+
+function normalizeSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findMunicipio(municipios: Municipio[], nome: string): Municipio | null {
+  const target = normalizeSearch(nome);
+  return municipios.find((m) => normalizeSearch(m.nome) === target) ?? null;
+}
+
+async function fetchMunicipios(uf: string, signal: AbortSignal): Promise<Municipio[]> {
+  const response = await fetch(
+    `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`,
+    { signal },
+  );
+  if (!response.ok) throw new Error("IBGE HTTP failure");
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) throw new Error("IBGE invalid response");
+
+  const municipios: Municipio[] = [];
+  for (const item of data) {
+    if (typeof item !== "object" || item === null) continue;
+    const record = item as Record<string, unknown>;
+    const id = typeof record.id === "number" ? record.id : Number(record.id);
+    const nome = typeof record.nome === "string" ? record.nome.trim() : "";
+    if (Number.isFinite(id) && nome) municipios.push({ id, nome });
+  }
+  if (municipios.length === 0) throw new Error("IBGE empty response");
+  return municipios;
+}
+
+function useMunicipios(uf: string): {
+  municipios: Municipio[];
+  loading: boolean;
+  error: boolean;
+  retry: () => void;
+} {
+  const [state, setState] = useState<MunicipiosState>(
+    uf ? { type: "loading" } : { type: "idle" },
+  );
+  const [retryNonce, setRetryNonce] = useState(0);
+  const [loadKey, setLoadKey] = useState({ uf, nonce: 0 });
+
+  // Adjust the displayed state during render when the UF (or a retry) changes,
+  // instead of calling setState synchronously inside the effect body.
+  if (loadKey.uf !== uf || loadKey.nonce !== retryNonce) {
+    setLoadKey({ uf, nonce: retryNonce });
+    if (!uf) {
+      setState({ type: "idle" });
+    } else {
+      const cached = municipioCache.get(uf);
+      setState(cached ? { type: "success", municipios: cached } : { type: "loading" });
+    }
+  }
+
+  useEffect(() => {
+    if (!uf) return;
+    if (municipioCache.has(uf)) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    fetchMunicipios(uf, controller.signal)
+      .then((municipios) => {
+        municipioCache.set(uf, municipios);
+        if (!controller.signal.aborted) {
+          setState({ type: "success", municipios });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setState({ type: "error" });
+        }
+      })
+      .finally(() => clearTimeout(timeout));
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [uf, retryNonce]);
+
+  return {
+    municipios: state.type === "success" ? state.municipios : [],
+    loading: state.type === "loading",
+    error: state.type === "error",
+    retry: () => {
+      municipioCache.delete(uf);
+      setRetryNonce((n) => n + 1);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // CEP lookup (frontend-only helper). Reads the public ViaCEP API to autofill
 // Cidade/UF. CEP is never sent to the backend registration endpoints.
 // ---------------------------------------------------------------------------
@@ -81,7 +205,7 @@ const commonBlank: CommonForm = {
 type CepStatus =
   | { type: "idle" }
   | { type: "loading" }
-  | { type: "success" }
+  | { type: "success"; message?: string }
   | { type: "error"; message: string };
 
 const CEP_LOOKUP_ERROR =
@@ -206,14 +330,41 @@ function useCepLookup({
           if (!result) throw new Error("ViaCEP invalid response");
           if (controller.signal.aborted) return;
 
+          // Resolve the official municipality name for the returned UF before
+          // touching the form, so the selected city is never from another state.
+          let matched: string | null = null;
+          try {
+            const cached = municipioCache.get(result.uf);
+            const municipios =
+              cached ?? (await fetchMunicipios(result.uf, controller.signal));
+            if (!cached) municipioCache.set(result.uf, municipios);
+            if (controller.signal.aborted) return;
+            matched = findMunicipio(municipios, result.cidade)?.nome ?? null;
+          } catch {
+            // IBGE unavailable: still fill the UF and leave Cidade unselected.
+            if (controller.signal.aborted) return;
+          }
+
           const latest = latestRef.current;
-          if (latest.cidade === snapshot.cidade) {
-            latest.onChange("cidade", result.cidade);
-          }
-          if (latest.uf === snapshot.uf) {
+          const ufUnchanged = latest.uf === snapshot.uf;
+          const cidadeUnchanged = latest.cidade === snapshot.cidade;
+
+          // Apply UF and Cidade together so a CEP autofill never leaves a
+          // Cidade/Estado mismatch, and never overrides a newer user edit.
+          if (ufUnchanged && cidadeUnchanged) {
             latest.onChange("uf", result.uf);
+            latest.onChange("cidade", matched ?? "");
           }
-          setLookup({ cep: digits, status: { type: "success" } });
+
+          setLookup({
+            cep: digits,
+            status: matched
+              ? { type: "success" }
+              : {
+                  type: "success",
+                  message: "UF preenchida pelo CEP. Selecione a cidade na lista.",
+                },
+          });
         } catch {
           if (timedOut || !controller.signal.aborted) {
             setLookup({
@@ -250,8 +401,8 @@ const studentFieldOrder = [
   "email",
   "telefone",
   "cep",
-  "cidade",
   "uf",
+  "cidade",
   "instituicaoEnsino",
   "curso",
   "tipoFormacao",
@@ -263,8 +414,8 @@ const recruiterFieldOrder = [
   "email",
   "telefone",
   "cep",
-  "cidade",
   "uf",
+  "cidade",
   "empresa",
   "cargo",
   "siteEmpresa",
@@ -529,6 +680,8 @@ function CommonFields({
     onChange,
     disabled,
   });
+  const { municipios, loading, error, retry } = useMunicipios(value.uf);
+  const selectedCity = municipios.find((m) => m.nome === value.cidade) ?? null;
   return (
     <>
       <TextField
@@ -670,29 +823,23 @@ function CommonFields({
         >
           {cepStatus.type === "error"
             ? cepStatus.message
-            : "Cidade e UF preenchidas pelo CEP."}
+            : cepStatus.message ?? "Cidade e UF preenchidas pelo CEP."}
         </Typography>
       )}
       <TextField
         required
-        label="Cidade"
-        value={value.cidade}
-        onChange={(e) => onChange("cidade", sanitizeCityName(e.target.value))}
-        onBlur={() => onBlur("cidade")}
-        inputRef={registerFieldRef("cidade")}
-        disabled={disabled}
-        error={Boolean(errors.cidade)}
-        helperText={errors.cidade}
-        slotProps={{
-          htmlInput: { maxLength: 120, onPaste: stripEmojiOnPaste },
-        }}
-      />
-      <TextField
-        required
         select
-        label="UF"
+        label="Estado"
         value={value.uf}
-        onChange={(e) => onChange("uf", e.target.value)}
+        onChange={(e) => {
+          const nextUf = e.target.value;
+          onChange("uf", nextUf);
+          // Changing the state invalidates the previously selected city so an
+          // incompatible Cidade/Estado combination can never be submitted.
+          if (nextUf !== value.uf) {
+            onChange("cidade", "");
+          }
+        }}
         onBlur={() => onBlur("uf")}
         inputRef={registerFieldRef("uf")}
         disabled={disabled}
@@ -706,6 +853,70 @@ function CommonFields({
           </MenuItem>
         ))}
       </TextField>
+      <Autocomplete
+        id="cidade"
+        value={selectedCity}
+        onChange={(_event, newValue) =>
+          onChange("cidade", newValue ? newValue.nome : "")
+        }
+        options={municipios}
+        getOptionLabel={(option) => option.nome}
+        isOptionEqualToValue={(option, value) => option.id === value.id}
+        loading={loading}
+        loadingText="Carregando cidades..."
+        noOptionsText={
+          error
+            ? "Não foi possível carregar as cidades."
+            : "Nenhuma cidade encontrada."
+        }
+        disabled={disabled || !value.uf}
+        fullWidth
+        filterOptions={municipioFilter}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            slotProps={{
+              ...params.slotProps,
+              htmlInput: {
+                ...params.slotProps.htmlInput,
+                value: params.slotProps.htmlInput.value ?? "",
+                onPaste: stripEmojiOnPaste,
+              },
+            }}
+            label="Cidade"
+            placeholder={
+              value.uf ? "Busque e selecione uma cidade" : "Selecione o estado primeiro"
+            }
+            onBlur={() => onBlur("cidade")}
+            inputRef={registerFieldRef("cidade")}
+            error={Boolean(errors.cidade)}
+            helperText={errors.cidade}
+          />
+        )}
+        renderOption={(props, option) => {
+          const { key, ...optionProps } = props;
+          return (
+            <li key={key} {...optionProps}>
+              {option.nome}
+            </li>
+          );
+        }}
+      />
+      {error && (
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{ alignItems: "center", flexWrap: "wrap" }}
+        >
+          <Typography component="span" variant="caption" color="error.main" role="status">
+            Não foi possível carregar a lista de cidades.
+          </Typography>
+          <Button size="small" type="button" onClick={retry}>
+            Tentar novamente
+          </Button>
+        </Stack>
+      )}
     </>
   );
 }
