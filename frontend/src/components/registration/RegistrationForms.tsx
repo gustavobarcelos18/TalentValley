@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import {
@@ -61,6 +61,35 @@ const commonBlank: CommonForm = {
   cidade: "",
   uf: "",
 };
+
+// Reference to a field's focusable control. MUI Select exposes an imperative
+// handle with `focus` instead of a DOM node, so both shapes are accepted.
+type FocusableControl = { focus: () => void } | null;
+
+// Visual/DOM order of each registration form's fields. Used to focus the
+// first invalid field after a failed submission.
+const studentFieldOrder = [
+  "nomeCompleto",
+  "email",
+  "telefone",
+  "cidade",
+  "uf",
+  "instituicaoEnsino",
+  "curso",
+  "tipoFormacao",
+  "anoConclusaoPrevisto",
+  "relacaoRioPombaValley",
+] as const;
+const recruiterFieldOrder = [
+  "nomeCompleto",
+  "email",
+  "telefone",
+  "cidade",
+  "uf",
+  "empresa",
+  "cargo",
+  "siteEmpresa",
+] as const;
 
 // Public registration identity lockup: decorative accent, wordmark and
 // institutional line. It sits above the page title so the registration
@@ -213,12 +242,14 @@ function CommonFields({
   errors,
   onChange,
   onBlur,
+  registerFieldRef,
   disabled,
 }: {
   value: CommonForm;
   errors: FieldErrors;
   onChange: (key: keyof CommonForm, value: string) => void;
   onBlur: (key: keyof CommonForm) => void;
+  registerFieldRef: (key: keyof CommonForm) => (node: FocusableControl) => void;
   disabled: boolean;
 }) {
   return (
@@ -232,6 +263,7 @@ function CommonFields({
           onChange("nomeCompleto", sanitizePersonName(e.target.value))
         }
         onBlur={() => onBlur("nomeCompleto")}
+        inputRef={registerFieldRef("nomeCompleto")}
         disabled={disabled}
         error={Boolean(errors.nomeCompleto)}
         helperText={errors.nomeCompleto}
@@ -249,6 +281,7 @@ function CommonFields({
           onChange("email", stripEmoji(e.target.value).slice(0, 254))
         }
         onBlur={() => onBlur("email")}
+        inputRef={registerFieldRef("email")}
         disabled={disabled}
         error={Boolean(errors.email)}
         helperText={errors.email}
@@ -267,6 +300,7 @@ function CommonFields({
         value={value.telefone}
         onChange={(e) => onChange("telefone", stripEmoji(e.target.value))}
         onBlur={() => onBlur("telefone")}
+        inputRef={registerFieldRef("telefone")}
         disabled={disabled}
         error={Boolean(errors.telefone)}
         helperText={errors.telefone ?? "Ex.: (32) 99999-9999"}
@@ -280,6 +314,7 @@ function CommonFields({
         value={value.cidade}
         onChange={(e) => onChange("cidade", sanitizeCityName(e.target.value))}
         onBlur={() => onBlur("cidade")}
+        inputRef={registerFieldRef("cidade")}
         disabled={disabled}
         error={Boolean(errors.cidade)}
         helperText={errors.cidade}
@@ -294,6 +329,7 @@ function CommonFields({
         value={value.uf}
         onChange={(e) => onChange("uf", e.target.value)}
         onBlur={() => onBlur("uf")}
+        inputRef={registerFieldRef("uf")}
         disabled={disabled}
         error={Boolean(errors.uf)}
         helperText={errors.uf}
@@ -391,6 +427,13 @@ export function StudentRegistrationForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const fieldRefs = useRef<Partial<Record<string, FocusableControl>>>({});
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<string | null>(null);
+  const registerFieldRef = (key: string) => (node: FocusableControl) => {
+    fieldRefs.current[key] = node;
+  };
   const validate = () => ({
     ...commonErrors(common),
     instituicaoEnsino: validateInstitutionName(school.instituicaoEnsino),
@@ -405,13 +448,34 @@ export function StudentRegistrationForm() {
   });
   const blurCommon = (key: keyof CommonForm) =>
     setErrors((current) => ({ ...current, [key]: commonErrors(common)[key] }));
+  // After a failed submission, move focus to the first invalid field in DOM
+  // order, or to the error summary for submission/server errors. The sequence
+  // id re-runs the effect even when the same error is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    const key = lastErrorFocus.current;
+    if (key && fieldRefs.current[key]) {
+      fieldRefs.current[key]?.focus();
+      return;
+    }
+    // Fallback: the target field has no registered focusable control, so move
+    // focus to the error summary instead.
+    errorAlertRef.current?.focus();
+  }, [errorSequence]);
+
+  function reportError(message: string, focusKey: string | null = null) {
+    lastErrorFocus.current = focusKey;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const nextErrors = validate();
+    const nextErrors: FieldErrors = validate();
     setErrors(nextErrors);
     const validation = firstError(nextErrors);
     if (validation) {
-      setError(validation);
+      const firstInvalid = studentFieldOrder.find((key) => nextErrors[key]);
+      reportError(validation, firstInvalid ?? null);
       return;
     }
     setBusy(true);
@@ -435,7 +499,7 @@ export function StudentRegistrationForm() {
       });
       setSuccess(true);
     } catch (reason) {
-      setError(
+      reportError(
         getApiErrorMessage(reason, "Não foi possível enviar a solicitação."),
       );
     } finally {
@@ -447,9 +511,18 @@ export function StudentRegistrationForm() {
       {success ? (
         <Success />
       ) : (
-        <Box component="form" onSubmit={submit} noValidate>
+        <Box
+          component="form"
+          onSubmit={submit}
+          noValidate
+          aria-busy={busy || undefined}
+        >
           <Stack spacing={2}>
-            {error && <Alert severity="error">{error}</Alert>}
+            {error && (
+              <Alert ref={errorAlertRef} tabIndex={-1} severity="error">
+                {error}
+              </Alert>
+            )}
             <Typography component="h2" variant="h6">
               Dados pessoais
             </Typography>
@@ -461,6 +534,7 @@ export function StudentRegistrationForm() {
                 setErrors((current) => ({ ...current, [key]: null }));
               }}
               onBlur={blurCommon}
+              registerFieldRef={registerFieldRef}
               disabled={busy}
             />
             <Divider />
@@ -471,12 +545,16 @@ export function StudentRegistrationForm() {
               required
               label="Instituição de ensino"
               value={school.instituicaoEnsino}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSchool((x) => ({
                   ...x,
                   instituicaoEnsino: stripEmoji(e.target.value).slice(0, 180),
-                }))
-              }
+                }));
+                setErrors((current) => ({
+                  ...current,
+                  instituicaoEnsino: null,
+                }));
+              }}
               onBlur={() =>
                 setErrors((x) => ({
                   ...x,
@@ -485,6 +563,7 @@ export function StudentRegistrationForm() {
                   ),
                 }))
               }
+              inputRef={registerFieldRef("instituicaoEnsino")}
               disabled={busy}
               error={Boolean(errors.instituicaoEnsino)}
               helperText={errors.instituicaoEnsino}
@@ -496,18 +575,20 @@ export function StudentRegistrationForm() {
               required
               label="Curso"
               value={school.curso}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSchool((x) => ({
                   ...x,
                   curso: stripEmoji(e.target.value).slice(0, 180),
-                }))
-              }
+                }));
+                setErrors((current) => ({ ...current, curso: null }));
+              }}
               onBlur={() =>
                 setErrors((x) => ({
                   ...x,
                   curso: validateCourseName(school.curso),
                 }))
               }
+              inputRef={registerFieldRef("curso")}
               disabled={busy}
               error={Boolean(errors.curso)}
               helperText={errors.curso}
@@ -520,12 +601,22 @@ export function StudentRegistrationForm() {
               select
               label="Tipo de formação"
               value={school.tipoFormacao}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSchool((x) => ({
                   ...x,
                   tipoFormacao: e.target.value as TipoFormacao,
+                }));
+                setErrors((current) => ({ ...current, tipoFormacao: null }));
+              }}
+              onBlur={() =>
+                setErrors((x) => ({
+                  ...x,
+                  tipoFormacao: school.tipoFormacao
+                    ? null
+                    : "Selecione um tipo de formação válido.",
                 }))
               }
+              inputRef={registerFieldRef("tipoFormacao")}
               disabled={busy}
               error={Boolean(errors.tipoFormacao)}
               helperText={errors.tipoFormacao}
@@ -539,12 +630,25 @@ export function StudentRegistrationForm() {
             <TextField
               label="Ano previsto de conclusão"
               value={school.anoConclusaoPrevisto}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSchool((x) => ({
                   ...x,
                   anoConclusaoPrevisto: sanitizeIntegerInput(e.target.value, 4),
+                }));
+                setErrors((current) => ({
+                  ...current,
+                  anoConclusaoPrevisto: null,
+                }));
+              }}
+              onBlur={() =>
+                setErrors((x) => ({
+                  ...x,
+                  anoConclusaoPrevisto: validateYear(
+                    school.anoConclusaoPrevisto,
+                  ),
                 }))
               }
+              inputRef={registerFieldRef("anoConclusaoPrevisto")}
               disabled={busy}
               error={Boolean(errors.anoConclusaoPrevisto)}
               helperText={
@@ -563,15 +667,28 @@ export function StudentRegistrationForm() {
               minRows={3}
               label="Relação com o Rio Pomba Valley (opcional)"
               value={school.relacaoRioPombaValley}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSchool((x) => ({
                   ...x,
                   relacaoRioPombaValley: stripEmoji(e.target.value).slice(
                     0,
                     500,
                   ),
+                }));
+                setErrors((current) => ({
+                  ...current,
+                  relacaoRioPombaValley: null,
+                }));
+              }}
+              onBlur={() =>
+                setErrors((x) => ({
+                  ...x,
+                  relacaoRioPombaValley: school.relacaoRioPombaValley
+                    ? validateFreeText(school.relacaoRioPombaValley, 500)
+                    : null,
                 }))
               }
+              inputRef={registerFieldRef("relacaoRioPombaValley")}
               disabled={busy}
               error={Boolean(errors.relacaoRioPombaValley)}
               helperText={
@@ -620,6 +737,13 @@ export function RecruiterRegistrationForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const fieldRefs = useRef<Partial<Record<string, FocusableControl>>>({});
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<string | null>(null);
+  const registerFieldRef = (key: string) => (node: FocusableControl) => {
+    fieldRefs.current[key] = node;
+  };
   const validate = () => ({
     ...commonErrors(common),
     empresa: validateCompanyName(extra.empresa),
@@ -628,13 +752,34 @@ export function RecruiterRegistrationForm() {
   });
   const blurCommon = (key: keyof CommonForm) =>
     setErrors((current) => ({ ...current, [key]: commonErrors(common)[key] }));
+  // After a failed submission, move focus to the first invalid field in DOM
+  // order, or to the error summary for submission/server errors. The sequence
+  // id re-runs the effect even when the same error is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    const key = lastErrorFocus.current;
+    if (key && fieldRefs.current[key]) {
+      fieldRefs.current[key]?.focus();
+      return;
+    }
+    // Fallback: the target field has no registered focusable control, so move
+    // focus to the error summary instead.
+    errorAlertRef.current?.focus();
+  }, [errorSequence]);
+
+  function reportError(message: string, focusKey: string | null = null) {
+    lastErrorFocus.current = focusKey;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const nextErrors = validate();
+    const nextErrors: FieldErrors = validate();
     setErrors(nextErrors);
     const validation = firstError(nextErrors);
     if (validation) {
-      setError(validation);
+      const firstInvalid = recruiterFieldOrder.find((key) => nextErrors[key]);
+      reportError(validation, firstInvalid ?? null);
       return;
     }
     setBusy(true);
@@ -654,7 +799,7 @@ export function RecruiterRegistrationForm() {
       });
       setSuccess(true);
     } catch (reason) {
-      setError(
+      reportError(
         getApiErrorMessage(reason, "Não foi possível enviar a solicitação."),
       );
     } finally {
@@ -666,9 +811,18 @@ export function RecruiterRegistrationForm() {
       {success ? (
         <Success />
       ) : (
-        <Box component="form" onSubmit={submit} noValidate>
+        <Box
+          component="form"
+          onSubmit={submit}
+          noValidate
+          aria-busy={busy || undefined}
+        >
           <Stack spacing={2}>
-            {error && <Alert severity="error">{error}</Alert>}
+            {error && (
+              <Alert ref={errorAlertRef} tabIndex={-1} severity="error">
+                {error}
+              </Alert>
+            )}
             <Typography component="h2" variant="h6">
               Dados pessoais
             </Typography>
@@ -680,6 +834,7 @@ export function RecruiterRegistrationForm() {
                 setErrors((current) => ({ ...current, [key]: null }));
               }}
               onBlur={blurCommon}
+              registerFieldRef={registerFieldRef}
               disabled={busy}
             />
             <Divider />
@@ -690,18 +845,20 @@ export function RecruiterRegistrationForm() {
               required
               label="Empresa"
               value={extra.empresa}
-              onChange={(e) =>
+              onChange={(e) => {
                 setExtra((x) => ({
                   ...x,
                   empresa: stripEmoji(e.target.value).slice(0, 150),
-                }))
-              }
+                }));
+                setErrors((current) => ({ ...current, empresa: null }));
+              }}
               onBlur={() =>
                 setErrors((x) => ({
                   ...x,
                   empresa: validateCompanyName(extra.empresa),
                 }))
               }
+              inputRef={registerFieldRef("empresa")}
               disabled={busy}
               error={Boolean(errors.empresa)}
               helperText={errors.empresa}
@@ -713,18 +870,20 @@ export function RecruiterRegistrationForm() {
               required
               label="Cargo"
               value={extra.cargo}
-              onChange={(e) =>
+              onChange={(e) => {
                 setExtra((x) => ({
                   ...x,
                   cargo: stripEmoji(e.target.value).slice(0, 120),
-                }))
-              }
+                }));
+                setErrors((current) => ({ ...current, cargo: null }));
+              }}
               onBlur={() =>
                 setErrors((x) => ({
                   ...x,
                   cargo: validateJobTitle(extra.cargo),
                 }))
               }
+              inputRef={registerFieldRef("cargo")}
               disabled={busy}
               error={Boolean(errors.cargo)}
               helperText={errors.cargo}
@@ -736,18 +895,20 @@ export function RecruiterRegistrationForm() {
               type="url"
               label="Site da empresa (opcional)"
               value={extra.siteEmpresa}
-              onChange={(e) =>
+              onChange={(e) => {
                 setExtra((x) => ({
                   ...x,
                   siteEmpresa: stripEmoji(e.target.value).slice(0, 2048),
-                }))
-              }
+                }));
+                setErrors((current) => ({ ...current, siteEmpresa: null }));
+              }}
               onBlur={() =>
                 setErrors((x) => ({
                   ...x,
                   siteEmpresa: validateHttpUrl(extra.siteEmpresa),
                 }))
               }
+              inputRef={registerFieldRef("siteEmpresa")}
               disabled={busy}
               error={Boolean(errors.siteEmpresa)}
               helperText={
