@@ -67,7 +67,7 @@ async function validatePhoto(file: File): Promise<string | null> {
 // object URL), identity and last update. Photo upload/replace/remove live here.
 export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
   const dados = profile.dadosBasicos;
-  const { url, loading, reload } = useProtectedFile(dados.fotoUrl);
+  const { url, loading, reload, error: loadError } = useProtectedFile(dados.fotoUrl);
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -166,8 +166,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
             />
           )}
           <IconButton
-            size="small"
-            aria-label="Alterar foto de perfil"
+            aria-label={dados.fotoUrl ? "Alterar foto de perfil" : "Adicionar foto de perfil"}
             onClick={pickFile}
             disabled={busy}
             sx={{
@@ -192,7 +191,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
           <Typography
             component="h1"
             variant="h5"
-            sx={{ fontWeight: 700, textAlign: { xs: "center", sm: "left" } }}
+            sx={{ fontWeight: 700, textAlign: { xs: "center", sm: "left" }, overflowWrap: "anywhere" }}
           >
                         {dados.nomeCompleto}
           </Typography>
@@ -201,8 +200,8 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
             spacing={0.5}
             sx={{ justifyContent: { xs: "center", sm: "flex-start" } }}
           >
-            <PlaceOutlined fontSize="small" sx={{ color: "text.secondary" }} />
-            <Typography variant="body2" color="text.secondary">
+            <PlaceOutlined fontSize="small" sx={{ color: "text.secondary", flexShrink: 0 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
               {[dados.cidade, dados.uf].filter(Boolean).join(" - ") ||
                 "Localização não informada"}
             </Typography>
@@ -229,9 +228,9 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
               Enviando foto...
             </Typography>
           )}
-          {error && (
+          {(loadError || error) && (
             <Typography role="alert" variant="caption" color="error">
-              {error}
+              {loadError || error}
             </Typography>
           )}
         </Stack>
