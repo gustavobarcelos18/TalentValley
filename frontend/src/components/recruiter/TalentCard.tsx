@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Button, Checkbox, Chip, FormControlLabel, Paper, Stack, Typography } from "@mui/material";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
@@ -10,7 +9,7 @@ import type { TalentListItem } from "@/types/recruiter";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { FavoriteButton } from "./FavoriteButton";
 
-export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparisonSelected, onComparisonChange }: { talent: TalentListItem; onFavoriteChange?: (favorite: boolean) => void; onUnavailable?: () => void; comparisonSelected?: boolean; onComparisonChange?: (selected: boolean) => void }) {
+export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparisonSelected, onComparisonChange, onPreview }: { talent: TalentListItem; onFavoriteChange?: (favorite: boolean) => void; onUnavailable?: () => void; comparisonSelected?: boolean; onComparisonChange?: (selected: boolean) => void; onPreview?: () => void }) {
   return (
     <Paper component="article" elevation={0} sx={{ p: { xs: 2, sm: 2.5 }, border: 1, borderColor: "divider" }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5}>
@@ -42,7 +41,7 @@ export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparison
         <Stack spacing={.5} sx={{ alignSelf: { xs: "stretch", sm: "center" }, flexShrink: 0 }}>
           {onFavoriteChange && <FavoriteButton slug={talent.slug} name={talent.nomeCompleto} favorite={talent.favorito} onChange={onFavoriteChange} onUnavailable={onUnavailable} />}
           {onComparisonChange !== undefined && <FormControlLabel control={<Checkbox checked={Boolean(comparisonSelected)} onChange={(event) => onComparisonChange(event.target.checked)} />} label="Comparar" />}
-          <Button component={Link} href={`/recrutador/talentos/${talent.slug}`} endIcon={<ArrowForwardOutlined />} aria-label={`Abrir perfil de ${talent.nomeCompleto}`}>Ver perfil</Button>
+          <Button onClick={onPreview} endIcon={<ArrowForwardOutlined />} aria-label={`Abrir prévia de ${talent.nomeCompleto}`}>Ver prévia</Button>
         </Stack>
       </Stack>
     </Paper>
