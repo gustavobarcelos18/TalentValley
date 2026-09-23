@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Alert, Box, Button, Chip, Container, Paper, Skeleton, Stack, Typography } from "@mui/material";
+import { useRouter } from "next/navigation";
+import { Alert, Box, Button, Chip, Container, InputAdornment, Paper, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import FavoriteBorderOutlined from "@mui/icons-material/FavoriteBorderOutlined";
 import NewReleasesOutlined from "@mui/icons-material/NewReleasesOutlined";
+import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import UpdateOutlined from "@mui/icons-material/UpdateOutlined";
 import { fetchRecruiterDashboard } from "@/lib/recruiter";
 import { getApiErrorMessage } from "@/lib/api";
+import { validateSearchTerm } from "@/lib/validation";
 import type { RecruiterDashboard } from "@/types/recruiter";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 
@@ -32,6 +35,18 @@ export function RecruiterDashboardView() {
   }, [version]);
   function retry() { setLoading(true); setError(null); setVersion((value) => value + 1); }
 
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const term = searchTerm.trim();
+    const validation = validateSearchTerm(term, 150);
+    setSearchError(validation);
+    if (validation) return;
+    router.push(term ? `/recrutador/talentos?nome=${encodeURIComponent(term)}` : "/recrutador/talentos");
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
       <Stack spacing={3}>
@@ -44,6 +59,21 @@ export function RecruiterDashboardView() {
           </Box>
           <Button component={Link} href="/recrutador/talentos" variant="contained" endIcon={<ArrowForwardOutlined />}>Explorar talentos</Button>
         </Stack>
+        <Paper component="form" onSubmit={submitSearch} elevation={0} sx={{ p: { xs: 2, sm: 2.5 }, border: 1, borderColor: "divider" }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" } }}>
+            <TextField
+              label="Buscar talentos"
+              placeholder="Busque por nome"
+              value={searchTerm}
+              onChange={(event) => { setSearchTerm(event.target.value.slice(0, 150)); if (searchError) setSearchError(null); }}
+              slotProps={{ htmlInput: { maxLength: 150 }, input: { startAdornment: <InputAdornment position="start"><SearchOutlined color="action" /></InputAdornment> } }}
+              error={Boolean(searchError)}
+              helperText={searchError ?? undefined}
+              fullWidth
+            />
+            <Button type="submit" variant="contained" startIcon={<SearchOutlined />} sx={{ flexShrink: 0 }}>Buscar</Button>
+          </Stack>
+        </Paper>
         {error && <Alert severity="error" action={<Button color="inherit" onClick={retry}>Tentar novamente</Button>}>{error}</Alert>}
         <Box className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {indicators.map((item) => (
