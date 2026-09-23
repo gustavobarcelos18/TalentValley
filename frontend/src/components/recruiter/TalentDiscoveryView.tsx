@@ -57,7 +57,13 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
     return () => { active = false; };
   }, [catalogVersion]);
 
-  const clear = () => navigate({ ...parseTalentSearch(new URLSearchParams()), page: 1 });
+  const clear = () => {
+    const defaults = parseTalentSearch(new URLSearchParams());
+    setDraft(defaults);
+    setMobileOpen(false);
+    setDesktopOpen(false);
+    if (hasTalentFilters(initial) || initial.ordenacao || initial.page !== 1) navigate(defaults);
+  };
   const apply = () => { setMobileOpen(false); setDesktopOpen(false); navigate({ ...draft, page: 1 }); };
   const retryResults = () => { setLoading(true); setError(null); setResultVersion((value) => value + 1); };
   const retryCatalog = () => { setCatalogError(null); setCatalogVersion((value) => value + 1); };

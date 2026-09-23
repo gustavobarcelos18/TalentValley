@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography,
@@ -47,6 +47,10 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [version, setVersion] = useState(0);
+  const onUnavailableRef = useRef(onUnavailable);
+
+  // Keep the latest callback available to the fetch without re-running it.
+  useEffect(() => { onUnavailableRef.current = onUnavailable; });
 
   useEffect(() => {
     let active = true;
@@ -54,8 +58,12 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
       .then((data) => { if (active) setProfile(data); })
       .catch((reason) => {
         if (!active) return;
-        if (reason instanceof ApiError && reason.status === 404) setNotFound(true);
-        else setError(getApiErrorMessage(reason, "Não foi possível carregar a prévia do perfil."));
+        if (reason instanceof ApiError && reason.status === 404) {
+          setNotFound(true);
+          onUnavailableRef.current();
+        } else {
+          setError(getApiErrorMessage(reason, "Não foi possível carregar a prévia do perfil."));
+        }
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -105,7 +113,7 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
       </Stack>
       {profile.bio && <Box><Typography variant="subtitle2" gutterBottom>Sobre</Typography>
         <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{profile.bio}</Typography></Box>}
-      {mainFormation && <Box><Typography variant="subtitle2" gutterBottom>Formação principal</Typography>
+      {mainFormation && <Box><Typography variant="subtitle2" gutterBottom>{mainFormation.principal ? "Formação principal" : "Formação"}</Typography>
         <Stack spacing={.75}>
           <Typography variant="body2"><strong>{TIPO_FORMACAO_LABELS[mainFormation.tipo]}:</strong> {mainFormation.nome} · {mainFormation.instituicao}</Typography>
           {mainFormation.rpvVerificado && <Chip icon={<VerifiedOutlined />} size="small" color="success" label="Verificado pelo Rio Pomba Valley" sx={{ alignSelf: "flex-start" }} />}
