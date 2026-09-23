@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   Dialog,
   Divider,
@@ -14,7 +14,7 @@ import CodeOutlined from "@mui/icons-material/CodeOutlined";
 import LanguageOutlined from "@mui/icons-material/LanguageOutlined";
 import LinkedInOutlined from "@mui/icons-material/LinkedIn";
 import { getApiErrorMessage } from "@/lib/api";
-import { formatBrazilianPhone, normalizeEmailInput, normalizeOptionalUrl, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
+import { formatBrazilianPhone, normalizeEmailInput, normalizeOptionalUrl, normalizePhone, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
 import { updateContato } from "@/lib/student";
 import type { ContatoResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
@@ -26,20 +26,12 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
   const [open, setOpen] = useState(false);
   const contato = profile.contato;
 
-  const items = [
-    { icon: <CallOutlined fontSize="small" />, label: "Telefone", value: contato.telefone },
-    {
-      icon: <AlternateEmailOutlined fontSize="small" />,
-      label: "E-mail profissional",
-      value: contato.emailProfissional,
-    },
-    { icon: <LinkedInOutlined fontSize="small" />, label: "LinkedIn", value: contato.linkedInUrl },
-    { icon: <CodeOutlined fontSize="small" />, label: "GitHub", value: contato.gitHubUrl },
-    {
-      icon: <LanguageOutlined fontSize="small" />,
-      label: "Portfólio",
-      value: contato.portfolioUrl,
-    },
+  const items: ContactItem[] = [
+    { icon: <CallOutlined fontSize="small" />, label: "Telefone", value: contato.telefone, kind: "phone" },
+    { icon: <AlternateEmailOutlined fontSize="small" />, label: "E-mail profissional", value: contato.emailProfissional, kind: "email" },
+    { icon: <LinkedInOutlined fontSize="small" />, label: "LinkedIn", value: contato.linkedInUrl, kind: "url" },
+    { icon: <CodeOutlined fontSize="small" />, label: "GitHub", value: contato.gitHubUrl, kind: "url" },
+    { icon: <LanguageOutlined fontSize="small" />, label: "Portfólio", value: contato.portfolioUrl, kind: "url" },
   ];
 
   const hasAny = items.some((item) => Boolean(item.value));
@@ -71,12 +63,7 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
               >
                 {item.label}
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, wordBreak: "break-all" }}
-              >
-                {item.value}
-              </Typography>
+              <ContactValue item={item} />
             </Stack>
           ))}
       </Stack>
@@ -91,6 +78,64 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
         }}
       />
     </SectionCard>
+  );
+}
+
+type ContactKind = "phone" | "email" | "url";
+
+interface ContactItem {
+  icon: ReactNode;
+  label: string;
+  value: string | null;
+  kind: ContactKind;
+}
+
+function resolveContactLink(kind: ContactKind, value: string): { href: string | null; display: string; external: boolean } {
+  if (kind === "phone") {
+    const digits = normalizePhone(value);
+    if (/^\d{10,11}$/.test(digits) && !/^(\d)\1+$/.test(digits) && digits.slice(0, 2) !== "00") {
+      return { href: `tel:+55${digits}`, display: formatBrazilianPhone(digits), external: false };
+    }
+    return { href: null, display: value, external: false };
+  }
+  if (kind === "email") {
+    return validateEmail(value, false) === null
+      ? { href: `mailto:${value}`, display: value, external: false }
+      : { href: null, display: value, external: false };
+  }
+  return validateHttpUrl(value) === null
+    ? { href: value, display: value, external: true }
+    : { href: null, display: value, external: false };
+}
+
+// Renders a contact value as an actionable link only when the stored value is a
+// valid, safe target (phone digits, e-mail address or http/https URL). Malformed
+// legacy values are shown as plain text rather than discarded or linked.
+function ContactValue({ item }: { item: ContactItem }) {
+  const raw = item.value ?? "";
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const { href, display, external } = resolveContactLink(item.kind, trimmed);
+  if (!href) {
+    return <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: "break-all" }}>{raw}</Typography>;
+  }
+  const ariaLabel = external
+    ? `Abrir ${item.label} em nova aba`
+    : item.kind === "phone"
+      ? `Ligar para ${display}`
+      : `Enviar e-mail para ${display}`;
+  return (
+    <Typography
+      component="a"
+      variant="body2"
+      href={href}
+      aria-label={ariaLabel}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      sx={{ fontWeight: 600, wordBreak: "break-all", color: "primary.main" }}
+    >
+      {display}
+    </Typography>
   );
 }
 
