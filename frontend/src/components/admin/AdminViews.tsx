@@ -686,7 +686,7 @@ export function AdminStudentDetailView({ id }: { id: string }) {
         </Stack>
       </Paper>
       <Section title="Sobre">
-        <Typography color={p.bio ? "text.primary" : "text.secondary"}>
+        <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }} color={p.bio ? "text.primary" : "text.secondary"}>
           {p.bio || "Não informado."}
         </Typography>
       </Section>

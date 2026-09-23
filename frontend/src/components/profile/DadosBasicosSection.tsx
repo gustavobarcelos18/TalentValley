@@ -1,22 +1,29 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import {
-  Dialog,
-  MenuItem,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Dialog, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { getApiErrorMessage } from "@/lib/api";
-import { BRAZILIAN_UFS, normalizeWhitespace, sanitizeCityName, sanitizePersonName, validateCityName, validatePersonName, validateUF } from "@/lib/validation";
+import {
+  BRAZILIAN_UFS,
+  normalizeWhitespace,
+  sanitizeCityName,
+  sanitizePersonName,
+  stripEmojiOnPaste,
+  validateCityName,
+  validatePersonName,
+  validateUF,
+} from "@/lib/validation";
 import { updateDadosBasicos } from "@/lib/student";
 import type { DadosBasicosResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
 import { SectionCard } from "./SectionCard";
 import type { SectionProps } from "./sectionProps";
 
-export function DadosBasicosSection({ profile, onChanged, notify }: SectionProps) {
+export function DadosBasicosSection({
+  profile,
+  onChanged,
+  notify,
+}: SectionProps) {
   const [open, setOpen] = useState(false);
   const dados = profile.dadosBasicos;
 
@@ -58,7 +65,12 @@ interface DadosBasicosDialogProps {
 
 // The dialog stays mounted for the open/close transition; the form only mounts
 // while open, so its state always starts from the current profile values.
-function DadosBasicosDialog({ open, onClose, dados, onSaved }: DadosBasicosDialogProps) {
+function DadosBasicosDialog({
+  open,
+  onClose,
+  dados,
+  onSaved,
+}: DadosBasicosDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       {open && (
@@ -75,8 +87,12 @@ interface DadosBasicosFormProps {
 }
 
 function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
-  const [nome, setNome] = useState(() => sanitizePersonName(dados.nomeCompleto));
-  const [cidade, setCidade] = useState(() => sanitizeCityName(dados.cidade ?? ""));
+  const [nome, setNome] = useState(() =>
+    sanitizePersonName(dados.nomeCompleto),
+  );
+  const [cidade, setCidade] = useState(() =>
+    sanitizeCityName(dados.cidade ?? ""),
+  );
   const [uf, setUf] = useState(dados.uf ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,8 +126,8 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
       setError(
         getApiErrorMessage(
           err,
-          "Não foi possível salvar os dados básicos. Tente novamente."
-        )
+          "Não foi possível salvar os dados básicos. Tente novamente.",
+        ),
       );
     } finally {
       setSaving(false);
@@ -135,9 +151,14 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
           required
           fullWidth
           disabled={saving}
-          slotProps={{ htmlInput: { maxLength: 150 } }}
+          slotProps={{
+            htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste },
+          }}
           error={Boolean(validatePersonName(nome))}
-          helperText={validatePersonName(nome) ?? "Use letras, espaços, hífen e apóstrofo."}
+          helperText={
+            validatePersonName(nome) ??
+            "Use letras, espaços, hífen e apóstrofo."
+          }
         />
         <TextField
           id="dados-cidade"
@@ -147,9 +168,14 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
           required
           fullWidth
           disabled={saving}
-          slotProps={{ htmlInput: { maxLength: 120 } }}
+          slotProps={{
+            htmlInput: { maxLength: 120, onPaste: stripEmojiOnPaste },
+          }}
           error={Boolean(validateCityName(cidade))}
-          helperText={validateCityName(cidade) ?? "Use letras, espaços, hífen e apóstrofo."}
+          helperText={
+            validateCityName(cidade) ??
+            "Use letras, espaços, hífen e apóstrofo."
+          }
         />
         <TextField
           id="dados-uf"

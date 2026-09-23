@@ -2,8 +2,8 @@
 
 import { useEffect, type RefObject } from "react";
 import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motionQueries, useLandingMotionPolicy } from "./LandingMotion";
+import "./scrollTriggerSetup";
 
 export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
   const policy = useLandingMotionPolicy();
@@ -11,7 +11,6 @@ export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const hero = ref.current;
     if (!hero || policy === "pending" || policy === "reduced") return;
-    gsap.registerPlugin(ScrollTrigger);
     // matchMedia owns a scoped GSAP context and reverts every tween/trigger.
     const media = gsap.matchMedia();
     media.add({ motion: "(prefers-reduced-motion: no-preference)", pointer: motionQueries.pointer }, context => {
@@ -22,10 +21,13 @@ export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
         defaults: { ease: "none", duration: 1 },
         scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true, invalidateOnRefresh: true },
       });
-      scroll.to(".hero-background-scroll", { y: 40 * distance, scale: 1.04 }, 0)
+      // Every scrubbed layer is translated only: per-frame scaling was the heaviest compositor
+      // cost on Full-HD displays, and on the headline it re-rasterized the gradient-clipped
+      // text on the main thread (the oversized insets hide the translate edges).
+      scroll.to(".hero-background-scroll", { y: 40 * distance }, 0)
         .to(".hero-atmosphere", { y: -100 * distance, x: 45 * distance }, 0)
-        .to(".hero-technology", { y: -70 * distance, scale: 1.06 }, 0)
-        .to(".hero-headline-scroll", { y: -230 * distance, scale: 0.94, opacity: 0, duration: 0.65 }, 0)
+        .to(".hero-technology", { y: -70 * distance }, 0)
+        .to(".hero-headline-scroll", { y: -230 * distance, opacity: 0, duration: 0.65 }, 0)
         .to(".hero-subtitle-scroll", { y: -140 * distance, opacity: 0, duration: 0.55 }, 0.08)
         .to(".hero-institutional-scroll", { y: -90 * distance, opacity: 0, duration: 0.5 }, 0.12)
         .to(".hero-actions-scroll", { y: -60 * distance, opacity: 0, duration: 0.4 }, 0.22)
@@ -36,7 +38,8 @@ export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
       const layers = [
         { selector: ".hero-background", depth: 20 },
         { selector: ".hero-technology-depth", depth: -36 },
-        { selector: ".hero-copy-depth", depth: -5 },
+        // The copy block is left out: its gradient-clipped headline is re-rasterized on every
+        // pointermove, and a -5px offset is not worth that main-thread cost.
       ].flatMap(({ selector, depth }) => {
         const element = hero.querySelector(selector);
         return element ? [{ depth,

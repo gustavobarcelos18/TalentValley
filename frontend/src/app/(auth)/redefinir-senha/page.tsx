@@ -1,21 +1,27 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import {
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type Ref,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  Box,
+  Alert,
   Button,
-  Container,
   IconButton,
   InputAdornment,
-  Paper,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { AuthSuspenseFallback } from "@/components/auth/AuthSuspenseFallback";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { ApiError } from "@/lib/api";
 import { resetPassword } from "@/lib/auth";
@@ -26,18 +32,9 @@ import {
 
 export default function RedefinirSenhaPage() {
   return (
-    <Suspense fallback={<PageFallback />}>
+    <Suspense fallback={<AuthSuspenseFallback />}>
       <RedefinirSenhaContent />
     </Suspense>
-  );
-}
-
-function PageFallback() {
-  return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
-    />
   );
 }
 
@@ -49,11 +46,41 @@ function RedefinirSenhaContent() {
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmacao, setShowConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const novaSenhaInputRef = useRef<HTMLInputElement | null>(null);
+  const confirmacaoInputRef = useRef<HTMLInputElement | null>(null);
+  const errorAlertRef = useRef<HTMLDivElement | null>(null);
+  const [errorSequence, setErrorSequence] = useState(0);
+  const lastErrorFocus = useRef<"novaSenha" | "confirmacao" | null>(null);
+
   const missingParams = !email || !token;
+
+  // After a failed submit, move focus to the first invalid field or, for
+  // submission errors, to the error summary. The sequence id re-runs the
+  // effect even when the same error message is reported twice in a row.
+  useEffect(() => {
+    if (errorSequence === 0) return;
+    if (lastErrorFocus.current === "novaSenha") {
+      novaSenhaInputRef.current?.focus();
+    } else if (lastErrorFocus.current === "confirmacao") {
+      confirmacaoInputRef.current?.focus();
+    } else {
+      errorAlertRef.current?.focus();
+    }
+  }, [errorSequence]);
+
+  function reportError(
+    message: string,
+    focus: "novaSenha" | "confirmacao" | null = null,
+  ) {
+    lastErrorFocus.current = focus;
+    setError(message);
+    setErrorSequence((n) => n + 1);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -61,12 +88,12 @@ function RedefinirSenhaContent() {
 
     const senhaError = validatePassword(novaSenha);
     if (senhaError) {
-      setError(senhaError);
+      reportError(senhaError, "novaSenha");
       return;
     }
 
     if (novaSenha !== confirmacao) {
-      setError("As senhas não coincidem.");
+      reportError("As senhas não coincidem.", "confirmacao");
       return;
     }
 
@@ -77,13 +104,13 @@ function RedefinirSenhaContent() {
       setSuccess(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(
+        reportError(
           err.status === 400
             ? "Não foi possível redefinir a senha. Verifique o link."
-            : "Não foi possível processar. Tente novamente."
+            : "Não foi possível processar. Tente novamente.",
         );
       } else {
-        setError("Não foi possível conectar. Tente novamente.");
+        reportError("Não foi possível conectar. Tente novamente.");
       }
     } finally {
       setLoading(false);
@@ -100,84 +127,65 @@ function RedefinirSenhaContent() {
 
   return (
     <GuestOnly>
-      <Box
-        component="main"
-        className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
+      <AuthPageShell
+        title="Redefinir senha"
+        subtitle="Digite sua nova senha"
+        onSubmit={success ? undefined : handleSubmit}
+        ariaBusy={loading}
       >
-        <Container maxWidth="xs">
-          <Paper
-            component={success ? "div" : "form"}
-            onSubmit={success ? undefined : handleSubmit}
-            elevation={0}
-            className="border border-zinc-200 p-8 dark:border-zinc-800"
-            noValidate
-          >
-            <Stack spacing={3}>
-              <Stack spacing={1} sx={{ textAlign: "center" }}>
-                <Typography component="h1" variant="h5">
-                  Redefinir senha
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Digite sua nova senha
-                </Typography>
-              </Stack>
+        {success ? (
+          <SuccessState />
+        ) : (
+          <>
+            {error && (
+              <Alert
+                ref={errorAlertRef}
+                tabIndex={-1}
+                severity="error"
+                variant="filled"
+                sx={{ fontSize: "0.875rem" }}
+              >
+                {error}
+              </Alert>
+            )}
 
-              {success ? (
-                <SuccessState />
-              ) : (
-                <>
-                  {error && (
-                    <Typography
-                      role="alert"
-                      color="error"
-                      variant="body2"
-                      align="center"
-                      className="rounded-lg bg-red-50 px-3 py-2 dark:bg-red-950"
-                    >
-                      {error}
-                    </Typography>
-                  )}
+            <PasswordField
+              id="novaSenha"
+              label="Nova senha"
+              value={novaSenha}
+              onChange={setNovaSenha}
+              inputRef={novaSenhaInputRef}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((v) => !v)}
+              disabled={loading}
+              helperText={PASSWORD_HELPER_TEXT}
+            />
 
-                  <PasswordField
-                    id="novaSenha"
-                    label="Nova senha"
-                    value={novaSenha}
-                    onChange={setNovaSenha}
-                    showPassword={showPassword}
-                    onTogglePassword={() => setShowPassword((v) => !v)}
-                    disabled={loading}
-                    helperText={PASSWORD_HELPER_TEXT}
-                  />
+            <PasswordField
+              id="confirmacao"
+              label="Confirmar nova senha"
+              value={confirmacao}
+              onChange={setConfirmacao}
+              inputRef={confirmacaoInputRef}
+              showPassword={showConfirmacao}
+              onTogglePassword={() => setShowConfirmacao((v) => !v)}
+              disabled={loading}
+              showAriaLabel="Mostrar confirmação da nova senha"
+              hideAriaLabel="Ocultar confirmação da nova senha"
+            />
 
-                  <TextField
-                    id="confirmacao"
-                    name="confirmacao"
-                    label="Confirmar nova senha"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    fullWidth
-                    value={confirmacao}
-                    onChange={(e) => setConfirmacao(e.target.value)}
-                    disabled={loading}
-                    slotProps={{ htmlInput: { "aria-label": "Confirmar nova senha" } }}
-                  />
-
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    disabled={loading}
-                  >
-                    {loading ? "Redefinindo..." : "Redefinir senha"}
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading}
+            >
+              {loading ? "Redefinindo..." : "Redefinir senha"}
+            </Button>
+          </>
+        )}
+      </AuthPageShell>
     </GuestOnly>
   );
 }
@@ -185,46 +193,44 @@ function RedefinirSenhaContent() {
 
 function InvalidLinkState() {
   return (
-    <Box
-      component="main"
-      className="flex min-h-screen items-center bg-linear-to-br from-zinc-50 to-violet-50 px-4 py-12 dark:from-zinc-950 dark:to-zinc-900"
-    >
-      <Container maxWidth="xs">
-        <Paper elevation={0} className="border border-zinc-200 p-8 dark:border-zinc-800">
-          <Stack spacing={3} sx={{ textAlign: "center" }}>
-            <Typography component="h1" variant="h5">
-              Link inválido
-            </Typography>
-            <Typography color="text.secondary">
-              Este link de redefinição é inválido ou está incompleto. Solicite um novo.
-            </Typography>
-            <Button
-              component={Link}
-              href="/esqueci-senha"
-              variant="contained"
-              size="large"
-              fullWidth
-            >
-              Solicitar novo link
-            </Button>
-          </Stack>
-        </Paper>
-      </Container>
-    </Box>
+    <AuthPageShell title="Link inválido">
+      <Stack spacing={3} sx={{ textAlign: "center" }}>
+        <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
+          Este link de redefinição é inválido ou está incompleto. Solicite um novo.
+        </Alert>
+        <Button
+          component={Link}
+          href="/esqueci-senha"
+          variant="contained"
+          size="large"
+          fullWidth
+        >
+          Solicitar novo link
+        </Button>
+      </Stack>
+    </AuthPageShell>
   );
 }
 
 function SuccessState() {
+  const alertRef = useRef<HTMLDivElement | null>(null);
+
+  // Move focus to the success message when the form is replaced by it.
+  useEffect(() => {
+    alertRef.current?.focus();
+  }, []);
+
   return (
     <Stack spacing={3}>
-      <Typography
-        role="status"
-        variant="body1"
-        align="center"
-        className="rounded-lg bg-green-50 px-3 py-3 text-green-800 dark:bg-green-950 dark:text-green-200"
+      <Alert
+        ref={alertRef}
+        tabIndex={-1}
+        severity="success"
+        variant="filled"
+        sx={{ fontSize: "0.9375rem" }}
       >
         Sua senha foi redefinida com sucesso.
-      </Typography>
+      </Alert>
       <Button
         component={Link}
         href="/login"
@@ -243,10 +249,15 @@ interface PasswordFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  inputRef?: Ref<HTMLInputElement>;
   showPassword: boolean;
   onTogglePassword: () => void;
   disabled?: boolean;
   helperText?: string;
+  /** Toggle button aria-label when the value is hidden (password type). */
+  showAriaLabel?: string;
+  /** Toggle button aria-label when the value is shown (text type). */
+  hideAriaLabel?: string;
 }
 
 function PasswordField({
@@ -254,13 +265,18 @@ function PasswordField({
   label,
   value,
   onChange,
+  inputRef,
   showPassword,
   onTogglePassword,
   disabled,
   helperText,
+  showAriaLabel,
+  hideAriaLabel,
 }: PasswordFieldProps) {
   const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
-  const ariaLabel = showPassword ? "Ocultar senha" : "Mostrar senha";
+  const ariaLabel = showPassword
+    ? (hideAriaLabel ?? "Ocultar senha")
+    : (showAriaLabel ?? "Mostrar senha");
   const inputType = showPassword ? "text" : "password";
 
   return (
@@ -274,6 +290,7 @@ function PasswordField({
       fullWidth
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      inputRef={inputRef}
       disabled={disabled}
       helperText={helperText}
       slotProps={{
