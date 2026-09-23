@@ -70,12 +70,12 @@ export function StudentProfile() {
           <ProfileHeader profile={profile} onChanged={refresh} notify={notify} />
           <DadosBasicosSection profile={profile} onChanged={refresh} notify={notify} />
           <SobreSection profile={profile} onChanged={refresh} notify={notify} />
-          <CompetenciasSection profile={profile} onChanged={refresh} notify={notify} />
+          <ContatoSection profile={profile} onChanged={refresh} notify={notify} />
           <TrajetoriaSection profile={profile} onChanged={refresh} notify={notify} />
-          <ProjetosSection profile={profile} onChanged={refresh} notify={notify} />
+          <CompetenciasSection profile={profile} onChanged={refresh} notify={notify} />
           <IdiomasSection profile={profile} onChanged={refresh} notify={notify} />
           <DisponibilidadeSection profile={profile} onChanged={refresh} notify={notify} />
-          <ContatoSection profile={profile} onChanged={refresh} notify={notify} />
+          <ProjetosSection profile={profile} onChanged={refresh} notify={notify} />
           <CurriculoSection profile={profile} onChanged={refresh} notify={notify} />
         </Stack>
       )}

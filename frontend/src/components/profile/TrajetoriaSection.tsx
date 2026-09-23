@@ -63,16 +63,42 @@ export function TrajetoriaSection({ onChanged, notify }: SectionProps) {
       .catch(() => setError("Não foi possível carregar sua trajetória."));
   }, []);
   const changed = async (message: string) => { await refresh(); await onChanged(); notify(message); };
+  const formations = (items ?? []).filter((item) => item.formacao);
+  const experiences = (items ?? []).filter((item) => item.experiencia);
+  const openEditor = (item: TrajetoriaItemResponse) =>
+    setEditor(item.formacao ? { kind: "formation", item: item.formacao } : { kind: "experience", item: item.experiencia! });
   return <Paper component="section" elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, border: 1, borderColor: "divider" }}>
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
-      <Box><Typography component="h2" variant="h6">Trajetória</Typography><Typography variant="body2" color="text.secondary">Formações e experiências em ordem profissional.</Typography></Box>
-      <Stack direction="row" spacing={1}><Button size="small" startIcon={<SchoolOutlined />} onClick={() => setEditor({ kind: "formation" })}>Formação</Button><Button size="small" startIcon={<BusinessCenterOutlined />} onClick={() => setEditor({ kind: "experience" })}>Experiência</Button></Stack>
-    </Stack>
+    <Box>
+      <Typography component="h2" variant="h6">Trajetória</Typography>
+      <Typography variant="body2" color="text.secondary">Formações e experiências em ordem profissional.</Typography>
+    </Box>
     {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-    {items === null ? <Stack sx={{ alignItems: "center", py: 4 }}><CircularProgress size={28} /></Stack> : items.length === 0 ? <Stack spacing={1.5} sx={{ mt: 2, p: 3, border: 1, borderStyle: "dashed", borderColor: "divider", borderRadius: 2, alignItems: "center" }}><Typography color="text.secondary">Comece adicionando uma formação ou experiência.</Typography><Button startIcon={<AddOutlined />} onClick={() => setEditor({ kind: "formation" })}>Adicionar formação</Button></Stack> : <Stack divider={<Divider flexItem />} sx={{ mt: 2 }}>{items.map((item) => <TimelineItem key={`${item.tipoItem}-${item.id}`} item={item} onEdit={() => setEditor(item.formacao ? { kind: "formation", item: item.formacao } : { kind: "experience", item: item.experiencia! })} onDelete={() => setRemoving(item)} onChanged={changed} />)}</Stack>}
+    {items === null ? <Stack sx={{ alignItems: "center", py: 4 }}><CircularProgress size={28} /></Stack> : <Stack spacing={4} sx={{ mt: 2 }}>
+      <TrajectoryGroup title="Formação e certificados" emptyMessage="Nenhuma formação ou certificado adicionado." actionLabel="Adicionar formação" items={formations} onAdd={() => setEditor({ kind: "formation" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
+      <TrajectoryGroup title="Experiência" emptyMessage="Nenhuma experiência adicionada." actionLabel="Adicionar experiência" items={experiences} onAdd={() => setEditor({ kind: "experience" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
+    </Stack>}
     <Dialog open={editor !== null} onClose={() => setEditor(null)} fullWidth maxWidth="sm">{editor?.kind === "formation" ? <FormationForm item={editor.item} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void changed(editor.item ? "Formação atualizada." : "Formação adicionada."); }} /> : editor?.kind === "experience" ? <ExperienceForm item={editor.item} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void changed(editor.item ? "Experiência atualizada." : "Experiência adicionada."); }} /> : null}</Dialog>
     <DeleteDialog item={removing} onClose={() => setRemoving(null)} onDeleted={() => { setRemoving(null); void changed("Item removido da trajetória."); }} />
   </Paper>;
+}
+
+function TrajectoryGroup({ title, emptyMessage, actionLabel, items, onAdd, onEdit, onDelete, onChanged }: {
+  title: string;
+  emptyMessage: string;
+  actionLabel: string;
+  items: TrajetoriaItemResponse[];
+  onAdd: () => void;
+  onEdit: (item: TrajetoriaItemResponse) => void;
+  onDelete: (item: TrajetoriaItemResponse) => void;
+  onChanged: (message: string) => Promise<void>;
+}) {
+  return <Box component="section">
+    <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between", alignItems: "center" }}>
+      <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
+      <Button size="small" startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button>
+    </Stack>
+    {items.length === 0 ? <Stack spacing={1.5} sx={{ mt: 2, p: 3, border: 1, borderStyle: "dashed", borderColor: "divider", borderRadius: 2, alignItems: "center" }}><Typography color="text.secondary" align="center">{emptyMessage}</Typography><Button startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button></Stack> : <Stack divider={<Divider flexItem />} sx={{ mt: 1 }}>{items.map((item) => <TimelineItem key={`${item.tipoItem}-${item.id}`} item={item} onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} onChanged={onChanged} />)}</Stack>}
+  </Box>;
 }
 
 function TimelineItem({ item, onEdit, onDelete, onChanged }: { item: TrajetoriaItemResponse; onEdit: () => void; onDelete: () => void; onChanged: (message: string) => Promise<void> }) {
