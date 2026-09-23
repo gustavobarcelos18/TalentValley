@@ -574,7 +574,22 @@ export function StudentRegistrationForm() {
               }
               disabled={busy}
               error={Boolean(errors.relacaoRioPombaValley)}
-              helperText={errors.relacaoRioPombaValley}
+              helperText={
+                <Box
+                  component="span"
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 1,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Box component="span">{errors.relacaoRioPombaValley}</Box>
+                  <Box component="span" sx={{ color: "text.secondary" }}>
+                    {school.relacaoRioPombaValley.length} / 500
+                  </Box>
+                </Box>
+              }
               slotProps={{
                 htmlInput: { maxLength: 500, onPaste: stripEmojiOnPaste },
               }}
