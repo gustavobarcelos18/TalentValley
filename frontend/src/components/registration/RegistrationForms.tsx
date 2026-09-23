@@ -13,8 +13,10 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Container,
   Divider,
+  InputAdornment,
   MenuItem,
   Paper,
   Stack,
@@ -56,6 +58,7 @@ type CommonForm = {
   nomeCompleto: string;
   email: string;
   telefone: string;
+  cep: string;
   cidade: string;
   uf: string;
 };
@@ -65,9 +68,151 @@ const commonBlank: CommonForm = {
   nomeCompleto: "",
   email: "",
   telefone: "",
+  cep: "",
   cidade: "",
   uf: "",
 };
+
+// ---------------------------------------------------------------------------
+// CEP lookup (frontend-only helper). Reads the public ViaCEP API to autofill
+// Cidade/UF. CEP is never sent to the backend registration endpoints.
+// ---------------------------------------------------------------------------
+
+type CepStatus =
+  | { type: "idle" }
+  | { type: "loading" }
+  | { type: "success" }
+  | { type: "error"; message: string };
+
+const CEP_LOOKUP_ERROR =
+  "Não foi possível localizar o CEP. Preencha Cidade e UF manualmente.";
+
+function formatCep(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+}
+
+function validateCep(value: string): string | null {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length !== 8) return "Informe um CEP válido com 8 dígitos.";
+  return null;
+}
+
+// Maps "how many digits sit before the caret" back to a position in the
+// hyphenated value, so formatting never makes the caret jump unexpectedly.
+function caretAfterDigits(formatted: string, digitsBeforeCaret: number): number {
+  let seen = 0;
+  for (let index = 0; index < formatted.length; index += 1) {
+    if (seen === digitsBeforeCaret) return index;
+    if (/\d/.test(formatted[index])) seen += 1;
+  }
+  return formatted.length;
+}
+
+interface ViaCepResult {
+  cidade: string;
+  uf: string;
+}
+
+function readViaCep(data: unknown): ViaCepResult | null {
+  if (typeof data !== "object" || data === null) return null;
+  const record = data as Record<string, unknown>;
+  if (record.erro === true) return null;
+  const cidade = sanitizeCityName(String(record.localidade ?? ""));
+  const uf = String(record.uf ?? "").trim().toUpperCase();
+  if (!cidade || !(BRAZILIAN_UFS as readonly string[]).includes(uf)) return null;
+  return { cidade, uf };
+}
+
+function useCepLookup({
+  cep,
+  cidade,
+  uf,
+  onChange,
+  disabled,
+}: {
+  cep: string;
+  cidade: string;
+  uf: string;
+  onChange: (key: keyof CommonForm, value: string) => void;
+  disabled: boolean;
+}): CepStatus {
+  const [lookup, setLookup] = useState<{ cep: string; status: CepStatus }>({
+    cep: "",
+    status: { type: "idle" },
+  });
+  const latestRef = useRef({ cidade, uf, onChange });
+
+  // Keep the latest values available to the async lookup callback without
+  // re-running the lookup effect (which would fire duplicate requests).
+  useEffect(() => {
+    latestRef.current = { cidade, uf, onChange };
+  });
+
+  const digits = cep.replace(/\D/g, "");
+
+  useEffect(() => {
+    if (digits.length !== 8 || disabled) return;
+
+    const controller = new AbortController();
+    // Snapshot of the city/UF at request time. A late response must never
+    // overwrite a field the user edited manually while it was pending.
+    const snapshot = {
+      cidade: latestRef.current.cidade,
+      uf: latestRef.current.uf,
+    };
+
+    const debounce = setTimeout(() => {
+      setLookup({ cep: digits, status: { type: "loading" } });
+      void (async () => {
+        let timedOut = false;
+        const timeout = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, 8000);
+        try {
+          const response = await fetch(
+            `https://viacep.com.br/ws/${digits}/json/`,
+            { signal: controller.signal },
+          );
+          if (!response.ok) throw new Error("ViaCEP HTTP failure");
+          const result = readViaCep(await response.json());
+          if (!result) throw new Error("ViaCEP invalid response");
+          if (controller.signal.aborted) return;
+
+          const latest = latestRef.current;
+          if (latest.cidade === snapshot.cidade) {
+            latest.onChange("cidade", result.cidade);
+          }
+          if (latest.uf === snapshot.uf) {
+            latest.onChange("uf", result.uf);
+          }
+          setLookup({ cep: digits, status: { type: "success" } });
+        } catch {
+          if (timedOut || !controller.signal.aborted) {
+            setLookup({
+              cep: digits,
+              status: { type: "error", message: CEP_LOOKUP_ERROR },
+            });
+          }
+        } finally {
+          clearTimeout(timeout);
+        }
+      })();
+    }, 400);
+
+    return () => {
+      clearTimeout(debounce);
+      controller.abort();
+    };
+  }, [digits, disabled]);
+
+  if (digits.length !== 8 || disabled || lookup.cep !== digits) {
+    return { type: "idle" };
+  }
+  return lookup.status;
+}
 
 // Reference to a field's focusable control. MUI Select exposes an imperative
 // handle with `focus` instead of a DOM node, so both shapes are accepted.
@@ -79,6 +224,7 @@ const studentFieldOrder = [
   "nomeCompleto",
   "email",
   "telefone",
+  "cep",
   "cidade",
   "uf",
   "instituicaoEnsino",
@@ -91,6 +237,7 @@ const recruiterFieldOrder = [
   "nomeCompleto",
   "email",
   "telefone",
+  "cep",
   "cidade",
   "uf",
   "empresa",
@@ -323,6 +470,7 @@ function commonErrors(form: CommonForm): FieldErrors {
     nomeCompleto: validatePersonName(form.nomeCompleto),
     email: validateEmail(form.email),
     telefone: validateBrazilianPhone(form.telefone),
+    cep: validateCep(form.cep),
     cidade: validateCityName(form.cidade),
     uf: validateUF(form.uf),
   };
@@ -349,6 +497,13 @@ function CommonFields({
   registerFieldRef: (key: keyof CommonForm) => (node: FocusableControl) => void;
   disabled: boolean;
 }) {
+  const cepStatus = useCepLookup({
+    cep: value.cep,
+    cidade: value.cidade,
+    uf: value.uf,
+    onChange,
+    disabled,
+  });
   return (
     <>
       <TextField
@@ -405,6 +560,69 @@ function CommonFields({
           htmlInput: { inputMode: "tel", onPaste: stripEmojiOnPaste },
         }}
       />
+      <TextField
+        label="CEP"
+        autoComplete="postal-code"
+        value={value.cep}
+        onChange={(event) => {
+          const input = event.currentTarget;
+          const raw = input.value;
+          const caret = input.selectionStart ?? raw.length;
+          const next = formatCep(raw);
+          onChange("cep", next);
+          const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
+          requestAnimationFrame(() => {
+            const position = caretAfterDigits(next, digitsBeforeCaret);
+            input.setSelectionRange(position, position);
+          });
+        }}
+        onBlur={() => onBlur("cep")}
+        inputRef={registerFieldRef("cep")}
+        disabled={disabled}
+        error={Boolean(errors.cep)}
+        helperText={errors.cep ?? "Opcional; 8 dígitos para preencher Cidade e UF."}
+        slotProps={{
+          htmlInput: {
+            inputMode: "numeric",
+            maxLength: 9,
+            onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+              if (event.key !== "Backspace") return;
+              const input = event.currentTarget;
+              const caret = input.selectionStart ?? input.value.length;
+              if (caret <= 0 || input.value.charAt(caret - 1) !== "-") return;
+              event.preventDefault();
+              const before = input.value.slice(0, caret - 1);
+              const next = formatCep(before.slice(0, -1) + input.value.slice(caret));
+              onChange("cep", next);
+              const digitsBeforeCaret = before.slice(0, -1).replace(/\D/g, "").length;
+              requestAnimationFrame(() => {
+                const position = caretAfterDigits(next, digitsBeforeCaret);
+                input.setSelectionRange(position, position);
+              });
+            },
+          },
+          input: {
+            endAdornment:
+              cepStatus.type === "loading" ? (
+                <InputAdornment position="end">
+                  <CircularProgress size={16} />
+                </InputAdornment>
+              ) : null,
+          },
+        }}
+      />
+      {(cepStatus.type === "success" || cepStatus.type === "error") && (
+        <Typography
+          component="p"
+          variant="caption"
+          role="status"
+          sx={{ color: cepStatus.type === "error" ? "error.main" : "success.main" }}
+        >
+          {cepStatus.type === "error"
+            ? cepStatus.message
+            : "Cidade e UF preenchidas pelo CEP."}
+        </Typography>
+      )}
       <TextField
         required
         label="Cidade"
@@ -659,8 +877,8 @@ export function StudentRegistrationForm() {
     setBusy(true);
     setError(null);
     try {
+      // CEP is a frontend-only lookup helper and must not be sent to the API.
       await registrationApi.student({
-        ...common,
         ...school,
         nomeCompleto: normalizeWhitespace(common.nomeCompleto),
         email: normalizeEmailInput(common.email),
@@ -966,8 +1184,8 @@ export function RecruiterRegistrationForm() {
     setBusy(true);
     setError(null);
     try {
+      // CEP is a frontend-only lookup helper and must not be sent to the API.
       await registrationApi.recruiter({
-        ...common,
         ...extra,
         nomeCompleto: normalizeWhitespace(common.nomeCompleto),
         email: normalizeEmailInput(common.email),
