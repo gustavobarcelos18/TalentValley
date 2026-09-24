@@ -35,6 +35,7 @@ import { adminApi } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatDate, formatUpdatedAt } from "@/lib/format";
 import {
+  formatBrazilianPhone,
   normalizePhone,
   normalizeWhitespace,
   sanitizeCityName,
@@ -43,6 +44,7 @@ import {
   validateCityName,
   validateCompanyName,
   validateEmail,
+  validateHttpUrl,
   validateJobTitle,
   validatePersonName,
   validateSearchTerm,
@@ -383,6 +385,7 @@ export function AdminStudentsView() {
     ),
     [busy, setBusy] = useState(false),
     [searchError, setSearchError] = useState<string | null>(null),
+    [confirmError, setConfirmError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null);
   const state = useLoad(() => adminApi.students(page, search), [page, search]);
   const submitSearch = (e: FormEvent) => {
@@ -394,29 +397,39 @@ export function AdminStudentsView() {
     setSearch(draft.trim());
   };
   const mutate = async (action: "bloquear" | "reativar") => {
-    if (!target) return;
+    if (!target || busy) return;
     setBusy(true);
+    setConfirmError(null);
     try {
       await adminApi.studentAction(target.id, action);
       setNotice(`Aluno ${action === "bloquear" ? "bloqueado" : "reativado"}.`);
       setTarget(null);
       state.reload();
     } catch (e) {
-      setNotice(getApiErrorMessage(e, "Não foi possível concluir a ação."));
+      setConfirmError(
+        getApiErrorMessage(e, "Não foi possível concluir a ação."),
+      );
     } finally {
       setBusy(false);
     }
   };
   const removeStudent = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || busy) return;
     setBusy(true);
+    setConfirmError(null);
     try {
       await adminApi.deleteStudent(deleteTarget.id);
       setNotice("Aluno excluído permanentemente.");
       setDeleteTarget(null);
-      state.reload();
+      if (state.data && state.data.items.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        state.reload();
+      }
     } catch (e) {
-      setNotice(getApiErrorMessage(e, "Não foi possível excluir o aluno."));
+      setConfirmError(
+        getApiErrorMessage(e, "Não foi possível excluir o aluno."),
+      );
     } finally {
       setBusy(false);
     }
@@ -505,7 +518,10 @@ export function AdminStudentsView() {
                     <Button
                       size="small"
                       color={x.ativo ? "warning" : "success"}
-                      onClick={() => setTarget(x)}
+                      onClick={() => {
+                        setConfirmError(null);
+                        setTarget(x);
+                      }}
                     >
                       {x.ativo ? "Bloquear" : "Reativar"}
                     </Button>
@@ -513,7 +529,10 @@ export function AdminStudentsView() {
                       <Button
                         size="small"
                         color="error"
-                        onClick={() => setDeleteTarget(x)}
+                        onClick={() => {
+                          setConfirmError(null);
+                          setDeleteTarget(x);
+                        }}
                       >
                         Excluir
                       </Button>
@@ -551,7 +570,11 @@ export function AdminStudentsView() {
             : `Deseja reativar ${target?.nomeCompleto}? A exclusão automática será cancelada.`
         }
         busy={busy}
-        onClose={() => setTarget(null)}
+        onClose={() => {
+          setConfirmError(null);
+          setTarget(null);
+        }}
+        error={confirmError}
         confirm={() => void mutate(target?.ativo ? "bloquear" : "reativar")}
       />
       <Confirm
@@ -559,7 +582,11 @@ export function AdminStudentsView() {
         title="Excluir aluno permanentemente?"
         text={`A exclusão de ${deleteTarget?.nomeCompleto} é permanente e não poderá ser desfeita.`}
         busy={busy}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => {
+          setConfirmError(null);
+          setDeleteTarget(null);
+        }}
+        error={confirmError}
         confirm={() => void removeStudent()}
         danger
       />
@@ -585,8 +612,10 @@ function StudentCreate({
     [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
+  const titleId = useId();
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     const validation = validatePersonName(nomeCompleto) ?? validateEmail(email);
     if (validation) {
       setError(validation);
@@ -614,9 +643,10 @@ function StudentCreate({
       onClose={busy ? undefined : onClose}
       fullWidth
       maxWidth="xs"
+      aria-labelledby={titleId}
     >
       <Box component="form" onSubmit={submit}>
-        <DialogTitle>Criar acesso de aluno</DialogTitle>
+        <DialogTitle id={titleId}>Criar acesso de aluno</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
@@ -660,6 +690,7 @@ export function AdminStudentDetailView({ id }: { id: string }) {
   const state = useLoad(() => adminApi.student(id), [id]);
   const [removeTarget, setRemoveTarget] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
+    [confirmError, setConfirmError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null);
   if (state.loading || state.error || !state.data)
     return (
@@ -669,15 +700,18 @@ export function AdminStudentDetailView({ id }: { id: string }) {
     );
   const p = state.data;
   const removeValidation = async () => {
-    if (!removeTarget) return;
+    if (!removeTarget || busy) return;
     setBusy(true);
+    setConfirmError(null);
     try {
       await adminApi.validationAction(removeTarget, "remover-validacao");
       setRemoveTarget(null);
       setNotice("Validação RPV removida. A formação voltou para pendente.");
       state.reload();
     } catch (e) {
-      setNotice(getApiErrorMessage(e, "Não foi possível concluir a ação."));
+      setConfirmError(
+        getApiErrorMessage(e, "Não foi possível concluir a ação."),
+      );
     } finally {
       setBusy(false);
     }
@@ -718,72 +752,23 @@ export function AdminStudentDetailView({ id }: { id: string }) {
       </Section>
       <Section title="Contato">
         <Stack spacing={0.5}>
-          {p.contato.telefone && (
-            <Typography>
-              {"Telefone: "}
-              <Box
-                component="a"
-                href={`tel:${p.contato.telefone}`}
-                sx={{ display: "inline", overflowWrap: "anywhere" }}
-              >
-                {p.contato.telefone}
-              </Box>
-            </Typography>
-          )}
-          {p.contato.emailProfissional && (
-            <Typography>
-              {"E-mail profissional: "}
-              <Box
-                component="a"
-                href={`mailto:${p.contato.emailProfissional}`}
-                sx={{ display: "inline", overflowWrap: "anywhere" }}
-              >
-                {p.contato.emailProfissional}
-              </Box>
-            </Typography>
-          )}
-          {p.contato.linkedInUrl && (
-            <Typography>
-              {"LinkedIn: "}
-              <Box
-                component="a"
-                href={p.contato.linkedInUrl}
-                target="_blank"
-                rel="noreferrer"
-                sx={{ display: "inline", overflowWrap: "anywhere" }}
-              >
-                {p.contato.linkedInUrl}
-              </Box>
-            </Typography>
-          )}
-          {p.contato.gitHubUrl && (
-            <Typography>
-              {"GitHub: "}
-              <Box
-                component="a"
-                href={p.contato.gitHubUrl}
-                target="_blank"
-                rel="noreferrer"
-                sx={{ display: "inline", overflowWrap: "anywhere" }}
-              >
-                {p.contato.gitHubUrl}
-              </Box>
-            </Typography>
-          )}
-          {p.contato.portfolioUrl && (
-            <Typography>
-              {"Portfólio: "}
-              <Box
-                component="a"
-                href={p.contato.portfolioUrl}
-                target="_blank"
-                rel="noreferrer"
-                sx={{ display: "inline", overflowWrap: "anywhere" }}
-              >
-                {p.contato.portfolioUrl}
-              </Box>
-            </Typography>
-          )}
+          <ContactRow label="Telefone" value={p.contato.telefone} kind="phone" />
+          <ContactRow
+            label="E-mail profissional"
+            value={p.contato.emailProfissional}
+            kind="email"
+          />
+          <ContactRow
+            label="LinkedIn"
+            value={p.contato.linkedInUrl}
+            kind="url"
+          />
+          <ContactRow label="GitHub" value={p.contato.gitHubUrl} kind="url" />
+          <ContactRow
+            label="Portfólio"
+            value={p.contato.portfolioUrl}
+            kind="url"
+          />
           {!Object.values(p.contato).some(Boolean) && (
             <Typography color="text.secondary">Não informado.</Typography>
           )}
@@ -842,7 +827,10 @@ export function AdminStudentDetailView({ id }: { id: string }) {
                     f.statusValidacaoRpv === "VERIFICADO" && (
                       <Button
                         size="small"
-                        onClick={() => setRemoveTarget(f.id)}
+                        onClick={() => {
+                          setConfirmError(null);
+                          setRemoveTarget(f.id);
+                        }}
                       >
                         Remover validação
                       </Button>
@@ -896,6 +884,12 @@ export function AdminStudentDetailView({ id }: { id: string }) {
             <Box key={x.id} sx={{ mb: 2 }}>
               <Typography sx={{ fontWeight: 700 }}>{x.nome}</Typography>
               <Typography>{x.descricao}</Typography>
+              <ContactRow label="Demo" value={x.demoUrl} kind="url" />
+              <ContactRow
+                label="Repositório"
+                value={x.repositorioUrl}
+                kind="url"
+              />
             </Box>
           ))
         ) : (
@@ -914,7 +908,11 @@ export function AdminStudentDetailView({ id }: { id: string }) {
         title="Remover validação RPV?"
         text="A formação deixará de ser exibida como verificada e o status de validação RPV voltará para pendente. A formação e o certificado não serão excluídos."
         busy={busy}
-        onClose={() => setRemoveTarget(null)}
+        onClose={() => {
+          setConfirmError(null);
+          setRemoveTarget(null);
+        }}
+        error={confirmError}
         confirm={() => void removeValidation()}
         danger
       />
@@ -1525,4 +1523,52 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 function Empty({ text = "Nenhuma informação cadastrada." }: { text?: string }) {
   return <Typography color="text.secondary">{text}</Typography>;
+}
+type ContactLinkKind = "phone" | "email" | "url";
+function contactHref(kind: ContactLinkKind, value: string): string | null {
+  if (kind === "phone") {
+    const digits = normalizePhone(value);
+    return /^\d{10,11}$/.test(digits) &&
+      !/^(\d)\1+$/.test(digits) &&
+      digits.slice(0, 2) !== "00"
+      ? `tel:+55${digits}`
+      : null;
+  }
+  if (kind === "email")
+    return validateEmail(value, false) === null ? `mailto:${value}` : null;
+  return validateHttpUrl(value) === null ? value : null;
+}
+function ContactRow({
+  label,
+  value,
+  kind,
+}: {
+  label: string;
+  value: string | null;
+  kind: ContactLinkKind;
+}) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const href = contactHref(kind, raw);
+  const display = kind === "phone" && href ? formatBrazilianPhone(raw) : raw;
+  return (
+    <Typography>
+      {`${label}: `}
+      {href ? (
+        <Box
+          component="a"
+          href={href}
+          target={kind === "url" ? "_blank" : undefined}
+          rel={kind === "url" ? "noreferrer" : undefined}
+          sx={{ display: "inline", overflowWrap: "anywhere" }}
+        >
+          {display}
+        </Box>
+      ) : (
+        <Box component="span" sx={{ overflowWrap: "anywhere" }}>
+          {raw}
+        </Box>
+      )}
+    </Typography>
+  );
 }
