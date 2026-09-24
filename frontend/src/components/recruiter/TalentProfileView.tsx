@@ -16,6 +16,7 @@ import VerifiedOutlined from "@mui/icons-material/VerifiedOutlined";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { fetchTalent } from "@/lib/recruiter";
 import { formatDate, formatUpdatedAt } from "@/lib/format";
+import { normalizePhone, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
 import {
   DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, NIVEL_IDIOMA_LABELS, STATUS_FORMACAO_LABELS,
   TIPO_EXPERIENCIA_LABELS, TIPO_FORMACAO_LABELS,
@@ -54,10 +55,10 @@ export function TalentProfileView({ slug }: { slug: string }) {
     <TrajectorySection formations={profile.formacoes} experiences={profile.experiencias} onFileError={setFileError} />
     <Section title="Projetos">{profile.projetos.length ? <Stack spacing={2} divider={<Divider />}>
       {profile.projetos.map((project) => <Stack key={project.id} spacing={1}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}><Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{project.nome}</Typography><Typography variant="caption" color="text.secondary">{period(project.dataInicio, project.dataFim, project.emAndamento)}</Typography></Stack>
-        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{project.descricao}</Typography>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}><Typography variant="subtitle1" sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{project.nome}</Typography><Typography variant="caption" color="text.secondary">{period(project.dataInicio, project.dataFim, project.emAndamento)}</Typography></Stack>
+        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>{project.descricao}</Typography>
         <Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>{project.tecnologias.map((item) => <Chip key={item.id} label={item.nome} size="small" variant="outlined" />)}</Stack>
-        <Stack direction="row" spacing={1}>{project.demoUrl && <ExternalButton href={project.demoUrl} label="Ver demonstração" />}{project.repositorioUrl && <ExternalButton href={project.repositorioUrl} label="Ver repositório" />}</Stack>
+        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{project.demoUrl && <ExternalButton href={project.demoUrl} label="Ver demonstração" />}{project.repositorioUrl && <ExternalButton href={project.repositorioUrl} label="Ver repositório" />}</Stack>
       </Stack>)}
     </Stack> : <Empty />}</Section>
     <Section title="Idiomas">{profile.idiomas.length ? <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{profile.idiomas.map((item) => <Chip key={item.idiomaId} label={`${item.nome} · ${NIVEL_IDIOMA_LABELS[item.nivel]}`} variant="outlined" />)}</Stack> : <Empty />}</Section>
@@ -77,12 +78,12 @@ function ProfileHeader({ profile, onFileError, onFavoriteChange, onUnavailable }
     <Stack direction={{ xs: "column", sm: "row" }} spacing={3} sx={{ alignItems: { xs: "center", sm: "flex-start" } }}>
       <ProtectedTalentPhoto path={profile.fotoUrl} name={profile.nomeCompleto} size={112} />
       <Stack spacing={1.25} sx={{ minWidth: 0, alignItems: { xs: "center", sm: "flex-start" }, textAlign: { xs: "center", sm: "left" } }}>
-        <Typography component="h1" variant="h4">{profile.nomeCompleto}</Typography>
-        <Stack direction="row" spacing={.5} sx={{ alignItems: "center" }}><PlaceOutlined color="action" /><Typography color="text.secondary">{[profile.cidade, profile.uf].filter(Boolean).join(" / ") || "Localização não informada"}</Typography></Stack>
+        <Typography component="h1" variant="h4" sx={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{profile.nomeCompleto}</Typography>
+        <Stack direction="row" spacing={.5} sx={{ alignItems: "center" }}><PlaceOutlined color="action" /><Typography color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{[profile.cidade, profile.uf].filter(Boolean).join(" / ") || "Localização não informada"}</Typography></Stack>
         <Typography variant="caption" color="text.secondary">Atualizado em {formatUpdatedAt(profile.atualizadoEm)}</Typography>
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", justifyContent: { xs: "center", sm: "flex-start" } }}>
           <FavoriteButton slug={profile.slug} name={profile.nomeCompleto} favorite={profile.favorito} onChange={onFavoriteChange} onUnavailable={onUnavailable} />
-          {profile.contato.emailProfissional && <Button component="a" href={`mailto:${profile.contato.emailProfissional}`} startIcon={<EmailOutlined />}>E-mail</Button>}
+          {profile.contato.emailProfissional && <SafeEmailButton value={profile.contato.emailProfissional} label="E-mail" />}
           {profile.contato.linkedInUrl && <ExternalButton href={profile.contato.linkedInUrl} label="LinkedIn" icon={<LinkedIn />} />}
           {profile.curriculo.possuiCurriculo && profile.curriculo.url && <ProtectedFileButton path={profile.curriculo.url} label="Abrir CV" onError={onFileError} />}
         </Stack>
@@ -119,8 +120,8 @@ function ExperienceItem({ experience }: { experience: TalentExperience }) {
 function ContactSection({ profile }: { profile: TalentProfile }) {
   const contact = profile.contato; const hasContact = Object.values(contact).some(Boolean);
   return <Section title="Contato">{hasContact ? <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-    {contact.emailProfissional && <Button component="a" href={`mailto:${contact.emailProfissional}`} startIcon={<EmailOutlined />}>{contact.emailProfissional}</Button>}
-    {contact.telefone && <Button component="a" href={`tel:${contact.telefone}`} startIcon={<PhoneOutlined />}>{contact.telefone}</Button>}
+    {contact.emailProfissional && <SafeEmailButton value={contact.emailProfissional} />}
+    {contact.telefone && <SafePhoneButton value={contact.telefone} />}
     {contact.linkedInUrl && <ExternalButton href={contact.linkedInUrl} label="LinkedIn" icon={<LinkedIn />} />}
     {contact.gitHubUrl && <ExternalButton href={contact.gitHubUrl} label="GitHub" icon={<GitHub />} />}
     {contact.portfolioUrl && <ExternalButton href={contact.portfolioUrl} label="Portfólio" icon={<LanguageOutlined />} />}
@@ -129,7 +130,12 @@ function ContactSection({ profile }: { profile: TalentProfile }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) { return <Paper component="section" elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, border: 1, borderColor: "divider" }}><Typography component="h2" variant="h6" sx={{ mb: 2 }}>{title}</Typography>{children}</Paper>; }
 function Empty({ text = "Nenhuma informação cadastrada." }: { text?: string }) { return <Typography variant="body2" color="text.secondary">{text}</Typography>; }
-function ExternalButton({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) { return <Button component="a" href={href} target="_blank" rel="noreferrer" startIcon={icon} endIcon={!icon ? <LanguageOutlined /> : undefined}>{label}</Button>; }
+function ExternalButton({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) { return validateHttpUrl(href) === null ? <Button component="a" href={href} target="_blank" rel="noreferrer" startIcon={icon} endIcon={!icon ? <LanguageOutlined /> : undefined}>{label}</Button> : <PlainText>{href}</PlainText>; }
+// Contact values are only rendered clickable when they pass validation; unsafe or
+// malformed legacy values stay visible as plain text.
+function PlainText({ children }: { children: React.ReactNode }) { return <Typography variant="body2" sx={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</Typography>; }
+function SafeEmailButton({ value, label }: { value: string; label?: string }) { return validateEmail(value) === null ? <Button component="a" href={`mailto:${value}`} startIcon={<EmailOutlined />}>{label ?? value}</Button> : <PlainText>{value}</PlainText>; }
+function SafePhoneButton({ value }: { value: string }) { return validateBrazilianPhone(value) === null ? <Button component="a" href={`tel:${normalizePhone(value)}`} startIcon={<PhoneOutlined />}>{value}</Button> : <PlainText>{value}</PlainText>; }
 function period(start: string, end: string | null, current: boolean): string { return `${formatDate(start)} — ${current ? "Atual" : end ? formatDate(end) : "Não informado"}`; }
 
 function StatePage({ title }: { title: string }) { return <Container maxWidth="sm" sx={{ py: 8 }}><Paper elevation={0} sx={{ p: 4, border: 1, borderColor: "divider", textAlign: "center" }}><Typography variant="h5">{title}</Typography><Button component={Link} href="/recrutador/talentos" startIcon={<ArrowBackOutlined />} sx={{ mt: 2 }}>Voltar para talentos</Button></Paper></Container>; }
