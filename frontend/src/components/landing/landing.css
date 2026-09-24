@@ -1,5 +1,6 @@
 .landing {
   --page: #0d1114;
+  --page-0: rgb(13 17 20 / 0);
   --deep: #080b0d;
   --surface: #12171b;
   --raised: #182025;
@@ -22,6 +23,7 @@
 }
 .light .landing {
   --page: #f6f7f2;
+  --page-0: rgb(246 247 242 / 0);
   --deep: #eef1ec;
   --surface: #fff;
   --raised: #eef1ec;
@@ -176,7 +178,7 @@
 .hero-background { position: relative; width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; transform: translateZ(0); }
 .hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
 .hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
-.hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(transparent, var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
+.hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(var(--page-0), var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
 .hero h1 .hero-title-line { display: inline-block; }
 /* Set before the first paint by the root layout script; the reveal removes it. */
 .tv-motion-pending .landing [data-entrance] { opacity: 0; }
@@ -219,13 +221,13 @@
 /* Phase 2.2: the landscape bleeds into a rising, feathered value backdrop. */
 .hero { overflow: visible; z-index: 1; }
 .hero-background-scroll { bottom: -26svh; }
-.hero-background::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 75%, var(--page) 100%); pointer-events: none; }
+.hero-background::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, var(--page-0) 75%, var(--page) 100%); pointer-events: none; }
 .hero-glow { position: absolute; inset: 15% -10% -15%; background: radial-gradient(ellipse at 65% 65%, rgb(32 200 192 / 22%), transparent 55%); }
 .hero-exit-shade { bottom: -26svh; height: 35svh; }
 .hero h1 .hero-title-line { color: inherit; background: none; -webkit-text-fill-color: initial; }
 .hero-actions-scroll:focus-within { opacity: 1 !important; transform: none !important; }
 .value-section { z-index: 2; isolation: isolate; padding-top: 13svh; }
-.value-cover { position: absolute; inset: -8svh calc((100% - 100vw) / 2) -1px; z-index: -1; background: linear-gradient(transparent, var(--page) 24svh); pointer-events: none; }
+.value-cover { position: absolute; inset: -8svh calc((100% - 100vw) / 2) -1px; z-index: -1; background: linear-gradient(var(--page-0), var(--page) 24svh); pointer-events: none; }
 .value-section > .story-continuity { display: none; }
 .title-mask { display: block; overflow: visible; }
 .title-plane { display: inline-block; transform-origin: 50% 100%; }
@@ -246,7 +248,7 @@
   .hero-technology { inset: 60% 0 -12svh; opacity: .18; }
   .hero-exit-shade { bottom: -16svh; height: 24svh; }
   .value-section { padding-top: 8svh; }
-  .value-cover { top: -4svh; background: linear-gradient(transparent, var(--page) 16svh); }
+  .value-cover { top: -4svh; background: linear-gradient(var(--page-0), var(--page) 16svh); }
   .network-panel { margin-inline: 6px; }
   .network-label { padding: 9px 11px; }
   .network-panel .compact { width: 100%; left: 0; }

@@ -48,7 +48,12 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
         const company = section.dataset.story === "company";
         const reveal = gsap.timeline({
           defaults: { ease: "power3.out" },
-          scrollTrigger: { trigger: section, start: "top 80%", once: true },
+          // The VALUE section replays its entrance when re-entered from below or above;
+          // every other section reveals once. "restart" re-runs the from() tweens from the
+          // hidden state, while "reverse" smoothly returns them to it as the section leaves.
+          scrollTrigger: value
+            ? { trigger: section, start: "top 80%", end: "bottom top", toggleActions: "restart reverse restart reverse" }
+            : { trigger: section, start: "top 80%", once: true },
         });
         const depthTimeline = gsap.timeline({
           defaults: { ease: "none", duration: 1 },
