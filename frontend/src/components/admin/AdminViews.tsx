@@ -1643,27 +1643,92 @@ export function AdminAuditView() {
       <LoadState {...state} />
       {!state.loading && !state.error && state.data && (
         <>
-          <Stack spacing={1.25}>
-            {state.data.items.map((x: AuditItem) => (
-              <Paper
-                key={x.id}
-                elevation={0}
-                sx={{ p: 2, border: 1, borderColor: "divider" }}
-              >
-                <Typography sx={{ fontWeight: 700 }}>{x.descricao}</Typography>
-                <Typography color="text.secondary" variant="body2">
-                  {formatUpdatedAt(x.criadoEm)} · {x.adminEmail} · {x.acao}
-                </Typography>
-                <Typography color="text.secondary" variant="caption">
-                  {x.entidadeTipo}: {x.entidadeId}
-                </Typography>
-              </Paper>
-            ))}
-          </Stack>
-          {state.data.items.length === 0 && (
-            <Typography color="text.secondary">
-              Nenhuma ação administrativa registrada.
-            </Typography>
+          {state.data.items.length > 0 ? (
+            <Stack spacing={1.25}>
+              {state.data.items.map((x: AuditItem) => (
+                <Paper
+                  key={x.id}
+                  elevation={0}
+                  sx={{
+                    p: { xs: 2, sm: 2.25 },
+                    border: 1,
+                    borderColor: "divider",
+                    minWidth: 0,
+                  }}
+                >
+                  <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={{ xs: 0.25, sm: 1.5 }}
+                      sx={{
+                        alignItems: { sm: "center" },
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography
+                        component="h2"
+                        variant="subtitle1"
+                        sx={{ fontWeight: 700, overflowWrap: "anywhere" }}
+                      >
+                        {x.acao}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatUpdatedAt(x.criadoEm)}
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        overflowWrap: "anywhere",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {x.descricao}
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      sx={{ flexWrap: "wrap", alignItems: "center" }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ overflowWrap: "anywhere" }}
+                      >
+                        {x.adminEmail}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          overflowWrap: "anywhere",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {x.entidadeTipo}: {x.entidadeId}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                textAlign: "center",
+                border: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 0.5 }}>
+                Nenhum registro de auditoria
+              </Typography>
+              <Typography color="text.secondary">
+                As ações administrativas aparecerão aqui.
+              </Typography>
+            </Paper>
           )}
           <Pager data={state.data} setPage={setPage} />
         </>
