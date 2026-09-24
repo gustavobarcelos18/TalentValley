@@ -930,28 +930,54 @@ export function AdminRecruitersView() {
     [search, setSearch] = useState(""),
     [draft, setDraft] = useState(""),
     [status, setStatus] = useState(""),
+    [detailId, setDetailId] = useState<string | null>(null),
     [detail, setDetail] = useState<AdminRecruiterDetail | null>(null),
+    [detailLoading, setDetailLoading] = useState(false),
+    [detailError, setDetailError] = useState<string | null>(null),
     [create, setCreate] = useState(false),
     [target, setTarget] = useState<AdminRecruiter | null>(null),
     [busy, setBusy] = useState(false),
     [searchError, setSearchError] = useState<string | null>(null),
+    [confirmError, setConfirmError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null);
+  const detailRequestRef = useRef(0);
   const state = useLoad(
     () => adminApi.recruiters(page, search, status),
     [page, search, status],
   );
-  const showDetail = (id: string) =>
+  const openDetail = (id: string) => {
+    detailRequestRef.current += 1;
+    const requestId = detailRequestRef.current;
+    setDetailId(id);
+    setDetail(null);
+    setDetailLoading(true);
+    setDetailError(null);
     adminApi
       .recruiter(id)
-      .then(setDetail)
-      .catch((e) =>
-        setNotice(
-          getApiErrorMessage(e, "Não foi possível carregar os detalhes."),
-        ),
-      );
+      .then((d) => {
+        if (detailRequestRef.current === requestId) setDetail(d);
+      })
+      .catch((e) => {
+        if (detailRequestRef.current === requestId)
+          setDetailError(
+            getApiErrorMessage(e, "Não foi possível carregar os detalhes."),
+          );
+      })
+      .finally(() => {
+        if (detailRequestRef.current === requestId) setDetailLoading(false);
+      });
+  };
+  const closeDetail = () => {
+    detailRequestRef.current += 1;
+    setDetailId(null);
+    setDetail(null);
+    setDetailLoading(false);
+    setDetailError(null);
+  };
   const action = async () => {
-    if (!target) return;
+    if (!target || busy) return;
     setBusy(true);
+    setConfirmError(null);
     try {
       await adminApi.recruiterAction(
         target.id,
@@ -961,7 +987,9 @@ export function AdminRecruitersView() {
       setNotice("Situação do recrutador atualizada.");
       state.reload();
     } catch (e) {
-      setNotice(getApiErrorMessage(e, "Não foi possível concluir a ação."));
+      setConfirmError(
+        getApiErrorMessage(e, "Não foi possível concluir a ação."),
+      );
     } finally {
       setBusy(false);
     }
@@ -1056,10 +1084,10 @@ export function AdminRecruitersView() {
                   <Stack
                     direction="row"
                     spacing={1}
-                    sx={{ alignItems: "center" }}
+                    sx={{ alignItems: "center", flexWrap: "wrap" }}
                   >
                     <Status active={x.status === "ATIVO"} />
-                    <Button size="small" onClick={() => void showDetail(x.id)}>
+                    <Button size="small" onClick={() => openDetail(x.id)}>
                       Detalhes
                     </Button>
                     <Button
@@ -1093,7 +1121,14 @@ export function AdminRecruitersView() {
           state.reload();
         }}
       />
-      <RecruiterDetail detail={detail} onClose={() => setDetail(null)} />
+      <RecruiterDetail
+        open={detailId !== null}
+        detail={detail}
+        loading={detailLoading}
+        error={detailError}
+        onRetry={() => detailId && openDetail(detailId)}
+        onClose={closeDetail}
+      />
       <Confirm
         open={!!target}
         title={
@@ -1103,7 +1138,11 @@ export function AdminRecruitersView() {
         }
         text={`Deseja ${target?.status === "ATIVO" ? "bloquear" : "reativar"} ${target?.nomeCompleto}?`}
         busy={busy}
-        onClose={() => setTarget(null)}
+        onClose={() => {
+          setConfirmError(null);
+          setTarget(null);
+        }}
+        error={confirmError}
         confirm={() => void action()}
       />
       <Snackbar
@@ -1136,8 +1175,10 @@ function RecruiterCreate({
   const [data, setData] = useState(blank),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
+  const titleId = useId();
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     const validation =
       validatePersonName(data.nomeCompleto) ??
       validateEmail(data.email) ??
@@ -1179,9 +1220,10 @@ function RecruiterCreate({
       onClose={busy ? undefined : onClose}
       fullWidth
       maxWidth="sm"
+      aria-labelledby={titleId}
     >
       <Box component="form" onSubmit={submit}>
-        <DialogTitle>Criar acesso de recrutador</DialogTitle>
+        <DialogTitle id={titleId}>Criar acesso de recrutador</DialogTitle>
         <DialogContent>
           <Stack spacing={1.5} sx={{ pt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
@@ -1248,17 +1290,52 @@ function RecruiterCreate({
   );
 }
 function RecruiterDetail({
+  open,
   detail,
+  loading,
+  error,
+  onRetry,
   onClose,
 }: {
+  open: boolean;
   detail: AdminRecruiterDetail | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
   onClose: () => void;
 }) {
+  const titleId = useId();
   return (
-    <Dialog open={!!detail} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Detalhes do recrutador</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      aria-labelledby={titleId}
+    >
+      <DialogTitle id={titleId}>Detalhes do recrutador</DialogTitle>
       <DialogContent>
-        {detail && (
+        {loading && (
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            <Skeleton variant="text" sx={{ fontSize: "1.5rem" }} />
+            <Skeleton variant="text" width="70%" />
+            <Skeleton variant="text" width="50%" />
+            <Skeleton variant="rounded" height={48} />
+          </Stack>
+        )}
+        {!loading && error && (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" onClick={onRetry}>
+                Tentar novamente
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        )}
+        {!loading && !error && detail && (
           <Stack spacing={1}>
             <Typography variant="h6">{detail.nomeCompleto}</Typography>
             {[
