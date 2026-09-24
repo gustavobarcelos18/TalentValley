@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AppBar,
-  Avatar,
   Box,
   Chip,
   Divider,
@@ -24,9 +23,10 @@ import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyPhoto } from "@/hooks/useMyPhoto";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { TalentValleyMark } from "@/components/brand/TalentValleyMark";
 import { ROLE_LABELS } from "@/lib/labels";
-import { initialsOf } from "@/lib/format";
 import type { UserRole } from "@/types/auth";
 
 interface NavItem {
@@ -68,6 +68,7 @@ interface AppShellProps {
 // and admin). Theme-compatible surfaces, responsive navigation and logout.
 export function AppShell({ children }: AppShellProps) {
   const { user, logout } = useAuth();
+  const { photoPath } = useMyPhoto();
   const pathname = usePathname();
   const router = useRouter();
   const { mode, systemMode, setMode } = useColorScheme();
@@ -222,9 +223,7 @@ export function AppShell({ children }: AppShellProps) {
                       variant="outlined"
                       sx={{alignItems: "center",  fontWeight: 600 }}
                     />
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontWeight: 600 }}>
-                      {initialsOf(user.nome)}
-                    </Avatar>
+                    <UserAvatar name={user.nome} photoPath={photoPath} size={32} />
                     <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                       {user.nome}
                     </Typography>
@@ -269,9 +268,7 @@ export function AppShell({ children }: AppShellProps) {
           <Divider />
           {user && (
             <Stack direction="row" spacing={1.5}>
-              <Avatar sx={{ bgcolor: "primary.main", fontWeight: 600 }}>
-                {initialsOf(user.nome)}
-              </Avatar>
+              <UserAvatar name={user.nome} photoPath={photoPath} size={40} />
               <Stack sx={{ minWidth: 0 }}>
                 <Typography variant="body2" sx={{alignItems: "center",  fontWeight: 600 }} noWrap>
                   {user.nome}
