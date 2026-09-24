@@ -1604,12 +1604,8 @@ function Empty({ text = "Nenhuma informação cadastrada." }: { text?: string })
 type ContactLinkKind = "phone" | "email" | "url";
 function contactHref(kind: ContactLinkKind, value: string): string | null {
   if (kind === "phone") {
-    const digits = normalizePhone(value);
-    return /^\d{10,11}$/.test(digits) &&
-      !/^(\d)\1+$/.test(digits) &&
-      digits.slice(0, 2) !== "00"
-      ? `tel:+55${digits}`
-      : null;
+    if (validateBrazilianPhone(value, false) !== null) return null;
+    return `tel:+55${normalizePhone(value)}`;
   }
   if (kind === "email")
     return validateEmail(value, false) === null ? `mailto:${value}` : null;
