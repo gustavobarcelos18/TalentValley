@@ -68,7 +68,7 @@ interface AppShellProps {
 // and admin). Theme-compatible surfaces, responsive navigation and logout.
 export function AppShell({ children }: AppShellProps) {
   const { user, logout } = useAuth();
-  const { photoPath } = useMyPhoto();
+  const { photoPath, reloadKey } = useMyPhoto();
   const pathname = usePathname();
   const router = useRouter();
   const { mode, systemMode, setMode } = useColorScheme();
@@ -223,7 +223,7 @@ export function AppShell({ children }: AppShellProps) {
                       variant="outlined"
                       sx={{alignItems: "center",  fontWeight: 600 }}
                     />
-                    <UserAvatar name={user.nome} photoPath={photoPath} size={32} />
+                    <UserAvatar name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={32} />
                     <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                       {user.nome}
                     </Typography>
@@ -268,7 +268,7 @@ export function AppShell({ children }: AppShellProps) {
           <Divider />
           {user && (
             <Stack direction="row" spacing={1.5}>
-              <UserAvatar name={user.nome} photoPath={photoPath} size={40} />
+              <UserAvatar name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={40} />
               <Stack sx={{ minWidth: 0 }}>
                 <Typography variant="body2" sx={{alignItems: "center",  fontWeight: 600 }} noWrap>
                   {user.nome}

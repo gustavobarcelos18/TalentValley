@@ -25,6 +25,7 @@ import {
   deleteStudentPhoto,
   uploadStudentPhoto,
 } from "@/lib/student";
+import { notifyPhotoChange } from "@/lib/photoSync";
 import type { SectionProps } from "./sectionProps";
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -103,6 +104,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
       .then(() => {
         onChanged();
         reload();
+        notifyPhotoChange();
         notify("Foto atualizada.");
       })
       .catch((err) => {
@@ -120,6 +122,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
       .then(() => {
         onChanged();
         reload();
+        notifyPhotoChange();
         notify("Foto removida.");
       })
       .catch((err) => {
