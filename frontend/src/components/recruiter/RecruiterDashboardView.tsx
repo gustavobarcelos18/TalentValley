@@ -86,7 +86,10 @@ export function RecruiterDashboardView() {
           ))}
         </Box>
         <Paper component="section" elevation={0} sx={{ p: { xs: 2.5, sm: 3 }, border: 1, borderColor: "divider" }}>
-          <Typography component="h2" variant="h6">Favoritos recentes</Typography>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+            <Typography component="h2" variant="h6">Favoritos recentes</Typography>
+            <Button component={Link} href="/recrutador/favoritos" size="small" endIcon={<ArrowForwardOutlined />}>Ver todos</Button>
+          </Stack>
           {loading ? <Stack spacing={2} sx={{ mt: 2 }}>{[1, 2].map((item) => <Skeleton key={item} variant="rounded" height={76} />)}</Stack>
             : data && data.favoritosRecentes.length > 0 ? <Stack divider={<Box sx={{ borderBottom: 1, borderColor: "divider" }} />} sx={{ mt: 1 }}>
               {data.favoritosRecentes.map(({ talento }) => (

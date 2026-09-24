@@ -32,9 +32,9 @@ export function FavoritesView() {
   }, [page, version]);
   function retry() { setLoading(true); setError(null); setVersion((value) => value + 1); }
   function favoriteChanged(slug: string, favorite: boolean) {
-    if (favorite) return;
-    const remaining = (data?.items ?? []).filter((item) => item.talento.slug !== slug);
+    if (favorite) { retry(); return; }
     setSelected((items) => items.filter((item) => item.slug !== slug));
+    const remaining = (data?.items ?? []).filter((item) => item.talento.slug !== slug);
     if (remaining.length === 0 && page > 1) navigate(page - 1); else retry();
   }
   function favoriteUnavailable(slug: string) {
