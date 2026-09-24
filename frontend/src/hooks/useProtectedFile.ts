@@ -37,7 +37,7 @@ function protectedFileReducer(state: ProtectedFileState, action: ProtectedFileAc
 // an object URL, because a plain <img src> pointing at the cross-origin API may
 // not deliver the auth cookie correctly. A 404 means "no file yet" and is not an
 // error. Object URLs are revoked when the path changes or the component unmounts.
-export function useProtectedFile(path: string | null) {
+export function useProtectedFile(path: string | null, reloadKey = 0) {
   const [state, dispatch] = useReducer(protectedFileReducer, {
     url: null,
     loading: false,
@@ -79,7 +79,7 @@ export function useProtectedFile(path: string | null) {
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [path, version]);
+  }, [path, version, reloadKey]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 

@@ -18,7 +18,7 @@ const activeLine = 120;
 /** Public header; owns its scroll state so the landing content never rerenders while scrolling. */
 export function PublicHeader() {
   const { user } = useAuth();
-  const { photoPath } = useMyPhoto();
+  const { photoPath, reloadKey } = useMyPhoto();
   const { mode, systemMode, setMode } = useColorScheme();
   const policy = useLandingMotionPolicy();
   const reduced = policy === "pending" || policy === "reduced";
@@ -74,7 +74,7 @@ export function PublicHeader() {
         </nav>
         <div className="nav-actions">
           <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><IconButton className="theme-toggle-button" aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"} onClick={() => setMode(dark ? "light" : "dark")}>{dark ? <LightModeOutlined aria-hidden="true"/> : <DarkModeOutlined aria-hidden="true"/>}</IconButton></motion.div>
-          {user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><UserAvatar name={user.nome} photoPath={photoPath} size={32} /><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
+          {user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><UserAvatar name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={32} /><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
           <IconButton ref={menuButton} className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <Close/> : <Menu/>}</IconButton>
         </div>
       </div>

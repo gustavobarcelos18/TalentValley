@@ -9,12 +9,14 @@ interface UserAvatarProps {
   /** Protected API path (ex: /api/alunos/me/foto). Null = fallback com iniciais. */
   photoPath?: string | null;
   size?: number;
+  /** Bumps when the photo bytes change so the image is refetched even if the path is unchanged. */
+  reloadKey?: number;
 }
 
 // Header avatar: mostra a foto protegida quando existe, senão mantém o
 // fallback atual com as iniciais do nome. Nunca quebra sem foto.
-export function UserAvatar({ name, photoPath = null, size = 32 }: UserAvatarProps) {
-  const { url } = useProtectedFile(photoPath);
+export function UserAvatar({ name, photoPath = null, size = 32, reloadKey = 0 }: UserAvatarProps) {
+  const { url } = useProtectedFile(photoPath, reloadKey);
   return (
     <Avatar
       src={url ?? undefined}
