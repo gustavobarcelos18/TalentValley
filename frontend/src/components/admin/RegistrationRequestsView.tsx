@@ -302,7 +302,7 @@ export function RegistrationRequestsView() {
             {error}
           </Alert>
         )}
-        {items && (
+        {!loading && !error && items && (
           <>
             <Stack spacing={1.5}>
               {items.map((request) => (
