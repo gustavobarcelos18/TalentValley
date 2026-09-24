@@ -1367,34 +1367,90 @@ function RecruiterDetail({
 }
 export function AdminRpvValidationsView() {
   const [page, setPage] = useState(1),
+    [selectedId, setSelectedId] = useState<string | null>(null),
     [detail, setDetail] = useState<RpvValidationDetail | null>(null),
+    [detailLoading, setDetailLoading] = useState(false),
+    [detailError, setDetailError] = useState<string | null>(null),
     [target, setTarget] = useState<"aprovar" | "rejeitar" | null>(null),
     [busy, setBusy] = useState(false),
+    [actionError, setActionError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null);
   const state = useLoad(() => adminApi.validations(page), [page]);
-  const open = (id: string) =>
+  const detailRequestRef = useRef(0);
+  const busyRef = useRef(false);
+  const mountedRef = useRef(true);
+  const titleId = useId();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  const open = useCallback((id: string) => {
+    const requestId = ++detailRequestRef.current;
+    setSelectedId(id);
+    setDetail(null);
+    setDetailLoading(true);
+    setDetailError(null);
+    setActionError(null);
+    setTarget(null);
     adminApi
       .validation(id)
-      .then(setDetail)
-      .catch((e) =>
-        setNotice(
-          getApiErrorMessage(e, "Não foi possível carregar a validação."),
-        ),
-      );
+      .then((data) => {
+        if (mountedRef.current && requestId === detailRequestRef.current)
+          setDetail(data);
+      })
+      .catch((e) => {
+        if (mountedRef.current && requestId === detailRequestRef.current)
+          setDetailError(
+            getApiErrorMessage(e, "Não foi possível carregar a validação."),
+          );
+      })
+      .finally(() => {
+        if (mountedRef.current && requestId === detailRequestRef.current)
+          setDetailLoading(false);
+      });
+  }, []);
+  const retryDetail = useCallback(() => {
+    if (selectedId) open(selectedId);
+  }, [open, selectedId]);
+  const closeDetail = useCallback(() => {
+    detailRequestRef.current += 1;
+    setSelectedId(null);
+    setDetail(null);
+    setDetailLoading(false);
+    setDetailError(null);
+    setActionError(null);
+    setTarget(null);
+  }, []);
+  const startTarget = (value: "aprovar" | "rejeitar") => {
+    setActionError(null);
+    setTarget(value);
+  };
+  const cancelTarget = () => {
+    setActionError(null);
+    setTarget(null);
+  };
   const action = async () => {
-    if (!detail || !target) return;
+    if (!detail || !target || busyRef.current) return;
+    // When the only row of a non-first page is processed, that page becomes
+    // empty, so navigate back instead of reloading a blank page.
+    const emptyAfter = state.data?.items.length === 1 && page > 1;
+    busyRef.current = true;
     setBusy(true);
+    setActionError(null);
     try {
       await adminApi.validationAction(detail.formacaoId, target);
-      setDetail(null);
-      setTarget(null);
       setNotice(`Formação ${target === "aprovar" ? "aprovada" : "rejeitada"}.`);
-      state.reload();
+      closeDetail();
+      if (emptyAfter) setPage((p) => (p > 1 ? p - 1 : p));
+      else state.reload();
     } catch (e) {
-      setNotice(
+      setActionError(
         getApiErrorMessage(e, "Não foi possível concluir a validação."),
       );
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
@@ -1454,41 +1510,67 @@ export function AdminRpvValidationsView() {
         </>
       )}
       <Dialog
-        open={!!detail}
-        onClose={busy ? undefined : () => setDetail(null)}
+        open={selectedId !== null}
+        onClose={busy ? undefined : closeDetail}
         fullWidth
         maxWidth="sm"
+        aria-labelledby={titleId}
       >
-        <DialogTitle>Validação de formação RPV</DialogTitle>
+        <DialogTitle id={titleId}>Validação de formação RPV</DialogTitle>
         <DialogContent>
-          {detail && (
-            <Stack spacing={1.25} sx={{ pt: 1 }}>
-              <Typography variant="h6">{detail.formacao.nome}</Typography>
-              <Typography>
-                <strong>Aluno:</strong> {detail.aluno.nomeCompleto} (
-                {detail.aluno.ativo ? "Ativo" : "Bloqueado"})
+          {detailLoading && (
+            <Stack spacing={1.5} sx={{ pt: 1 }}>
+              <Skeleton variant="text" sx={{ fontSize: "1.5rem" }} />
+              <Skeleton variant="text" width="70%" />
+              <Skeleton variant="text" width="50%" />
+              <Skeleton variant="rounded" height={48} />
+            </Stack>
+          )}
+          {!detailLoading && detailError && (
+            <Alert
+              severity="error"
+              action={
+                <Button color="inherit" onClick={retryDetail}>
+                  Tentar novamente
+                </Button>
+              }
+            >
+              {detailError}
+            </Alert>
+          )}
+          {!detailLoading && !detailError && detail && (
+            <Stack spacing={1.25} sx={{ pt: 1, minWidth: 0 }}>
+              <Typography variant="h6" sx={{ overflowWrap: "anywhere" }}>
+                {detail.formacao.nome}
               </Typography>
-              <Typography>
+              <Typography sx={{ overflowWrap: "anywhere" }}>
+                <strong>Aluno:</strong> {detail.aluno.nomeCompleto}
+              </Typography>
+              <Status active={detail.aluno.ativo} />
+              <Typography sx={{ overflowWrap: "anywhere" }}>
                 <strong>Instituição:</strong> {detail.formacao.instituicao}
               </Typography>
-              <Typography>
+              <Typography sx={{ overflowWrap: "anywhere" }}>
                 <strong>Tipo:</strong>{" "}
                 {TIPO_FORMACAO_LABELS[detail.formacao.tipo]}
               </Typography>
-              <Typography>
+              <Typography sx={{ overflowWrap: "anywhere" }}>
                 <strong>Período:</strong>{" "}
                 {formatDate(detail.formacao.dataInicio)}
                 {detail.formacao.dataFim
                   ? ` — ${formatDate(detail.formacao.dataFim)}`
                   : ""}
               </Typography>
-              <Typography>
+              <Typography sx={{ overflowWrap: "anywhere" }}>
                 <strong>Carga horária:</strong>{" "}
                 {detail.formacao.cargaHoraria ?? "Não informada"}
               </Typography>
-              <Typography>
-                <strong>Status:</strong>{" "}
-                {STATUS_FORMACAO_LABELS[detail.formacao.status]} · RPV{" "}
+              <Typography sx={{ overflowWrap: "anywhere" }}>
+                <strong>Status da formação:</strong>{" "}
+                {STATUS_FORMACAO_LABELS[detail.formacao.status]}
+              </Typography>
+              <Typography sx={{ overflowWrap: "anywhere" }}>
+                <strong>Validação RPV:</strong>{" "}
                 {detail.formacao.statusValidacaoRpv}
               </Typography>
               {detail.formacao.possuiCertificado ? (
@@ -1505,23 +1587,27 @@ export function AdminRpvValidationsView() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetail(null)} disabled={busy}>
+          <Button onClick={closeDetail} disabled={busy}>
             Fechar
           </Button>
-          <Button
-            color="error"
-            onClick={() => setTarget("rejeitar")}
-            disabled={busy}
-          >
-            Rejeitar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => setTarget("aprovar")}
-            disabled={busy}
-          >
-            Aprovar
-          </Button>
+          {!detailLoading && !detailError && detail && (
+            <>
+              <Button
+                color="error"
+                onClick={() => startTarget("rejeitar")}
+                disabled={busy}
+              >
+                Rejeitar
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => startTarget("aprovar")}
+                disabled={busy}
+              >
+                Aprovar
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
       <Confirm
@@ -1535,7 +1621,8 @@ export function AdminRpvValidationsView() {
             : "A formação será marcada como rejeitada."
         }
         busy={busy}
-        onClose={() => setTarget(null)}
+        error={actionError}
+        onClose={cancelTarget}
         confirm={() => void action()}
         danger={target === "rejeitar"}
       />
@@ -1556,27 +1643,92 @@ export function AdminAuditView() {
       <LoadState {...state} />
       {!state.loading && !state.error && state.data && (
         <>
-          <Stack spacing={1.25}>
-            {state.data.items.map((x: AuditItem) => (
-              <Paper
-                key={x.id}
-                elevation={0}
-                sx={{ p: 2, border: 1, borderColor: "divider" }}
-              >
-                <Typography sx={{ fontWeight: 700 }}>{x.descricao}</Typography>
-                <Typography color="text.secondary" variant="body2">
-                  {formatUpdatedAt(x.criadoEm)} · {x.adminEmail} · {x.acao}
-                </Typography>
-                <Typography color="text.secondary" variant="caption">
-                  {x.entidadeTipo}: {x.entidadeId}
-                </Typography>
-              </Paper>
-            ))}
-          </Stack>
-          {state.data.items.length === 0 && (
-            <Typography color="text.secondary">
-              Nenhuma ação administrativa registrada.
-            </Typography>
+          {state.data.items.length > 0 ? (
+            <Stack spacing={1.25}>
+              {state.data.items.map((x: AuditItem) => (
+                <Paper
+                  key={x.id}
+                  elevation={0}
+                  sx={{
+                    p: { xs: 2, sm: 2.25 },
+                    border: 1,
+                    borderColor: "divider",
+                    minWidth: 0,
+                  }}
+                >
+                  <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={{ xs: 0.25, sm: 1.5 }}
+                      sx={{
+                        alignItems: { sm: "center" },
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography
+                        component="h2"
+                        variant="subtitle1"
+                        sx={{ fontWeight: 700, overflowWrap: "anywhere" }}
+                      >
+                        {x.acao}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatUpdatedAt(x.criadoEm)}
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        overflowWrap: "anywhere",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {x.descricao}
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      sx={{ flexWrap: "wrap", alignItems: "center" }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ overflowWrap: "anywhere" }}
+                      >
+                        {x.adminEmail}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          overflowWrap: "anywhere",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {x.entidadeTipo}: {x.entidadeId}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                textAlign: "center",
+                border: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 0.5 }}>
+                Nenhum registro de auditoria
+              </Typography>
+              <Typography color="text.secondary">
+                As ações administrativas aparecerão aqui.
+              </Typography>
+            </Paper>
           )}
           <Pager data={state.data} setPage={setPage} />
         </>
