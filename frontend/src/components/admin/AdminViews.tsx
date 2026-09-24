@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -74,41 +75,54 @@ function useLoad<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loaderRef = useRef(loader);
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
   const key = JSON.stringify(dependencies);
   useEffect(() => {
     loaderRef.current = loader;
   }, [loader]);
-  const reload = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    loaderRef
-      .current()
-      .then(setData)
-      .catch((e) =>
-        setError(getApiErrorMessage(e, "Não foi possível carregar os dados.")),
-      )
-      .finally(() => setLoading(false));
-  }, []);
   useEffect(() => {
-    let active = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  const run = useCallback((requestId: number) => {
     loaderRef
       .current()
       .then((result) => {
-        if (active) setData(result);
+        if (mountedRef.current && requestId === requestIdRef.current)
+          setData(result);
       })
       .catch((e) => {
-        if (active)
+        if (mountedRef.current && requestId === requestIdRef.current)
           setError(
             getApiErrorMessage(e, "Não foi possível carregar os dados."),
           );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (mountedRef.current && requestId === requestIdRef.current)
+          setLoading(false);
       });
-    return () => {
-      active = false;
-    };
-  }, [key]);
+  }, []);
+  const reload = useCallback(() => {
+    requestIdRef.current += 1;
+    setLoading(true);
+    setError(null);
+    run(requestIdRef.current);
+  }, [run]);
+  // Reset loading/error when the request parameters change. React recommends
+  // adjusting state during render instead of setting it inside an effect body.
+  const [prevKey, setPrevKey] = useState(key);
+  if (key !== prevKey) {
+    setPrevKey(key);
+    setLoading(true);
+    setError(null);
+  }
+  useEffect(() => {
+    requestIdRef.current += 1;
+    run(requestIdRef.current);
+  }, [key, run]);
   return { data, loading, error, reload };
 }
 function Page({
@@ -202,6 +216,7 @@ function Confirm({
   busy,
   onClose,
   danger = false,
+  error = null,
 }: {
   open: boolean;
   title: string;
@@ -210,11 +225,22 @@ function Confirm({
   busy: boolean;
   onClose: () => void;
   danger?: boolean;
+  error?: string | null;
 }) {
+  const titleId = useId();
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose}>
-      <DialogTitle>{title}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={busy ? undefined : onClose}
+      aria-labelledby={titleId}
+    >
+      <DialogTitle id={titleId}>{title}</DialogTitle>
       <DialogContent>
+        {error && (
+          <Alert severity="error" sx={{ mb: 1.5 }}>
+            {error}
+          </Alert>
+        )}
         <Typography>{text}</Typography>
       </DialogContent>
       <DialogActions>
@@ -426,7 +452,7 @@ export function AdminStudentsView() {
         </Stack>
       </form>
       <LoadState {...state} />
-      {state.data && (
+      {!state.loading && !state.error && state.data && (
         <>
           <Stack spacing={1.5}>
             {state.data.items.map((x) => (
@@ -998,7 +1024,7 @@ export function AdminRecruitersView() {
         </Button>
       </Stack>
       <LoadState {...state} />
-      {state.data && (
+      {!state.loading && !state.error && state.data && (
         <>
           <Stack spacing={1.5}>
             {state.data.items.map((x) => (
@@ -1300,7 +1326,7 @@ export function AdminRpvValidationsView() {
   return (
     <Page title="Validações RPV">
       <LoadState {...state} />
-      {state.data && (
+      {!state.loading && !state.error && state.data && (
         <>
           <Stack spacing={1.5}>
             {state.data.items.map((x) => (
@@ -1453,7 +1479,7 @@ export function AdminAuditView() {
   return (
     <Page title="Auditoria">
       <LoadState {...state} />
-      {state.data && (
+      {!state.loading && !state.error && state.data && (
         <>
           <Stack spacing={1.25}>
             {state.data.items.map((x: AuditItem) => (
