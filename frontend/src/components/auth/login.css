@@ -1,0 +1,139 @@
+/* AUTH01 — minimal login presentation.
+   Locally scoped under `.tv-login` so it never leaks into the other
+   authentication screens (recovery/activation) or the landing page. */
+
+.tv-login {
+  --page: #0d1114;
+  --line: #273238;
+  --teal: #20c8c0;
+  color: #f4f7f6;
+  background: var(--page);
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow-x: clip;
+}
+
+.light .tv-login {
+  --page: #f6f7f2;
+  --line: #d5ddd4;
+  --teal: #00756d;
+  color: #15201d;
+  background: var(--page);
+}
+
+.tv-login a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tv-login a:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Left visual panel: official landscape + brand identity. */
+.tv-login__visual {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 200px;
+  padding: 24px;
+  background-color: var(--page);
+  background-image: url("/landing/valley-dark-mobile.webp");
+  background-size: cover;
+  background-position: center;
+}
+
+.light .tv-login__visual {
+  background-image: url("/landing/valley-light-mobile.webp");
+}
+
+/* Controlled, theme-compatible gradient keeps the identity legible without
+   competing with the form. */
+.tv-login__visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(13 17 20 / 62%),
+    rgb(13 17 20 / 28%) 45%,
+    rgb(13 17 20 / 88%)
+  );
+}
+
+.light .tv-login__visual::before {
+  background: linear-gradient(
+    180deg,
+    rgb(246 247 242 / 74%),
+    rgb(246 247 242 / 40%) 45%,
+    rgb(246 247 242 / 90%)
+  );
+}
+
+.tv-login__brand,
+.tv-login__copy {
+  position: relative;
+  z-index: 1;
+}
+
+.tv-login__copy {
+  display: none;
+}
+
+/* Right form panel. */
+.tv-login__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px 48px;
+}
+
+.tv-login__formwrap {
+  width: 100%;
+  max-width: 440px;
+}
+
+@media (min-width: 768px) {
+  .tv-login__visual {
+    background-image: url("/landing/valley-dark.webp");
+  }
+
+  .light .tv-login__visual {
+    background-image: url("/landing/valley-light.webp");
+  }
+}
+
+@media (min-width: 1024px) {
+  .tv-login {
+    grid-template-columns: 54% 46%;
+  }
+
+  .tv-login__visual {
+    min-height: 100svh;
+    padding: clamp(40px, 5vw, 72px);
+    border-right: 1px solid var(--line);
+  }
+
+  .tv-login__copy {
+    display: block;
+  }
+
+  .tv-login__panel {
+    padding: 48px clamp(40px, 5vw, 80px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-login *,
+  .tv-login *::before,
+  .tv-login *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
