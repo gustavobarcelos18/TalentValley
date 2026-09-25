@@ -1,0 +1,210 @@
+/* Registration-only presentation; the shared theme and other auth routes stay independent. */
+.tv-registration {
+  --registration-accent: #20c8c0;
+  min-height: 100svh;
+  color: var(--mui-palette-text-primary);
+  background: var(--mui-palette-background-default);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+}
+
+.light .tv-registration { --registration-accent: #00756d; }
+
+.tv-registration a { text-decoration: none; }
+.tv-registration a:focus-visible,
+.tv-registration [tabindex="-1"]:focus-visible {
+  outline: 3px solid var(--registration-accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.tv-registration__brand-region {
+  padding: 24px;
+  border-bottom: 1px solid var(--mui-palette-divider);
+}
+.tv-registration__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: inherit;
+}
+.tv-registration__brand svg { flex-shrink: 0; }
+.tv-registration__brand strong {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 1.2;
+}
+.tv-registration__brand em { font-style: normal; color: var(--registration-accent); }
+.tv-registration__brand small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.7rem;
+  color: var(--mui-palette-text-secondary);
+}
+.tv-registration__brand-copy,
+.tv-registration .tv-registration__institution { display: none; }
+.tv-registration__panel { min-width: 0; padding: 32px 24px 40px; }
+.tv-registration__content { max-width: 720px; margin-inline: auto; }
+.tv-registration__header { margin-bottom: 36px; }
+.tv-registration .tv-registration__eyebrow {
+  color: var(--registration-accent);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+.tv-registration .tv-registration__title {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.18;
+  margin-bottom: 12px;
+  text-wrap: balance;
+}
+.tv-registration .tv-registration__notice {
+  border-left: 2px solid var(--registration-accent);
+  padding-left: 16px;
+  margin-top: 24px;
+  line-height: 1.7;
+}
+.tv-registration__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 24px;
+  font-size: 0.8rem;
+  color: var(--mui-palette-text-secondary);
+}
+.tv-registration__back:hover,
+.tv-registration__footer a:hover { text-decoration: underline; }
+.tv-registration__section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border-top: 1px solid var(--mui-palette-divider);
+  padding-top: 28px;
+}
+.tv-registration__section-heading h2 { font-size: 1.1rem; font-weight: 600; }
+.tv-registration__section-heading p { margin-top: 4px; }
+.tv-registration__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.tv-registration__fields > * { min-width: 0; }
+.tv-registration__fields > [role="status"],
+.tv-registration__fields > .MuiStack-root { grid-column: 1 / -1; }
+.tv-registration .MuiOutlinedInput-root { min-height: 48px; background: var(--mui-palette-background-paper); }
+.tv-registration .MuiInputBase-input:not(textarea) { padding-block: 13px; }
+.tv-registration .MuiAutocomplete-inputRoot .MuiAutocomplete-input { padding-block: 5.5px; }
+.tv-registration .MuiButton-root { min-height: 44px; }
+.tv-registration .MuiButton-contained {
+  min-height: 50px;
+  background: #a0d060;
+  color: #15201d;
+  box-shadow: none;
+}
+.tv-registration .MuiButton-contained:hover { background: #c0e394; box-shadow: none; }
+.tv-registration .MuiButton-contained.Mui-disabled {
+  background: var(--mui-palette-action-disabledBackground);
+  color: var(--mui-palette-action-disabled);
+}
+.tv-registration__choices { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.tv-registration .tv-registration__choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid var(--mui-palette-divider);
+  color: var(--mui-palette-text-primary);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.tv-registration .tv-registration__choice:hover {
+  border-color: var(--mui-palette-primary-main);
+  background: var(--mui-palette-action-hover);
+}
+.tv-registration__choice-icon,
+.tv-registration__success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: 12px;
+  color: var(--registration-accent);
+}
+.tv-registration__choice h2 { font-size: 1.2rem; margin-bottom: 8px; }
+.tv-registration__choice p { line-height: 1.7; }
+.tv-registration__choice-arrow {
+  position: absolute;
+  top: 40px;
+  right: 28px;
+  color: var(--mui-palette-text-secondary);
+  transition: transform 160ms ease;
+}
+@media (hover: hover) {
+  .tv-registration__choice:hover .tv-registration__choice-arrow { transform: translateX(3px); }
+}
+.tv-registration__success {
+  padding: 28px;
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: 12px;
+  background: var(--mui-palette-background-paper);
+}
+.tv-registration__footer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--mui-palette-divider);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.tv-registration__footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--mui-palette-primary-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+@media (min-width: 600px) {
+  .tv-registration__panel { padding: 48px 40px; }
+  .tv-registration__brand-region { padding-inline: 40px; }
+  .tv-registration__fields,
+  .tv-registration__choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .tv-registration {
+    grid-template-columns: minmax(280px, 30%) minmax(0, 1fr);
+    grid-template-rows: 1fr;
+  }
+  .tv-registration__brand-region {
+    padding: 56px 32px;
+    border-bottom: 0;
+    border-right: 1px solid var(--mui-palette-divider);
+  }
+  .tv-registration__brand-content { position: sticky; top: 56px; max-width: 300px; margin-inline: auto; }
+  .tv-registration__brand-copy { display: block; margin-top: 88px; }
+  .tv-registration .tv-registration__statement {
+    font-size: clamp(1.6rem, 2.2vw, 2rem);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.025em;
+    margin-bottom: 20px;
+    text-wrap: balance;
+  }
+  .tv-registration .tv-registration__institution { display: block; margin-top: 48px; }
+  .tv-registration__panel { padding: 56px clamp(40px, 5vw, 80px) 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv-registration *, .tv-registration *::before, .tv-registration *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

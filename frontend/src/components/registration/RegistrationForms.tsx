@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import BusinessCenterOutlined from "@mui/icons-material/BusinessCenterOutlined";
 import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded";
 import HomeOutlined from "@mui/icons-material/HomeOutlined";
-import LoginOutlined from "@mui/icons-material/LoginOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import {
   Alert,
@@ -15,7 +13,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Container,
   Divider,
   InputAdornment,
   MenuItem,
@@ -25,8 +22,7 @@ import {
   Typography,
   createFilterOptions,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import { GuestOnly } from "@/components/auth/GuestOnly";
+import { RegistrationLayout as PublicPage, RegistrationSection } from "./RegistrationLayout";
 import { registrationApi } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/api";
 import { TIPO_FORMACAO_LABELS } from "@/lib/labels";
@@ -436,131 +432,6 @@ const recruiterFieldOrder = [
   "siteEmpresa",
 ] as const;
 
-// Public registration identity lockup: decorative accent, wordmark and
-// institutional line. It sits above the page title so the registration
-// heading stays the only h1 of the screen.
-function BrandLockup() {
-  return (
-    <Stack spacing={0.5}>
-      <Box
-        aria-hidden
-        sx={{ width: 32, height: 3, borderRadius: 1, bgcolor: "primary.main" }}
-      />
-      <Typography
-        component="p"
-        sx={{
-          fontFamily: "Georgia, 'Times New Roman', serif",
-          fontSize: { xs: "1.35rem", sm: "1.5rem" },
-          fontWeight: 600,
-          lineHeight: 1.2,
-          letterSpacing: "-0.03em",
-        }}
-      >
-        Talent{" "}
-        <Box component="span" sx={{ color: "secondary.main" }}>
-          Valley
-        </Box>
-      </Typography>
-      <Typography component="p" variant="caption" color="text.secondary">
-        Uma iniciativa Rio Pomba Valley
-      </Typography>
-    </Stack>
-  );
-}
-
-// Prominent, accessible way back to the profile choice page. Kept as a native
-// Next.js Link so it behaves like a normal navigation link.
-function BackLink({ href }: { href: string }) {
-  return (
-    <Typography
-      component={Link}
-      href={href}
-      variant="body2"
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 0.75,
-        width: "fit-content",
-        color: "primary.main",
-        fontWeight: 600,
-        textDecoration: "none",
-        "&:hover": { textDecoration: "underline" },
-        "&:focus-visible": {
-          outline: "2px solid",
-          outlineColor: "primary.main",
-          outlineOffset: 2,
-          borderRadius: 1,
-        },
-      }}
-    >
-      <ArrowBackOutlined fontSize="small" />
-      Voltar para escolher perfil
-    </Typography>
-  );
-}
-
-function PublicPage({
-  title,
-  subtitle,
-  backHref,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  backHref?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <GuestOnly>
-      <Box
-        component="main"
-        sx={{
-          minHeight: "100dvh",
-          py: { xs: 4, md: 7 },
-          px: 2,
-          bgcolor: "background.default",
-        }}
-      >
-        <Container maxWidth="sm">
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 3, sm: 4 },
-              border: 1,
-              borderColor: "divider",
-              borderTop: 3,
-              borderTopColor: "primary.main",
-            }}
-          >
-            <Stack spacing={3}>
-              <Stack spacing={2}>
-                <BrandLockup />
-                <Stack spacing={0.75}>
-                  <Typography component="h1" variant="h4">
-                    {title}
-                  </Typography>
-                  {subtitle && (
-                    <Typography color="text.secondary">{subtitle}</Typography>
-                  )}
-                  <Typography
-                    variant={subtitle ? "body2" : undefined}
-                    color="text.secondary"
-                  >
-                    Seu pedido será analisado pela equipe do Talent Valley antes
-                    da criação da conta.
-                  </Typography>
-                </Stack>
-              </Stack>
-              {backHref && <BackLink href={backHref} />}
-              {children}
-            </Stack>
-          </Paper>
-        </Container>
-      </Box>
-    </GuestOnly>
-  );
-}
-
 // Confirmation shown in place of the form after a successful submission.
 // Shared by the student and recruiter flows so both stay identical.
 function Success() {
@@ -577,21 +448,10 @@ function Success() {
     <Stack
       component="section"
       aria-labelledby="registration-success-heading"
-      spacing={2}
+      className="tv-registration__success"
+      spacing={3}
     >
-      <Box
-        aria-hidden
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          color: "primary.main",
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
-        }}
-      >
+      <Box aria-hidden className="tv-registration__success-icon">
         <CheckCircleOutlineRounded fontSize="large" />
       </Box>
       <Stack spacing={1}>
@@ -631,28 +491,6 @@ function Success() {
       >
         Voltar à página inicial
       </Button>
-      <Stack
-        direction="row"
-        spacing={1.5}
-        useFlexGap
-        sx={{
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          Já tem uma conta ativa? Entre para continuar.
-        </Typography>
-        <Button
-          component={Link}
-          href="/login"
-          variant="outlined"
-          startIcon={<LoginOutlined />}
-        >
-          Entrar
-        </Button>
-      </Stack>
     </Stack>
   );
 }
@@ -712,239 +550,245 @@ function CommonFields({
   const selectedCity = municipios.find((m) => m.nome === value.cidade) ?? null;
   return (
     <>
-      <TextField
-        required
-        label="Nome completo"
-        autoComplete="name"
-        value={value.nomeCompleto}
-        onChange={(e) =>
-          onChange("nomeCompleto", sanitizePersonName(e.target.value))
-        }
-        onBlur={() => onBlur("nomeCompleto")}
-        inputRef={registerFieldRef("nomeCompleto")}
-        disabled={disabled}
-        error={Boolean(errors.nomeCompleto)}
-        helperText={errors.nomeCompleto}
-        slotProps={{
-          htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste },
-        }}
-      />
-      <TextField
-        required
-        type="email"
-        label="E-mail"
-        autoComplete="email"
-        value={value.email}
-        onChange={(e) =>
-          onChange("email", stripEmoji(e.target.value).slice(0, 254))
-        }
-        onBlur={() => onBlur("email")}
-        inputRef={registerFieldRef("email")}
-        disabled={disabled}
-        error={Boolean(errors.email)}
-        helperText={errors.email}
-        slotProps={{
-          htmlInput: {
-            maxLength: 254,
-            autoCapitalize: "none",
-            onPaste: stripEmojiOnPaste,
-          },
-        }}
-      />
-      <TextField
-        required
-        type="tel"
-        label="Telefone"
-        value={value.telefone}
-        onChange={(e) => onChange("telefone", stripEmoji(e.target.value))}
-        onBlur={() => onBlur("telefone")}
-        inputRef={registerFieldRef("telefone")}
-        disabled={disabled}
-        error={Boolean(errors.telefone)}
-        helperText={errors.telefone ?? "Ex.: (32) 99999-9999"}
-        slotProps={{
-          htmlInput: { inputMode: "tel", onPaste: stripEmojiOnPaste },
-        }}
-      />
-      <TextField
-        label="CEP"
-        autoComplete="postal-code"
-        value={value.cep}
-        onChange={(event) => {
-          const input = event.currentTarget;
-          const raw = input.value;
-          const caret = input.selectionStart ?? raw.length;
-          const next = formatCep(raw);
-          onChange("cep", next);
-          const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
-          requestAnimationFrame(() => {
-            const position = caretAfterDigits(next, digitsBeforeCaret);
-            input.setSelectionRange(position, position);
-          });
-        }}
-        onBlur={() => onBlur("cep")}
-        inputRef={registerFieldRef("cep")}
-        disabled={disabled}
-        error={Boolean(errors.cep)}
-        helperText={errors.cep ?? "Opcional; 8 dígitos para preencher Cidade e UF."}
-        slotProps={{
-          htmlInput: {
-            inputMode: "numeric",
-            maxLength: 9,
-            onPaste: (event: React.ClipboardEvent<HTMLInputElement>) => {
-              const input = event.currentTarget;
-              const selectionStart = input.selectionStart ?? input.value.length;
-              const selectionEnd = input.selectionEnd ?? selectionStart;
-              const pasted = applyCepPaste(
-                input.value,
-                selectionStart,
-                selectionEnd,
-                event.clipboardData.getData("text/plain"),
-              );
-              // Clipboard without digits: keep the native paste and let the
-              // regular onChange formatter normalize the field.
-              if (!pasted) return;
-              // Take over the paste so maxLength cannot truncate the raw
-              // clipboard text before formatting.
-              event.preventDefault();
-              onChange("cep", pasted.value);
-              requestAnimationFrame(() => {
-                const position = caretAfterDigits(
-                  pasted.value,
-                  pasted.digitsBeforeCaret,
-                );
-                input.setSelectionRange(position, position);
-              });
+      <RegistrationSection title="Dados pessoais" description="Como podemos identificar você.">
+        <TextField
+          required
+          label="Nome completo"
+          autoComplete="name"
+          value={value.nomeCompleto}
+          onChange={(e) =>
+            onChange("nomeCompleto", sanitizePersonName(e.target.value))
+          }
+          onBlur={() => onBlur("nomeCompleto")}
+          inputRef={registerFieldRef("nomeCompleto")}
+          disabled={disabled}
+          error={Boolean(errors.nomeCompleto)}
+          helperText={errors.nomeCompleto}
+          slotProps={{
+            htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste },
+          }}
+        />
+        <TextField
+          required
+          type="email"
+          label="E-mail"
+          autoComplete="email"
+          value={value.email}
+          onChange={(e) =>
+            onChange("email", stripEmoji(e.target.value).slice(0, 254))
+          }
+          onBlur={() => onBlur("email")}
+          inputRef={registerFieldRef("email")}
+          disabled={disabled}
+          error={Boolean(errors.email)}
+          helperText={errors.email}
+          slotProps={{
+            htmlInput: {
+              maxLength: 254,
+              autoCapitalize: "none",
+              onPaste: stripEmojiOnPaste,
             },
-            onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
-              if (event.key !== "Backspace") return;
+          }}
+        />
+      </RegistrationSection>
+      <RegistrationSection title="Localização e contato" description="Informe seu telefone e a cidade onde você está.">
+        <Box className="tv-registration__fields">
+          <TextField
+            required
+            type="tel"
+            label="Telefone"
+            value={value.telefone}
+            onChange={(e) => onChange("telefone", stripEmoji(e.target.value))}
+            onBlur={() => onBlur("telefone")}
+            inputRef={registerFieldRef("telefone")}
+            disabled={disabled}
+            error={Boolean(errors.telefone)}
+            helperText={errors.telefone ?? "Ex.: (32) 99999-9999"}
+            slotProps={{
+              htmlInput: { inputMode: "tel", onPaste: stripEmojiOnPaste },
+            }}
+          />
+          <TextField
+            label="CEP"
+            autoComplete="postal-code"
+            value={value.cep}
+            onChange={(event) => {
               const input = event.currentTarget;
-              const caret = input.selectionStart ?? input.value.length;
-              if (caret <= 0 || input.value.charAt(caret - 1) !== "-") return;
-              event.preventDefault();
-              const before = input.value.slice(0, caret - 1);
-              const next = formatCep(before.slice(0, -1) + input.value.slice(caret));
+              const raw = input.value;
+              const caret = input.selectionStart ?? raw.length;
+              const next = formatCep(raw);
               onChange("cep", next);
-              const digitsBeforeCaret = before.slice(0, -1).replace(/\D/g, "").length;
+              const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
               requestAnimationFrame(() => {
                 const position = caretAfterDigits(next, digitsBeforeCaret);
                 input.setSelectionRange(position, position);
               });
-            },
-          },
-          input: {
-            endAdornment:
-              cepStatus.type === "loading" ? (
-                <InputAdornment position="end">
-                  <CircularProgress size={16} />
-                </InputAdornment>
-              ) : null,
-          },
-        }}
-      />
-      {(cepStatus.type === "success" || cepStatus.type === "error") && (
-        <Typography
-          component="p"
-          variant="caption"
-          role="status"
-          sx={{ color: cepStatus.type === "error" ? "error.main" : "success.main" }}
-        >
-          {cepStatus.type === "error"
-            ? cepStatus.message
-            : cepStatus.message ?? "Cidade e UF preenchidas pelo CEP."}
-        </Typography>
-      )}
-      <TextField
-        required
-        select
-        label="Estado"
-        value={value.uf}
-        onChange={(e) => {
-          const nextUf = e.target.value;
-          onChange("uf", nextUf);
-          // Changing the state invalidates the previously selected city so an
-          // incompatible Cidade/Estado combination can never be submitted.
-          if (nextUf !== value.uf) {
-            onChange("cidade", "");
-          }
-        }}
-        onBlur={() => onBlur("uf")}
-        inputRef={registerFieldRef("uf")}
-        disabled={disabled}
-        error={Boolean(errors.uf)}
-        helperText={errors.uf}
-      >
-        <MenuItem value="">Selecione</MenuItem>
-        {BRAZILIAN_UFS.map((uf) => (
-          <MenuItem key={uf} value={uf}>
-            {uf}
-          </MenuItem>
-        ))}
-      </TextField>
-      <Autocomplete
-        id="cidade"
-        value={selectedCity}
-        onChange={(_event, newValue) =>
-          onChange("cidade", newValue ? newValue.nome : "")
-        }
-        options={municipios}
-        getOptionLabel={(option) => option.nome}
-        isOptionEqualToValue={(option, value) => option.id === value.id}
-        loading={loading}
-        loadingText="Carregando cidades..."
-        noOptionsText={
-          error
-            ? "Não foi possível carregar as cidades."
-            : "Nenhuma cidade encontrada."
-        }
-        disabled={disabled || !value.uf}
-        fullWidth
-        filterOptions={municipioFilter}
-        renderInput={(params) => (
-          <TextField
-            {...params}
+            }}
+            onBlur={() => onBlur("cep")}
+            inputRef={registerFieldRef("cep")}
+            disabled={disabled}
+            error={Boolean(errors.cep)}
+            helperText={errors.cep ?? "Opcional; 8 dígitos para preencher Cidade e UF."}
             slotProps={{
-              ...params.slotProps,
               htmlInput: {
-                ...params.slotProps.htmlInput,
-                value: params.slotProps.htmlInput.value ?? "",
-                onPaste: stripEmojiOnPaste,
+                inputMode: "numeric",
+                maxLength: 9,
+                onPaste: (event: React.ClipboardEvent<HTMLInputElement>) => {
+                  const input = event.currentTarget;
+                  const selectionStart = input.selectionStart ?? input.value.length;
+                  const selectionEnd = input.selectionEnd ?? selectionStart;
+                  const pasted = applyCepPaste(
+                    input.value,
+                    selectionStart,
+                    selectionEnd,
+                    event.clipboardData.getData("text/plain"),
+                  );
+                  // Clipboard without digits: keep the native paste and let the
+                  // regular onChange formatter normalize the field.
+                  if (!pasted) return;
+                  // Take over the paste so maxLength cannot truncate the raw
+                  // clipboard text before formatting.
+                  event.preventDefault();
+                  onChange("cep", pasted.value);
+                  requestAnimationFrame(() => {
+                    const position = caretAfterDigits(
+                      pasted.value,
+                      pasted.digitsBeforeCaret,
+                    );
+                    input.setSelectionRange(position, position);
+                  });
+                },
+                onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (event.key !== "Backspace") return;
+                  const input = event.currentTarget;
+                  const caret = input.selectionStart ?? input.value.length;
+                  if (caret <= 0 || input.value.charAt(caret - 1) !== "-") return;
+                  event.preventDefault();
+                  const before = input.value.slice(0, caret - 1);
+                  const next = formatCep(before.slice(0, -1) + input.value.slice(caret));
+                  onChange("cep", next);
+                  const digitsBeforeCaret = before.slice(0, -1).replace(/\D/g, "").length;
+                  requestAnimationFrame(() => {
+                    const position = caretAfterDigits(next, digitsBeforeCaret);
+                    input.setSelectionRange(position, position);
+                  });
+                },
+              },
+              input: {
+                endAdornment:
+                  cepStatus.type === "loading" ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null,
               },
             }}
-            label="Cidade"
-            placeholder={
-              value.uf ? "Busque e selecione uma cidade" : "Selecione o estado primeiro"
-            }
-            onBlur={() => onBlur("cidade")}
-            inputRef={registerFieldRef("cidade")}
-            error={Boolean(errors.cidade)}
-            helperText={errors.cidade}
           />
-        )}
-        renderOption={(props, option) => {
-          const { key, ...optionProps } = props;
-          return (
-            <li key={key} {...optionProps}>
-              {option.nome}
-            </li>
-          );
-        }}
-      />
-      {error && (
-        <Stack
-          direction="row"
-          spacing={1}
-          useFlexGap
-          sx={{ alignItems: "center", flexWrap: "wrap" }}
-        >
-          <Typography component="span" variant="caption" color="error.main" role="status">
-            Não foi possível carregar a lista de cidades.
-          </Typography>
-          <Button size="small" type="button" onClick={retry}>
-            Tentar novamente
-          </Button>
-        </Stack>
-      )}
+          {(cepStatus.type === "success" || cepStatus.type === "error") && (
+            <Typography
+              component="p"
+              variant="caption"
+              role="status"
+              sx={{ color: cepStatus.type === "error" ? "error.main" : "success.main" }}
+            >
+              {cepStatus.type === "error"
+                ? cepStatus.message
+                : cepStatus.message ?? "Cidade e UF preenchidas pelo CEP."}
+            </Typography>
+          )}
+          <TextField
+            required
+            select
+            label="Estado"
+            value={value.uf}
+            onChange={(e) => {
+              const nextUf = e.target.value;
+              onChange("uf", nextUf);
+              // Changing the state invalidates the previously selected city so an
+              // incompatible Cidade/Estado combination can never be submitted.
+              if (nextUf !== value.uf) {
+                onChange("cidade", "");
+              }
+            }}
+            onBlur={() => onBlur("uf")}
+            inputRef={registerFieldRef("uf")}
+            disabled={disabled}
+            error={Boolean(errors.uf)}
+            helperText={errors.uf}
+          >
+            <MenuItem value="">Selecione</MenuItem>
+            {BRAZILIAN_UFS.map((uf) => (
+              <MenuItem key={uf} value={uf}>
+                {uf}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Autocomplete
+            id="cidade"
+            value={selectedCity}
+            onChange={(_event, newValue) =>
+              onChange("cidade", newValue ? newValue.nome : "")
+            }
+            options={municipios}
+            getOptionLabel={(option) => option.nome}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            loading={loading}
+            loadingText="Carregando cidades..."
+            noOptionsText={
+              error
+                ? "Não foi possível carregar as cidades."
+                : "Nenhuma cidade encontrada."
+            }
+            disabled={disabled || !value.uf}
+            fullWidth
+            filterOptions={municipioFilter}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                slotProps={{
+                  ...params.slotProps,
+                  htmlInput: {
+                    ...params.slotProps.htmlInput,
+                    value: params.slotProps.htmlInput.value ?? "",
+                    onPaste: stripEmojiOnPaste,
+                  },
+                }}
+                label="Cidade"
+                placeholder={
+                  value.uf ? "Busque e selecione uma cidade" : "Selecione o estado primeiro"
+                }
+                onBlur={() => onBlur("cidade")}
+                inputRef={registerFieldRef("cidade")}
+                error={Boolean(errors.cidade)}
+                helperText={errors.cidade}
+              />
+            )}
+            renderOption={(props, option) => {
+              const { key, ...optionProps } = props;
+              return (
+                <li key={key} {...optionProps}>
+                  {option.nome}
+                </li>
+              );
+            }}
+          />
+          {error && (
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{ alignItems: "center", flexWrap: "wrap" }}
+            >
+              <Typography component="span" variant="caption" color="error.main" role="status">
+                Não foi possível carregar a lista de cidades.
+              </Typography>
+              <Button size="small" type="button" onClick={retry}>
+                Tentar novamente
+              </Button>
+            </Stack>
+          )}
+        </Box>
+      </RegistrationSection>
     </>
   );
 }
@@ -964,88 +808,13 @@ function ChoiceCard({
   description: string;
 }) {
   return (
-    <Paper
-      component={Link}
-      href={href}
-      elevation={0}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 2,
-        p: { xs: 2, sm: 2.5 },
-        border: 1,
-        borderColor: "divider",
-        bgcolor: "background.paper",
-        textDecoration: "none",
-        color: "text.primary",
-        transition: (theme) =>
-          theme.transitions.create(
-            ["background-color", "border-color", "box-shadow"],
-            { duration: theme.transitions.duration.shorter },
-          ),
-        "&:hover": {
-          bgcolor: "action.hover",
-          borderColor: "primary.main",
-          boxShadow: (theme) => theme.shadows[2],
-        },
-        "&:active": {
-          bgcolor: "action.selected",
-          borderColor: "primary.dark",
-          boxShadow: "none",
-        },
-        "&:focus-visible": {
-          outline: "2px solid",
-          outlineColor: "primary.main",
-          outlineOffset: 2,
-        },
-        "@media (hover: hover) and (prefers-reduced-motion: no-preference)": {
-          "&:hover .ChoiceCard-arrow": {
-            transform: "translateX(3px)",
-          },
-        },
-        "@media (prefers-reduced-motion: reduce)": {
-          transition: "none",
-          "& .ChoiceCard-arrow": { transition: "none" },
-        },
-      }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 44,
-          height: 44,
-          borderRadius: 2,
-          color: "primary.main",
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
-        }}
-      >
-        {icon}
+    <Paper component={Link} href={href} elevation={0} className="tv-registration__choice">
+      <Box aria-hidden className="tv-registration__choice-icon">{icon}</Box>
+      <Box>
+        <Typography component="h2" variant="h6">{title}</Typography>
+        <Typography variant="body2" color="text.secondary">{description}</Typography>
       </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          {title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {description}
-        </Typography>
-      </Box>
-      <ArrowForwardOutlined
-        aria-hidden
-        fontSize="small"
-        className="ChoiceCard-arrow"
-        sx={{
-          flexShrink: 0,
-          color: "action.active",
-          transition: (theme) =>
-            theme.transitions.create("transform", {
-              duration: theme.transitions.duration.shorter,
-            }),
-        }}
-      />
+      <ArrowForwardOutlined aria-hidden fontSize="small" className="tv-registration__choice-arrow" />
     </Paper>
   );
 }
@@ -1056,45 +825,20 @@ export function RegistrationChoice() {
       title="Como deseja participar?"
       subtitle="Escolha seu perfil para solicitar acesso ao Talent Valley."
     >
-      <Stack spacing={2}>
+      <Box className="tv-registration__choices">
         <ChoiceCard
           href="/cadastro/aluno"
           icon={<SchoolOutlined />}
           title="Sou aluno"
-          description="Envie seus dados para análise. Após aprovação, você receberá acesso para criar seu perfil profissional."
+          description="Após aprovação, crie seu perfil profissional e apresente sua trajetória."
         />
         <ChoiceCard
           href="/cadastro/recrutador"
           icon={<BusinessCenterOutlined />}
           title="Sou Recrutador"
-          description="Solicite acesso para pesquisar talentos da comunidade Rio Pomba Valley."
+          description="Solicite acesso para descobrir talentos da comunidade Rio Pomba Valley."
         />
-        <Stack spacing={2}>
-          <Divider />
-          <Stack
-            direction="row"
-            spacing={1.5}
-            useFlexGap
-            sx={{
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              Já possui acesso?
-            </Typography>
-            <Button
-              component={Link}
-              href="/login"
-              variant="outlined"
-              startIcon={<LoginOutlined />}
-            >
-              Entrar
-            </Button>
-          </Stack>
-        </Stack>
-      </Stack>
+      </Box>
     </PublicPage>
   );
 }
@@ -1205,15 +949,12 @@ export function StudentRegistrationForm() {
           noValidate
           aria-busy={busy || undefined}
         >
-          <Stack spacing={2}>
+          <Stack spacing={4}>
             {error && (
               <Alert ref={errorAlertRef} tabIndex={-1} severity="error">
                 {error}
               </Alert>
             )}
-            <Typography component="h2" variant="h6">
-              Dados pessoais
-            </Typography>
             <CommonFields
               value={common}
               errors={errors}
@@ -1225,180 +966,183 @@ export function StudentRegistrationForm() {
               registerFieldRef={registerFieldRef}
               disabled={busy}
             />
-            <Divider />
-            <Typography component="h2" variant="h6">
-              Formação acadêmica
-            </Typography>
-            <TextField
-              required
-              label="Instituição de ensino"
-              value={school.instituicaoEnsino}
-              onChange={(e) => {
-                setSchool((x) => ({
-                  ...x,
-                  instituicaoEnsino: stripEmoji(e.target.value).slice(0, 180),
-                }));
-                setErrors((current) => ({
-                  ...current,
-                  instituicaoEnsino: null,
-                }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  instituicaoEnsino: validateInstitutionName(
-                    school.instituicaoEnsino,
-                  ),
-                }))
-              }
-              inputRef={registerFieldRef("instituicaoEnsino")}
-              disabled={busy}
-              error={Boolean(errors.instituicaoEnsino)}
-              helperText={errors.instituicaoEnsino}
-              slotProps={{
-                htmlInput: { maxLength: 180, onPaste: stripEmojiOnPaste },
-              }}
-            />
-            <TextField
-              required
-              label="Curso"
-              value={school.curso}
-              onChange={(e) => {
-                setSchool((x) => ({
-                  ...x,
-                  curso: stripEmoji(e.target.value).slice(0, 180),
-                }));
-                setErrors((current) => ({ ...current, curso: null }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  curso: validateCourseName(school.curso),
-                }))
-              }
-              inputRef={registerFieldRef("curso")}
-              disabled={busy}
-              error={Boolean(errors.curso)}
-              helperText={errors.curso}
-              slotProps={{
-                htmlInput: { maxLength: 180, onPaste: stripEmojiOnPaste },
-              }}
-            />
-            <TextField
-              required
-              select
-              label="Tipo de formação"
-              value={school.tipoFormacao}
-              onChange={(e) => {
-                setSchool((x) => ({
-                  ...x,
-                  tipoFormacao: e.target.value as TipoFormacao,
-                }));
-                setErrors((current) => ({ ...current, tipoFormacao: null }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  tipoFormacao: school.tipoFormacao
-                    ? null
-                    : "Selecione um tipo de formação válido.",
-                }))
-              }
-              inputRef={registerFieldRef("tipoFormacao")}
-              disabled={busy}
-              error={Boolean(errors.tipoFormacao)}
-              helperText={errors.tipoFormacao}
-            >
-              {formations.map((type) => (
-                <MenuItem key={type} value={type}>
-                  {TIPO_FORMACAO_LABELS[type]}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Ano previsto de conclusão"
-              value={school.anoConclusaoPrevisto}
-              onChange={(e) => {
-                setSchool((x) => ({
-                  ...x,
-                  anoConclusaoPrevisto: sanitizeIntegerInput(e.target.value, 4),
-                }));
-                setErrors((current) => ({
-                  ...current,
-                  anoConclusaoPrevisto: null,
-                }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  anoConclusaoPrevisto: validateYear(
-                    school.anoConclusaoPrevisto,
-                  ),
-                }))
-              }
-              inputRef={registerFieldRef("anoConclusaoPrevisto")}
-              disabled={busy}
-              error={Boolean(errors.anoConclusaoPrevisto)}
-              helperText={
-                errors.anoConclusaoPrevisto ?? "Opcional; use quatro dígitos."
-              }
-              slotProps={{
-                htmlInput: {
-                  inputMode: "numeric",
-                  pattern: "[0-9]*",
-                  maxLength: 4,
-                },
-              }}
-            />
-            <TextField
-              multiline
-              minRows={3}
-              label="Relação com o Rio Pomba Valley (opcional)"
-              value={school.relacaoRioPombaValley}
-              onChange={(e) => {
-                setSchool((x) => ({
-                  ...x,
-                  relacaoRioPombaValley: stripEmoji(e.target.value).slice(
-                    0,
-                    500,
-                  ),
-                }));
-                setErrors((current) => ({
-                  ...current,
-                  relacaoRioPombaValley: null,
-                }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  relacaoRioPombaValley: school.relacaoRioPombaValley
-                    ? validateFreeText(school.relacaoRioPombaValley, 500)
-                    : null,
-                }))
-              }
-              inputRef={registerFieldRef("relacaoRioPombaValley")}
-              disabled={busy}
-              error={Boolean(errors.relacaoRioPombaValley)}
-              helperText={
-                <Box
-                  component="span"
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 1,
-                    flexWrap: "wrap",
+            <RegistrationSection title="Formação acadêmica" description="Conte onde você estuda e qual formação está cursando.">
+              <TextField
+                required
+                label="Instituição de ensino"
+                value={school.instituicaoEnsino}
+                onChange={(e) => {
+                  setSchool((x) => ({
+                    ...x,
+                    instituicaoEnsino: stripEmoji(e.target.value).slice(0, 180),
+                  }));
+                  setErrors((current) => ({
+                    ...current,
+                    instituicaoEnsino: null,
+                  }));
+                }}
+                onBlur={() =>
+                  setErrors((x) => ({
+                    ...x,
+                    instituicaoEnsino: validateInstitutionName(
+                      school.instituicaoEnsino,
+                    ),
+                  }))
+                }
+                inputRef={registerFieldRef("instituicaoEnsino")}
+                disabled={busy}
+                error={Boolean(errors.instituicaoEnsino)}
+                helperText={errors.instituicaoEnsino}
+                slotProps={{
+                  htmlInput: { maxLength: 180, onPaste: stripEmojiOnPaste },
+                }}
+              />
+              <TextField
+                required
+                label="Curso"
+                value={school.curso}
+                onChange={(e) => {
+                  setSchool((x) => ({
+                    ...x,
+                    curso: stripEmoji(e.target.value).slice(0, 180),
+                  }));
+                  setErrors((current) => ({ ...current, curso: null }));
+                }}
+                onBlur={() =>
+                  setErrors((x) => ({
+                    ...x,
+                    curso: validateCourseName(school.curso),
+                  }))
+                }
+                inputRef={registerFieldRef("curso")}
+                disabled={busy}
+                error={Boolean(errors.curso)}
+                helperText={errors.curso}
+                slotProps={{
+                  htmlInput: { maxLength: 180, onPaste: stripEmojiOnPaste },
+                }}
+              />
+              <Box className="tv-registration__fields">
+                <TextField
+                  required
+                  select
+                  label="Tipo de formação"
+                  value={school.tipoFormacao}
+                  onChange={(e) => {
+                    setSchool((x) => ({
+                      ...x,
+                      tipoFormacao: e.target.value as TipoFormacao,
+                    }));
+                    setErrors((current) => ({ ...current, tipoFormacao: null }));
                   }}
+                  onBlur={() =>
+                    setErrors((x) => ({
+                      ...x,
+                      tipoFormacao: school.tipoFormacao
+                        ? null
+                        : "Selecione um tipo de formação válido.",
+                    }))
+                  }
+                  inputRef={registerFieldRef("tipoFormacao")}
+                  disabled={busy}
+                  error={Boolean(errors.tipoFormacao)}
+                  helperText={errors.tipoFormacao}
                 >
-                  <Box component="span">{errors.relacaoRioPombaValley}</Box>
-                  <Box component="span" sx={{ color: "text.secondary" }}>
-                    {school.relacaoRioPombaValley.length} / 500
+                  {formations.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {TIPO_FORMACAO_LABELS[type]}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Ano previsto de conclusão"
+                  value={school.anoConclusaoPrevisto}
+                  onChange={(e) => {
+                    setSchool((x) => ({
+                      ...x,
+                      anoConclusaoPrevisto: sanitizeIntegerInput(e.target.value, 4),
+                    }));
+                    setErrors((current) => ({
+                      ...current,
+                      anoConclusaoPrevisto: null,
+                    }));
+                  }}
+                  onBlur={() =>
+                    setErrors((x) => ({
+                      ...x,
+                      anoConclusaoPrevisto: validateYear(
+                        school.anoConclusaoPrevisto,
+                      ),
+                    }))
+                  }
+                  inputRef={registerFieldRef("anoConclusaoPrevisto")}
+                  disabled={busy}
+                  error={Boolean(errors.anoConclusaoPrevisto)}
+                  helperText={
+                    errors.anoConclusaoPrevisto ?? "Opcional; use quatro dígitos."
+                  }
+                  slotProps={{
+                    htmlInput: {
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                      maxLength: 4,
+                    },
+                  }}
+                />
+              </Box>
+            </RegistrationSection>
+            <RegistrationSection title="Rio Pomba Valley" description="Se desejar, compartilhe seu vínculo com a comunidade.">
+              <TextField
+                multiline
+                minRows={3}
+                label="Relação com o RPV (opcional)"
+                value={school.relacaoRioPombaValley}
+                onChange={(e) => {
+                  setSchool((x) => ({
+                    ...x,
+                    relacaoRioPombaValley: stripEmoji(e.target.value).slice(
+                      0,
+                      500,
+                    ),
+                  }));
+                  setErrors((current) => ({
+                    ...current,
+                    relacaoRioPombaValley: null,
+                  }));
+                }}
+                onBlur={() =>
+                  setErrors((x) => ({
+                    ...x,
+                    relacaoRioPombaValley: school.relacaoRioPombaValley
+                      ? validateFreeText(school.relacaoRioPombaValley, 500)
+                      : null,
+                  }))
+                }
+                inputRef={registerFieldRef("relacaoRioPombaValley")}
+                disabled={busy}
+                error={Boolean(errors.relacaoRioPombaValley)}
+                helperText={
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 1,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Box component="span">{errors.relacaoRioPombaValley}</Box>
+                    <Box component="span" sx={{ color: "text.secondary" }}>
+                      {school.relacaoRioPombaValley.length} / 500
+                    </Box>
                   </Box>
-                </Box>
-              }
-              slotProps={{
-                htmlInput: { maxLength: 500, onPaste: stripEmojiOnPaste },
-              }}
-            />
+                }
+                slotProps={{
+                  htmlInput: { maxLength: 500, onPaste: stripEmojiOnPaste },
+                }}
+              />
+            </RegistrationSection>
+            <Typography variant="caption" color="text.secondary">Os campos com * são obrigatórios.</Typography>
             <Button
               type="submit"
               variant="contained"
@@ -1508,15 +1252,12 @@ export function RecruiterRegistrationForm() {
           noValidate
           aria-busy={busy || undefined}
         >
-          <Stack spacing={2}>
+          <Stack spacing={4}>
             {error && (
               <Alert ref={errorAlertRef} tabIndex={-1} severity="error">
                 {error}
               </Alert>
             )}
-            <Typography component="h2" variant="h6">
-              Dados pessoais
-            </Typography>
             <CommonFields
               value={common}
               errors={errors}
@@ -1528,91 +1269,90 @@ export function RecruiterRegistrationForm() {
               registerFieldRef={registerFieldRef}
               disabled={busy}
             />
-            <Divider />
-            <Typography component="h2" variant="h6">
-              Dados profissionais
-            </Typography>
-            <TextField
-              required
-              label="Empresa"
-              value={extra.empresa}
-              onChange={(e) => {
-                setExtra((x) => ({
-                  ...x,
-                  empresa: stripEmoji(e.target.value).slice(0, 150),
-                }));
-                setErrors((current) => ({ ...current, empresa: null }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  empresa: validateCompanyName(extra.empresa),
-                }))
-              }
-              inputRef={registerFieldRef("empresa")}
-              disabled={busy}
-              error={Boolean(errors.empresa)}
-              helperText={errors.empresa}
-              slotProps={{
-                htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste },
-              }}
-            />
-            <TextField
-              required
-              label="Cargo"
-              value={extra.cargo}
-              onChange={(e) => {
-                setExtra((x) => ({
-                  ...x,
-                  cargo: stripEmoji(e.target.value).slice(0, 120),
-                }));
-                setErrors((current) => ({ ...current, cargo: null }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  cargo: validateJobTitle(extra.cargo),
-                }))
-              }
-              inputRef={registerFieldRef("cargo")}
-              disabled={busy}
-              error={Boolean(errors.cargo)}
-              helperText={errors.cargo}
-              slotProps={{
-                htmlInput: { maxLength: 120, onPaste: stripEmojiOnPaste },
-              }}
-            />
-            <TextField
-              type="url"
-              label="Site da empresa (opcional)"
-              value={extra.siteEmpresa}
-              onChange={(e) => {
-                setExtra((x) => ({
-                  ...x,
-                  siteEmpresa: stripEmoji(e.target.value).slice(0, 2048),
-                }));
-                setErrors((current) => ({ ...current, siteEmpresa: null }));
-              }}
-              onBlur={() =>
-                setErrors((x) => ({
-                  ...x,
-                  siteEmpresa: validateHttpUrl(extra.siteEmpresa),
-                }))
-              }
-              inputRef={registerFieldRef("siteEmpresa")}
-              disabled={busy}
-              error={Boolean(errors.siteEmpresa)}
-              helperText={
-                errors.siteEmpresa ?? "Use um endereço HTTP ou HTTPS."
-              }
-              slotProps={{
-                htmlInput: {
-                  maxLength: 2048,
-                  inputMode: "url",
-                  onPaste: stripEmojiOnPaste,
-                },
-              }}
-            />
+            <RegistrationSection title="Dados profissionais" description="Apresente a empresa e sua atuação profissional.">
+              <TextField
+                required
+                label="Empresa"
+                value={extra.empresa}
+                onChange={(e) => {
+                  setExtra((x) => ({
+                    ...x,
+                    empresa: stripEmoji(e.target.value).slice(0, 150),
+                  }));
+                  setErrors((current) => ({ ...current, empresa: null }));
+                }}
+                onBlur={() =>
+                  setErrors((x) => ({
+                    ...x,
+                    empresa: validateCompanyName(extra.empresa),
+                  }))
+                }
+                inputRef={registerFieldRef("empresa")}
+                disabled={busy}
+                error={Boolean(errors.empresa)}
+                helperText={errors.empresa}
+                slotProps={{
+                  htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste },
+                }}
+              />
+              <TextField
+                required
+                label="Cargo"
+                value={extra.cargo}
+                onChange={(e) => {
+                  setExtra((x) => ({
+                    ...x,
+                    cargo: stripEmoji(e.target.value).slice(0, 120),
+                  }));
+                  setErrors((current) => ({ ...current, cargo: null }));
+                }}
+                onBlur={() =>
+                  setErrors((x) => ({
+                    ...x,
+                    cargo: validateJobTitle(extra.cargo),
+                  }))
+                }
+                inputRef={registerFieldRef("cargo")}
+                disabled={busy}
+                error={Boolean(errors.cargo)}
+                helperText={errors.cargo}
+                slotProps={{
+                  htmlInput: { maxLength: 120, onPaste: stripEmojiOnPaste },
+                }}
+              />
+              <TextField
+                type="url"
+                label="Site da empresa (opcional)"
+                value={extra.siteEmpresa}
+                onChange={(e) => {
+                  setExtra((x) => ({
+                    ...x,
+                    siteEmpresa: stripEmoji(e.target.value).slice(0, 2048),
+                  }));
+                  setErrors((current) => ({ ...current, siteEmpresa: null }));
+                }}
+                onBlur={() =>
+                  setErrors((x) => ({
+                    ...x,
+                    siteEmpresa: validateHttpUrl(extra.siteEmpresa),
+                  }))
+                }
+                inputRef={registerFieldRef("siteEmpresa")}
+                disabled={busy}
+                error={Boolean(errors.siteEmpresa)}
+                helperText={
+                  errors.siteEmpresa ?? "Use um endereço HTTP ou HTTPS."
+                }
+                slotProps={{
+                  htmlInput: {
+                    maxLength: 2048,
+                    inputMode: "url",
+                    onPaste: stripEmojiOnPaste,
+                  },
+                }}
+              />
+            </RegistrationSection>
+            <Typography variant="caption" color="text.secondary">Os campos com * são obrigatórios.</Typography>
             <Button
               type="submit"
               variant="contained"
