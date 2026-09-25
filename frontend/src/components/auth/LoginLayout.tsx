@@ -6,6 +6,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import { motion, useReducedMotion } from "framer-motion";
 import { TalentValleyMark } from "@/components/brand/TalentValleyMark";
+import { LoginVisualScene } from "./LoginVisualScene";
 import "./login.css";
 
 interface LoginLayoutProps {
@@ -40,6 +41,7 @@ export function LoginLayout({
   return (
     <Box component="main" className="tv-login">
       <Box component="section" className="tv-login__visual">
+        <LoginVisualScene />
         <motion.div className="tv-login__brand" {...entrance(0)}>
           <LoginBrand />
         </motion.div>
@@ -49,9 +51,8 @@ export function LoginLayout({
             component="p"
             style={{ textWrap: "balance" }}
             sx={{
-              fontFamily: "Georgia, 'Times New Roman', serif",
               fontSize: "clamp(1.7rem, 2.4vw, 2.4rem)",
-              fontWeight: 400,
+              fontWeight: 500,
               lineHeight: 1.18,
               letterSpacing: "-0.02em",
               color: "text.primary",
@@ -170,8 +171,7 @@ export function LoginLayout({
   );
 }
 
-// Official wordmark style, matching the landing Brand lockup without importing
-// the landing's stylesheet.
+// Login-scoped wordmark using the existing theme's sans-serif font stack.
 function LoginBrand() {
   return (
     <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
@@ -181,16 +181,15 @@ function LoginBrand() {
           component="span"
           sx={{
             display: "block",
-            fontFamily: "Georgia, 'Times New Roman', serif",
             fontSize: "1.6rem",
             fontWeight: 600,
             lineHeight: 1.05,
-            letterSpacing: "-0.05em",
+            letterSpacing: "-0.04em",
             color: "text.primary",
           }}
         >
           Talent{" "}
-          <Box component="span" sx={{ color: "secondary.main" }}>
+          <Box component="span" sx={{ color: "primary.main" }}>
             Valley
           </Box>
         </Typography>

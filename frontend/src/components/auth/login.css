@@ -6,11 +6,15 @@
   --page: #0d1114;
   --line: #273238;
   --teal: #20c8c0;
+  --terrain-line: #20c8c0;
+  --terrain-edge: #a0d060;
+  --terrain-node: #c0e394;
   color: #f4f7f6;
   background: var(--page);
   min-height: 100svh;
   display: grid;
   grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
   overflow-x: clip;
 }
 
@@ -18,6 +22,9 @@
   --page: #f6f7f2;
   --line: #d5ddd4;
   --teal: #00756d;
+  --terrain-line: #006b60;
+  --terrain-edge: #386b47;
+  --terrain-node: #007d32;
   color: #15201d;
   background: var(--page);
 }
@@ -33,47 +40,68 @@
   border-radius: 3px;
 }
 
-/* Left visual panel: official landscape + brand identity. */
+/* Compact official brand on mobile; layered vector terrain on larger screens. */
 .tv-login__visual {
   position: relative;
   isolation: isolate;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 200px;
+  overflow: hidden;
+  min-height: 96px;
   padding: 24px;
   background-color: var(--page);
-  background-image: url("/landing/valley-dark-mobile.webp");
-  background-size: cover;
-  background-position: center;
+  border-bottom: 1px solid var(--line);
 }
 
-.light .tv-login__visual {
-  background-image: url("/landing/valley-light-mobile.webp");
-}
-
-/* Controlled, theme-compatible gradient keeps the identity legible without
-   competing with the form. */
-.tv-login__visual::before {
-  content: "";
+.tv-login__scene {
+  display: none;
   position: absolute;
-  inset: 0;
+  inset: 16% -4% 19%;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgb(13 17 20 / 62%),
-    rgb(13 17 20 / 28%) 45%,
-    rgb(13 17 20 / 88%)
-  );
 }
 
-.light .tv-login__visual::before {
-  background: linear-gradient(
-    180deg,
-    rgb(246 247 242 / 74%),
-    rgb(246 247 242 / 40%) 45%,
-    rgb(246 247 242 / 90%)
-  );
+.tv-login__scene > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tv-login__contours {
+  stroke: var(--terrain-line);
+  stroke-width: 0.8;
+  opacity: 0.16;
+}
+
+.tv-login__facets {
+  stroke: var(--terrain-edge);
+  stroke-opacity: 0.38;
+}
+
+.tv-login__network {
+  stroke: var(--terrain-line);
+  opacity: 0.42;
+}
+
+.tv-login__nodes {
+  fill: var(--terrain-node);
+}
+
+.tv-login__node {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0.8;
+}
+
+.light .tv-login__mountain {
+  opacity: 0.85;
+}
+
+.light .tv-login__contours {
+  opacity: 0.12;
+}
+
+.light .tv-login__network {
+  stroke: #007d73;
 }
 
 .tv-login__brand,
@@ -101,23 +129,67 @@
 
 @media (min-width: 768px) {
   .tv-login__visual {
-    background-image: url("/landing/valley-dark.webp");
+    min-height: 128px;
+    justify-content: center;
+    padding-inline: 40px;
   }
 
-  .light .tv-login__visual {
-    background-image: url("/landing/valley-light.webp");
+  .tv-login__scene {
+    display: block;
+    inset: -60px -20px -100px 52%;
+  }
+
+  .tv-login__contours,
+  .tv-login__network,
+  .tv-login__nodes {
+    display: none;
   }
 }
 
 @media (min-width: 1024px) {
   .tv-login {
     grid-template-columns: 54% 46%;
+    grid-template-rows: 1fr;
   }
 
   .tv-login__visual {
     min-height: 100svh;
+    justify-content: space-between;
     padding: clamp(40px, 5vw, 72px);
     border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .tv-login__scene {
+    inset: 16% -4% 19%;
+  }
+
+  .tv-login__contours,
+  .tv-login__network,
+  .tv-login__nodes {
+    display: block;
+  }
+
+  .tv-login__contours {
+    animation: tv-login-contour-drift 18s ease-in-out infinite;
+  }
+
+  .tv-login__network {
+    animation: tv-login-network-pulse 13s ease-in-out -4s infinite;
+  }
+
+  .tv-login__node {
+    animation: tv-login-node-pulse 8s ease-in-out -2s infinite;
+  }
+
+  .tv-login__node:nth-child(2) {
+    animation-duration: 11s;
+    animation-delay: -5s;
+  }
+
+  .tv-login__node:nth-child(3) {
+    animation-duration: 9s;
+    animation-delay: -7s;
   }
 
   .tv-login__copy {
@@ -127,6 +199,21 @@
   .tv-login__panel {
     padding: 48px clamp(40px, 5vw, 80px);
   }
+}
+
+@keyframes tv-login-contour-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(4px, -5px); }
+}
+
+@keyframes tv-login-network-pulse {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.58; }
+}
+
+@keyframes tv-login-node-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
