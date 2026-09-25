@@ -183,22 +183,61 @@ export function AppShell({ children }: AppShellProps) {
                 spacing={1}
                 sx={{alignItems: "center",  display: { xs: "none", lg: "flex" } }}
               >
-                {navItems.map((item) => (
-                  <ListItemButton
-                    key={item.href}
-                    component={Link}
-                    href={item.href}
-                    selected={isActive(item)}
-                    sx={{ borderRadius: 2, px: 2 }}
-                  >
-                    <ListItemText
-                      primary={item.label}
-                      slotProps={{
-                        primary: { sx: { fontWeight: 600, fontSize: 14 } },
+                {navItems.map((item) => {
+                  const active = isActive(item);
+                  return (
+                    <ListItemButton
+                      key={item.href}
+                      component={Link}
+                      href={item.href}
+                      selected={active}
+                      sx={{
+                        position: "relative",
+                        borderRadius: 0,
+                        px: 2,
+                        py: 1.5,
+                        color: "text.secondary",
+                        transition: "color 0.25s ease",
+                        "&:hover": { backgroundColor: "transparent", color: "text.primary" },
+                        "&.Mui-selected": {
+                          backgroundColor: "transparent",
+                          color: "text.primary",
+                          "&:hover": { backgroundColor: "transparent" },
+                        },
+                        "&::after": {
+                          content: '""',
+                          position: "absolute",
+                          left: 16,
+                          right: 16,
+                          bottom: 6,
+                          height: 2,
+                          borderRadius: 2,
+                          backgroundColor: "secondary.main",
+                          transform: active ? "scaleX(1)" : "scaleX(0)",
+                          transformOrigin: "left center",
+                          opacity: active ? 1 : 0,
+                          transition: "transform 0.3s ease, opacity 0.3s ease",
+                        },
                       }}
-                    />
-                  </ListItemButton>
-                ))}
+                    >
+                      <ListItemText
+                        primary={item.label}
+                        slotProps={{
+                          primary: {
+                            sx: (theme) => ({
+                              fontWeight: active ? 700 : 600,
+                              fontSize: 14,
+                              color: "inherit",
+                              transition: theme.transitions.create("font-weight", {
+                                duration: 250,
+                              }),
+                            }),
+                          },
+                        }}
+                      />
+                    </ListItemButton>
+                  );
+                })}
               </Stack>
             </Stack>
 
