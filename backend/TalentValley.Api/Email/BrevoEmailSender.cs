@@ -1,18 +1,21 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
+using TalentValley.Api.Services;
 
 namespace TalentValley.Api.Email;
 
 public sealed class BrevoEmailSender(HttpClient client, IOptions<BrevoOptions> options,
-    ILogger<BrevoEmailSender> logger) : IEmailSender
+    IOptions<FrontendOptions> frontend, ILogger<BrevoEmailSender> logger) : IEmailSender
 {
     public Task SendActivationLinkAsync(string email, string link) =>
-        SendAsync(email, "Ative sua conta no Talent Valley", $"Para ativar sua conta, acesse: {link}");
+        SendAsync(email, TalentValleyEmailTemplates.BuildActivation(LogoUrl(), link));
 
     public Task SendPasswordResetLinkAsync(string email, string link) =>
-        SendAsync(email, "Redefina sua senha no Talent Valley", $"Para redefinir sua senha, acesse: {link}");
+        SendAsync(email, TalentValleyEmailTemplates.BuildPasswordReset(LogoUrl(), link));
 
-    private async Task SendAsync(string email, string subject, string body)
+    private string LogoUrl() => frontend.Value.BaseUrl.TrimEnd('/') + "/brand/talent-valley-email.png";
+
+    private async Task SendAsync(string email, TalentValleyEmailTemplates.Content content)
     {
         var sender = options.Value;
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
@@ -21,8 +24,9 @@ public sealed class BrevoEmailSender(HttpClient client, IOptions<BrevoOptions> o
         {
             sender = new { email = sender.SenderAddress, name = sender.SenderName },
             to = new[] { new { email } },
-            subject,
-            textContent = body
+            subject = content.Subject,
+            textContent = content.TextContent,
+            htmlContent = content.HtmlContent
         });
 
         try
