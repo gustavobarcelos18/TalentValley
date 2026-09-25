@@ -14,8 +14,8 @@ import {
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { AuthPageShell } from "@/components/auth/AuthPageShell";
-import { AuthSuspenseFallback } from "@/components/auth/AuthSuspenseFallback";
+import { LoginLayout } from "@/components/auth/LoginLayout";
+import { LoginSuspenseFallback } from "@/components/auth/LoginSuspenseFallback";
 import { GuestOnly } from "@/components/auth/GuestOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
@@ -29,7 +29,7 @@ import {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<AuthSuspenseFallback />}>
+    <Suspense fallback={<LoginSuspenseFallback />}>
       <LoginContent />
     </Suspense>
   );
@@ -133,7 +133,7 @@ function LoginContent() {
 
   return (
     <GuestOnly>
-      <AuthPageShell
+      <LoginLayout
         title="Entrar no Talent Valley"
         subtitle="Acesse sua conta para continuar"
         onSubmit={handleSubmit}
@@ -225,21 +225,7 @@ function LoginContent() {
         >
           {loading ? "Entrando..." : "Entrar"}
         </Button>
-        <Typography align="center" variant="body2" color="text.secondary">
-          Ainda não possui acesso?{" "}
-          <Box
-            component={Link}
-            href="/cadastro"
-            sx={{
-              color: "primary.main",
-              fontWeight: 500,
-              "&:hover": { textDecoration: "underline" },
-            }}
-          >
-            Solicitar cadastro
-          </Box>
-        </Typography>
-      </AuthPageShell>
+      </LoginLayout>
     </GuestOnly>
   );
 }
