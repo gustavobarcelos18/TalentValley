@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Box, Stack, Typography } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import { motion, useReducedMotion } from "framer-motion";
-import { TalentValleyMark } from "@/components/brand/TalentValleyMark";
+import { Brand } from "@/components/landing/Brand";
 import { LoginVisualScene } from "./LoginVisualScene";
 import "./login.css";
 
@@ -43,7 +43,7 @@ export function LoginLayout({
       <Box component="section" className="tv-login__visual">
         <LoginVisualScene />
         <motion.div className="tv-login__brand" {...entrance(0)}>
-          <LoginBrand />
+          <Brand />
         </motion.div>
 
         <motion.div className="tv-login__copy" {...entrance(0.08)}>
@@ -168,44 +168,5 @@ export function LoginLayout({
         </Box>
       </Box>
     </Box>
-  );
-}
-
-// Login-scoped wordmark using the existing theme's sans-serif font stack.
-function LoginBrand() {
-  return (
-    <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-      <TalentValleyMark width={46} />
-      <Box>
-        <Typography
-          component="span"
-          sx={{
-            display: "block",
-            fontSize: "1.6rem",
-            fontWeight: 600,
-            lineHeight: 1.05,
-            letterSpacing: "-0.04em",
-            color: "text.primary",
-          }}
-        >
-          Talent{" "}
-          <Box component="span" sx={{ color: "primary.main" }}>
-            Valley
-          </Box>
-        </Typography>
-        <Typography
-          component="span"
-          sx={{
-            display: "block",
-            mt: 0.5,
-            fontSize: "0.72rem",
-            letterSpacing: "0.015em",
-            color: "text.secondary",
-          }}
-        >
-          by Rio Pomba Valley
-        </Typography>
-      </Box>
-    </Stack>
   );
 }
