@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using TalentValley.Api.Email;
+using TalentValley.Api.Services;
 
 namespace TalentValley.Api.Tests;
 
@@ -34,10 +35,40 @@ public sealed class BrevoEmailSenderTests
             Assert.Equal("Talent Valley", request.Payload.GetProperty("sender").GetProperty("name").GetString());
             Assert.Equal("maria@example.test", request.Payload.GetProperty("to")[0].GetProperty("email").GetString());
         });
-        Assert.Contains("Ative sua conta", requests[0].Payload.GetProperty("subject").GetString());
-        Assert.Contains(activation, requests[0].Payload.GetProperty("textContent").GetString());
-        Assert.Contains("Redefina sua senha", requests[1].Payload.GetProperty("subject").GetString());
-        Assert.Contains(reset, requests[1].Payload.GetProperty("textContent").GetString());
+
+        var activationPayload = requests[0].Payload;
+        var resetPayload = requests[1].Payload;
+
+        Assert.Equal("Ative sua conta no Talent Valley", activationPayload.GetProperty("subject").GetString());
+        Assert.Equal("Redefina sua senha no Talent Valley", resetPayload.GetProperty("subject").GetString());
+
+        var activationText = activationPayload.GetProperty("textContent").GetString()!;
+        var resetText = resetPayload.GetProperty("textContent").GetString()!;
+        Assert.Contains(activation, activationText);
+        Assert.Contains(reset, resetText);
+
+        var activationHtml = activationPayload.GetProperty("htmlContent").GetString()!;
+        var resetHtml = resetPayload.GetProperty("htmlContent").GetString()!;
+        Assert.Contains(WebUtility.HtmlEncode(activation), activationHtml);
+        Assert.Contains(WebUtility.HtmlEncode(reset), resetHtml);
+
+        // Call-to-action, distinct copy and approved branding.
+        Assert.Contains("Criar minha senha", activationHtml);
+        Assert.Contains("Redefinir minha senha", resetHtml);
+        Assert.Contains("SEU ACESSO ESTÁ PRONTO", activationHtml);
+        Assert.Contains("REDEFINIÇÃO DE SENHA", resetHtml);
+        Assert.DoesNotContain("SEU ACESSO ESTÁ PRONTO", resetHtml);
+        Assert.Contains("Talent Valley", activationHtml);
+        Assert.Contains("Rio Pomba Valley", activationHtml);
+        Assert.Contains("TALENTOS · CONEXÕES · OPORTUNIDADES", activationHtml);
+
+        // Official logo is referenced through the configured frontend base URL.
+        Assert.Contains("https://talent.example/brand/talent-valley-email.png", activationHtml);
+        Assert.Contains("https://talent.example/brand/talent-valley-email.png", resetHtml);
+
+        Assert.NotEqual(activationHtml, resetHtml);
+        Assert.NotEqual(activationText, resetText);
+
         Assert.Empty(logger.Messages);
     }
 
@@ -60,11 +91,60 @@ public sealed class BrevoEmailSenderTests
         Assert.DoesNotContain("https://talent.example", logger.Messages[0]);
     }
 
-    private static BrevoEmailSender CreateSender(HttpClient client, RecordingLogger<BrevoEmailSender> logger) =>
+    [Fact]
+    public async Task Html_encodes_special_characters_but_keeps_plain_text_url()
+    {
+        var requests = new List<JsonElement>();
+        using var client = new HttpClient(new StubHandler(async request =>
+        {
+            var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync()).RootElement.Clone();
+            requests.Add(payload);
+            return new HttpResponseMessage(HttpStatusCode.Created);
+        }));
+        var logger = new RecordingLogger<BrevoEmailSender>();
+        var sender = CreateSender(client, logger);
+        var link = "https://talent.example/ativar-conta?email=maria%40example.test&token=\"><img src=x onerror=alert(1)>";
+
+        await sender.SendActivationLinkAsync("maria@example.test", link);
+
+        var html = requests[0].GetProperty("htmlContent").GetString()!;
+        var text = requests[0].GetProperty("textContent").GetString()!;
+
+        // The plain-text alternative keeps the exact original URL.
+        Assert.Contains(link, text);
+
+        // The HTML href/fallback is safely encoded and cannot break out of the attribute.
+        Assert.Contains("&amp;token=", html);
+        Assert.Contains("&quot;&gt;&lt;img src=x onerror=alert(1)&gt;", html);
+        Assert.DoesNotContain("\"><img", html);
+    }
+
+    [Fact]
+    public async Task Encodes_frontend_base_url_in_logo_markup()
+    {
+        var requests = new List<JsonElement>();
+        using var client = new HttpClient(new StubHandler(async request =>
+        {
+            var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync()).RootElement.Clone();
+            requests.Add(payload);
+            return new HttpResponseMessage(HttpStatusCode.Created);
+        }));
+        var logger = new RecordingLogger<BrevoEmailSender>();
+        var sender = CreateSender(client, logger, baseUrl: "https://talent.example\"><script>alert(1)</script>");
+
+        await sender.SendPasswordResetLinkAsync("maria@example.test", "https://talent.example/redefinir-senha?token=reset-secret");
+
+        var html = requests[0].GetProperty("htmlContent").GetString()!;
+        Assert.Contains("https://talent.example&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;/brand/talent-valley-email.png", html);
+        Assert.DoesNotContain("<script>alert(1)</script>", html);
+    }
+
+    private static BrevoEmailSender CreateSender(HttpClient client, RecordingLogger<BrevoEmailSender> logger,
+        string baseUrl = "https://talent.example") =>
         new(client, Options.Create(new BrevoOptions
         {
             ApiKey = "test-api-key", SenderAddress = "no-reply@example.test", SenderName = "Talent Valley"
-        }), logger);
+        }), Options.Create(new FrontendOptions { BaseUrl = baseUrl }), logger);
 
     private sealed class StubHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handle) : HttpMessageHandler
     {
