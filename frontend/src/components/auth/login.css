@@ -6,6 +6,7 @@
   --page: #0d1114;
   --line: #273238;
   --teal: #20c8c0;
+  --brand-muted: #a8b2b0;
   --terrain-line: #20c8c0;
   --terrain-edge: #a0d060;
   --terrain-node: #c0e394;
@@ -22,6 +23,7 @@
   --page: #f6f7f2;
   --line: #d5ddd4;
   --teal: #00756d;
+  --brand-muted: #53605c;
   --terrain-line: #006b60;
   --terrain-edge: #386b47;
   --terrain-node: #007d32;
@@ -110,6 +112,39 @@
   z-index: 1;
 }
 
+/* Match the landing's Brand lockup without loading its page stylesheet. */
+.tv-login .tv-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tv-login .tv-brand > svg {
+  flex-shrink: 0;
+}
+
+.tv-login .tv-brand strong {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+}
+
+.tv-login .tv-brand em {
+  color: var(--teal);
+  font-style: normal;
+}
+
+.tv-login .tv-brand small {
+  display: block;
+  margin-top: 5px;
+  color: var(--brand-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.015em;
+}
+
 .tv-login__copy {
   display: none;
 }
@@ -125,6 +160,18 @@
 .tv-login__formwrap {
   width: 100%;
   max-width: 440px;
+}
+
+@media (max-width: 1350px) {
+  .tv-login .tv-brand > svg { width: 65px; height: auto; }
+  .tv-login .tv-brand strong { font-size: 1.5rem; }
+}
+
+@media (max-width: 767px) {
+  .tv-login .tv-brand { gap: 6px; }
+  .tv-login .tv-brand > svg { width: 38px; }
+  .tv-login .tv-brand strong { font-size: 1.25rem; }
+  .tv-login .tv-brand small { font-size: 0.53rem; }
 }
 
 @media (min-width: 768px) {
