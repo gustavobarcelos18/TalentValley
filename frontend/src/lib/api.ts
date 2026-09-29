@@ -145,11 +145,17 @@ async function sendMutation<T>(
     throw error;
   }
 
-  if (response.status === 204 || response.status === 202) {
+  if (response.status === 204) {
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  const text = await response.text();
+
+  if (!text.trim()) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 // Friendly error text: prefer the backend ProblemDetails title, otherwise the
