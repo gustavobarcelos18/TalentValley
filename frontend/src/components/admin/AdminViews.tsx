@@ -575,8 +575,8 @@ export function AdminStudentsView() {
         title={target?.ativo ? "Bloquear aluno?" : "Reativar aluno?"}
         text={
           target?.ativo
-            ? `Bloquear ${target.nomeCompleto}? A conta será excluída automaticamente em 30 dias, salvo se for reativada.`
-            : `Deseja reativar ${target?.nomeCompleto}? A exclusão automática será cancelada.`
+            ? `Bloquear ${target.nomeCompleto}? O aluno perderá o acesso à conta e poderá ser reativado ou excluído permanentemente posteriormente.`
+            : `Deseja reativar ${target?.nomeCompleto}? O acesso à conta será restaurado.`
         }
         busy={busy}
         onClose={() => {

@@ -81,12 +81,13 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<AdminAlunoDeleteResult> DeleteAsync(Guid id)
     {
         await using var transaction = await database.Database.BeginTransactionAsync();
         var aluno = await database.Alunos.Include(x => x.User).Include(x => x.Formacoes)
             .SingleOrDefaultAsync(x => x.UserId == id);
-        if (aluno is null) return false;
+        if (aluno is null) return AdminAlunoDeleteResult.NotFound;
+        if (aluno.Ativo) return AdminAlunoDeleteResult.MustBeBlocked;
         var user = aluno.User;
         var files = new List<(FileCategory Category, string Key)>();
         if (aluno.FotoStorageKey is not null) files.Add((FileCategory.Photo, aluno.FotoStorageKey));
@@ -109,7 +110,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
                     file.Category, file.Key);
             }
         }
-        return true;
+        return AdminAlunoDeleteResult.Deleted;
     }
 
     private IQueryable<Aluno> FullQuery() => database.Alunos.AsNoTracking().AsSplitQuery()
@@ -157,4 +158,11 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         x.Projetos.OrderBy(p => p.Ordem).ThenBy(p => p.Id).Select(TrajetoriaMapping.Map).ToList(),
         new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : $"/api/admin/alunos/{x.UserId}/curriculo"),
         x.AtualizadoEm);
+}
+
+public enum AdminAlunoDeleteResult
+{
+    Deleted,
+    NotFound,
+    MustBeBlocked,
 }

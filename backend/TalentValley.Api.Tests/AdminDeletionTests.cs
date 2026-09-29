@@ -74,9 +74,11 @@ public sealed class AdminDeletionTests : IDisposable
                 await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER fail_delete BEFORE DELETE ON AspNetUsers BEGIN SELECT RAISE(ABORT, 'test failure'); END;");
         });
 
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await admin.PostAsync($"/api/admin/alunos/{id}/bloquear", null)).StatusCode);
         Assert.Equal(failIdentity ? HttpStatusCode.InternalServerError : HttpStatusCode.NoContent,
             (await admin.DeleteAsync($"/api/admin/alunos/{id}")).StatusCode);
-        Assert.Equal(failIdentity ? HttpStatusCode.OK : HttpStatusCode.Forbidden,
+        Assert.Equal(HttpStatusCode.Forbidden,
             (await student.GetAsync("/api/auth/me")).StatusCode);
         await factory.InScopeAsync(async provider =>
         {
@@ -100,16 +102,72 @@ public sealed class AdminDeletionTests : IDisposable
             foreach (var file in storedFiles)
                 Assert.Equal(failIdentity, await storage.ExistsAsync(file.Category, file.Key));
             var audit = await db.Auditorias.OrderBy(x => x.CriadoEm).ToListAsync();
-            Assert.Equal(failIdentity ? 1 : 2, audit.Count);
+            Assert.Equal(failIdentity ? 2 : 3, audit.Count);
             Assert.All(audit, entry => Assert.Equal(id.ToString(), entry.EntidadeId));
+            Assert.Equal(AcaoAuditoria.ALUNO_BLOQUEADO,
+                audit.Single(x => x.Acao == AcaoAuditoria.ALUNO_BLOQUEADO).Acao);
             if (!failIdentity)
             {
-                Assert.Equal(AcaoAuditoria.ALUNO_EXCLUIDO, audit[1].Acao);
-                Assert.Equal("Aluno Maria Álvares excluído.", audit[1].Descricao);
+                var deleted = audit.Single(x => x.Acao == AcaoAuditoria.ALUNO_EXCLUIDO);
+                Assert.Equal("Aluno Maria Álvares excluído.", deleted.Descricao);
             }
         });
         if (!failIdentity)
             Assert.Equal(HttpStatusCode.NotFound, (await admin.DeleteAsync($"/api/admin/alunos/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Deleting_active_student_returns_conflict_and_preserves_account()
+    {
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        var id = await factory.CreateUserAsync("student@example.test");
+        using var admin = factory.Client();
+        await ApiFactory.LoginAsync(admin, "admin@example.test");
+        await ApiFactory.SetCsrfAsync(admin);
+
+        var response = await admin.DeleteAsync($"/api/admin/alunos/{id}");
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("Bloqueie o aluno", await response.Content.ReadAsStringAsync());
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            Assert.True(await db.Users.AnyAsync(x => x.Id == id));
+            Assert.True(await db.Alunos.AnyAsync(x => x.UserId == id));
+            Assert.True((await db.Alunos.SingleAsync(x => x.UserId == id)).Ativo);
+            Assert.Empty(await db.Auditorias.ToListAsync());
+        });
+    }
+
+    [Fact]
+    public async Task Deleting_missing_student_returns_not_found()
+    {
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        using var admin = factory.Client();
+        await ApiFactory.LoginAsync(admin, "admin@example.test");
+        await ApiFactory.SetCsrfAsync(admin);
+
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await admin.DeleteAsync($"/api/admin/alunos/{Guid.NewGuid()}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Recruiter_delete_endpoint_is_not_exposed()
+    {
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        var id = await factory.CreateUserAsync("recruiter@example.test", AppRoles.Recruiter);
+        using var admin = factory.Client();
+        await ApiFactory.LoginAsync(admin, "admin@example.test");
+        await ApiFactory.SetCsrfAsync(admin);
+
+        var response = await admin.DeleteAsync($"/api/admin/recrutadores/{id}");
+        Assert.True(response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed,
+            $"Expected recruiter deletion to be unavailable, got {(int)response.StatusCode}.");
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            Assert.True(await db.Recrutadores.AnyAsync(x => x.UserId == id));
+        });
     }
 
     [Theory]

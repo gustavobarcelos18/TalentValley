@@ -18,7 +18,6 @@ export const adminApi = {
   recruiter: (id: string) => apiGet<AdminRecruiterDetail>(`/api/admin/recrutadores/${id}`),
   createRecruiter: (body: Record<string, string>) => apiMutation<AdminRecruiterCreated>("POST", "/api/admin/recrutadores", body),
   recruiterAction: (id: string, action: "bloquear" | "reativar") => apiMutation<void>("POST", `/api/admin/recrutadores/${id}/${action}`),
-  deleteRecruiter: (id: string) => apiMutation<void>("DELETE", `/api/admin/recrutadores/${id}`),
   resendActivation: (id: string) => apiMutation<void>("POST", `/api/admin/usuarios/${id}/reenviar-ativacao`),
   validations: (page: number) => apiGet<PaginatedResponse<RpvValidation>>(`/api/admin/validacoes-rpv?page=${page}`),
   validation: (id: string) => apiGet<RpvValidationDetail>(`/api/admin/validacoes-rpv/${id}`),
