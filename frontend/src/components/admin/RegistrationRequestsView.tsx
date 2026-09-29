@@ -22,6 +22,10 @@ import {
 } from "@mui/material";
 import { adminApi } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/api";
+import {
+  ActivationSnackbar,
+  useActivationFeedback,
+} from "@/components/admin/activationFeedback";
 import { formatUpdatedAt } from "@/lib/format";
 import { TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import { stripEmoji, validateSearchTerm } from "@/lib/validation";
@@ -57,6 +61,7 @@ export function RegistrationRequestsView() {
     [rejectionOpen, setRejectionOpen] = useState(false),
     [reason, setReason] = useState(""),
     [notice, setNotice] = useState<string | null>(null);
+  const activation = useActivationFeedback();
   const listRequestRef = useRef(0);
   const detailRequestRef = useRef(0);
   const busyRef = useRef(false);
@@ -171,9 +176,11 @@ export function RegistrationRequestsView() {
     setBusy(true);
     setActionError(null);
     try {
-      await adminApi.approveRegistration(detail.id);
-      setNotice(
-        "Cadastro aprovado. A ativação foi encaminhada pelo fluxo existente.",
+      const result = await adminApi.approveRegistration(detail.id);
+      activation.reportCreated(
+        result.userId,
+        result.activationSent,
+        "Cadastro aprovado e email de ativação enviado.",
       );
       closeDetail();
       await refreshAfterMutation();
@@ -382,6 +389,12 @@ export function RegistrationRequestsView() {
           autoHideDuration={6000}
           onClose={() => setNotice(null)}
           message={notice}
+        />
+        <ActivationSnackbar
+          notice={activation.notice}
+          busy={activation.resendBusy}
+          onClose={() => activation.setNotice(null)}
+          onResend={() => void activation.resend()}
         />
       </Stack>
     </Container>

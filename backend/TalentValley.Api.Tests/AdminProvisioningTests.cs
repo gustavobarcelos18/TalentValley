@@ -76,7 +76,8 @@ public sealed class AdminProvisioningTests : IDisposable
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var json = await response.Content.ReadAsStringAsync();
         var body = JsonDocument.Parse(json).RootElement;
-        Assert.Equal(4, body.EnumerateObject().Count());
+        Assert.Equal(5, body.EnumerateObject().Count());
+        Assert.True(body.GetProperty("activationSent").GetBoolean());
         Assert.False(response.Headers.Contains("Set-Cookie"));
         if (resource == "recrutadores") Assert.Equal("ATIVO", body.GetProperty("status").GetString());
         var activation = Assert.Single(factory.Emails.Activations);
@@ -166,7 +167,9 @@ public sealed class AdminProvisioningTests : IDisposable
             ? new { nomeCompleto = "João Silva", email = "person@example.test" } : Recruiter("person@example.test");
         var response = await client.PostAsJsonAsync($"/api/admin/{resource}", request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var id = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetGuid();
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        var id = body.GetProperty("id").GetGuid();
+        Assert.False(body.GetProperty("activationSent").GetBoolean());
         var failed = await client.PostAsync($"/api/admin/usuarios/{id}/reenviar-ativacao", null);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, failed.StatusCode);
         Assert.Equal("application/problem+json", failed.Content.Headers.ContentType!.MediaType);

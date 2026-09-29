@@ -10,6 +10,7 @@ using TalentValley.Api.DTOs;
 namespace TalentValley.Api.Services;
 
 public enum SolicitacaoApprovalResult { Approved, NotFound, InvalidState, EmailUnavailable }
+public sealed record SolicitacaoApprovalOutcome(SolicitacaoApprovalResult Result, Guid? UserId = null, bool ActivationSent = false);
 public enum SolicitacaoRejectionResult { Rejected, NotFound, InvalidState }
 
 public sealed class SolicitacaoCadastroService(AppDbContext database, UserManager<ApplicationUser> users,
@@ -77,17 +78,17 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
             x.RelacaoRioPombaValley, x.Empresa, x.Cargo, x.SiteEmpresa, x.CriadoEm, x.AnalisadoEm,
             x.AdminUser == null ? null : x.AdminUser.Email, x.MotivoRejeicao)).SingleOrDefaultAsync(cancellationToken);
 
-    public async Task<SolicitacaoApprovalResult> ApproveAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<SolicitacaoApprovalOutcome> ApproveAsync(Guid id, CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         var request = await database.SolicitacoesCadastro.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (request is null) return SolicitacaoApprovalResult.NotFound;
-        if (request.Status != StatusSolicitacaoCadastro.PENDENTE) return SolicitacaoApprovalResult.InvalidState;
-        if (await users.FindByEmailAsync(request.Email) is not null) return SolicitacaoApprovalResult.EmailUnavailable;
+        if (request is null) return new(SolicitacaoApprovalResult.NotFound);
+        if (request.Status != StatusSolicitacaoCadastro.PENDENTE) return new(SolicitacaoApprovalResult.InvalidState);
+        if (await users.FindByEmailAsync(request.Email) is not null) return new(SolicitacaoApprovalResult.EmailUnavailable);
 
         ApplicationUser user;
         try { user = await accounts.CreateAsync(request.NomeCompleto, request.Email, request.Tipo == TipoSolicitacaoCadastro.ALUNO ? AppRoles.Student : AppRoles.Recruiter); }
-        catch (DuplicateAccountEmailException) { return SolicitacaoApprovalResult.EmailUnavailable; }
+        catch (DuplicateAccountEmailException) { return new(SolicitacaoApprovalResult.EmailUnavailable); }
         if (request.Tipo == TipoSolicitacaoCadastro.ALUNO)
             database.Alunos.Add(new Aluno { UserId = user.Id, Slug = await slugs.GenerateAsync(user.NomeCompleto), Ativo = true,
                 Cidade = request.Cidade, Uf = request.Uf, Telefone = request.Telefone, EmailProfissional = request.Email, AtualizadoEm = DateTimeOffset.UtcNow });
@@ -101,8 +102,8 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
             $"Solicitação de cadastro de {request.NomeCompleto} aprovada.");
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        await accounts.TrySendActivationAsync(user);
-        return SolicitacaoApprovalResult.Approved;
+        var activationSent = await accounts.TrySendActivationAsync(user);
+        return new(SolicitacaoApprovalResult.Approved, user.Id, activationSent);
     }
 
     public async Task<SolicitacaoRejectionResult> RejectAsync(Guid id, string? reason, CancellationToken cancellationToken)
