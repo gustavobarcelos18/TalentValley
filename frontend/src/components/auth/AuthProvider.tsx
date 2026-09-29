@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ApiError } from "@/lib/api";
 import { fetchCurrentUser, logout as apiLogout } from "@/lib/auth";
 import type { UsuarioAutenticado } from "@/types/auth";
 
@@ -40,8 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const user = await fetchCurrentUser();
       setState({ user, loading: false, error: null });
-    } catch {
-      setState({ user: null, loading: false, error: null });
+    } catch (error) {
+      // 401/403 mean the current session is not usable: treat it as normal
+      // anonymous behavior. Any other failure (network, 5xx, ...) is an
+      // operational error and must never be mistaken for a logout.
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        setState({ user: null, loading: false, error: null });
+      } else {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "Não foi possível verificar sua sessão. Tente novamente.",
+        }));
+      }
     }
   }, []);
 

@@ -335,6 +335,7 @@ function useCepLookup({
           // Resolve the official municipality name for the returned UF before
           // touching the form, so the selected city is never from another state.
           let matched: string | null = null;
+          let municipiosUnavailable = false;
           try {
             const cached = municipioCache.get(result.uf);
             const municipios =
@@ -348,6 +349,7 @@ function useCepLookup({
             // Other failures still fill the UF and leave Cidade unselected.
             if (timedOut) throw reason;
             if (controller.signal.aborted) return;
+            municipiosUnavailable = true;
           }
 
           const latest = latestRef.current;
@@ -372,7 +374,9 @@ function useCepLookup({
                 ? { type: "success" }
                 : {
                     type: "success",
-                    message: "UF preenchida pelo CEP. Selecione a cidade na lista.",
+                    message: municipiosUnavailable
+                      ? "UF preenchida pelo CEP. Digite a cidade manualmente."
+                      : "UF preenchida pelo CEP. Selecione a cidade na lista.",
                   }
               : { type: "idle" },
           });
@@ -548,6 +552,26 @@ function CommonFields({
   });
   const { municipios, loading, error, retry } = useMunicipios(value.uf);
   const selectedCity = municipios.find((m) => m.nome === value.cidade) ?? null;
+
+  // When the official list recovers from an IBGE error, reconcile a manually
+  // typed city: normalize it to the official name when it matches, otherwise
+  // clear it so an invalid Cidade/UF pair can never be silently submitted or
+  // left hidden behind the Autocomplete.
+  const wasErrorRef = useRef(error);
+  useEffect(() => {
+    const wasError = wasErrorRef.current;
+    if (error) {
+      wasErrorRef.current = true;
+      return;
+    }
+    if (municipios.length === 0) return;
+    if (wasError && value.cidade) {
+      const match = findMunicipio(municipios, value.cidade);
+      onChange("cidade", match ? match.nome : "");
+    }
+    wasErrorRef.current = false;
+  }, [error, municipios, value.cidade, onChange]);
+
   return (
     <>
       <RegistrationSection title="Dados pessoais" description="Como podemos identificar você.">
@@ -723,69 +747,84 @@ function CommonFields({
               </MenuItem>
             ))}
           </TextField>
-          <Autocomplete
-            id="cidade"
-            value={selectedCity}
-            onChange={(_event, newValue) =>
-              onChange("cidade", newValue ? newValue.nome : "")
-            }
-            options={municipios}
-            getOptionLabel={(option) => option.nome}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            loading={loading}
-            loadingText="Carregando cidades..."
-            noOptionsText={
-              error
-                ? "Não foi possível carregar as cidades."
-                : "Nenhuma cidade encontrada."
-            }
-            disabled={disabled || !value.uf}
-            fullWidth
-            filterOptions={municipioFilter}
-            renderInput={(params) => (
+          {error ? (
+            <Stack spacing={1}>
               <TextField
-                {...params}
-                slotProps={{
-                  ...params.slotProps,
-                  htmlInput: {
-                    ...params.slotProps.htmlInput,
-                    value: params.slotProps.htmlInput.value ?? "",
-                    onPaste: stripEmojiOnPaste,
-                  },
-                }}
+                id="cidade"
+                required
                 label="Cidade"
-                placeholder={
-                  value.uf ? "Busque e selecione uma cidade" : "Selecione o estado primeiro"
-                }
+                autoComplete="address-level2"
+                value={value.cidade}
+                onChange={(e) => onChange("cidade", sanitizeCityName(e.target.value))}
                 onBlur={() => onBlur("cidade")}
                 inputRef={registerFieldRef("cidade")}
+                disabled={disabled}
                 error={Boolean(errors.cidade)}
                 helperText={errors.cidade}
+                slotProps={{
+                  htmlInput: { maxLength: 120, onPaste: stripEmojiOnPaste },
+                }}
               />
-            )}
-            renderOption={(props, option) => {
-              const { key, ...optionProps } = props;
-              return (
-                <li key={key} {...optionProps}>
-                  {option.nome}
-                </li>
-              );
-            }}
-          />
-          {error && (
-            <Stack
-              direction="row"
-              spacing={1}
-              useFlexGap
-              sx={{ alignItems: "center", flexWrap: "wrap" }}
-            >
-              <Typography component="span" variant="caption" color="error.main" role="status">
-                Não foi possível carregar a lista de cidades.
-              </Typography>
-              <Button size="small" type="button" onClick={retry}>
-                Tentar novamente
-              </Button>
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{ alignItems: "center", flexWrap: "wrap" }}
+              >
+                <Typography component="span" variant="caption" color="text.secondary" role="status">
+                  Não foi possível carregar a lista oficial. Digite a cidade manualmente ou tente novamente.
+                </Typography>
+                <Button size="small" type="button" onClick={retry}>
+                  Tentar novamente
+                </Button>
+              </Stack>
             </Stack>
+          ) : (
+            <Autocomplete
+              id="cidade"
+              value={selectedCity}
+              onChange={(_event, newValue) =>
+                onChange("cidade", newValue ? newValue.nome : "")
+              }
+              options={municipios}
+              getOptionLabel={(option) => option.nome}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              loading={loading}
+              loadingText="Carregando cidades..."
+              noOptionsText="Nenhuma cidade encontrada."
+              disabled={disabled || !value.uf}
+              fullWidth
+              filterOptions={municipioFilter}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  slotProps={{
+                    ...params.slotProps,
+                    htmlInput: {
+                      ...params.slotProps.htmlInput,
+                      value: params.slotProps.htmlInput.value ?? "",
+                      onPaste: stripEmojiOnPaste,
+                    },
+                  }}
+                  label="Cidade"
+                  placeholder={
+                    value.uf ? "Busque e selecione uma cidade" : "Selecione o estado primeiro"
+                  }
+                  onBlur={() => onBlur("cidade")}
+                  inputRef={registerFieldRef("cidade")}
+                  error={Boolean(errors.cidade)}
+                  helperText={errors.cidade}
+                />
+              )}
+              renderOption={(props, option) => {
+                const { key, ...optionProps } = props;
+                return (
+                  <li key={key} {...optionProps}>
+                    {option.nome}
+                  </li>
+                );
+              }}
+            />
           )}
         </Box>
       </RegistrationSection>
