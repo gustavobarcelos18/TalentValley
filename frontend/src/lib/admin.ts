@@ -1,4 +1,4 @@
-import { apiGet, apiMutation } from "@/lib/api";
+import { apiGet, apiMutation, ensureCsrfToken } from "@/lib/api";
 import type { AdminDashboard, AdminRecruiter, AdminRecruiterCreated, AdminRecruiterDetail, AdminStudentCreated, AdminStudentDetail, AdminStudentListItem, AdminRegistrationRequest, AdminRegistrationRequestDetail, AuditItem, PaginatedResponse, RegistrationApprovalResult, RegistrationRequestStatus, RegistrationRequestType, RpvValidation, RpvValidationDetail } from "@/types/admin";
 import type { RecruiterRegistrationRequest, RegistrationCreated, StudentRegistrationRequest } from "@/types/registration";
 
@@ -26,6 +26,16 @@ export const adminApi = {
 };
 
 export const registrationApi = {
-  student: (body: StudentRegistrationRequest) => apiMutation<RegistrationCreated>("POST", "/api/cadastro/aluno", body),
-  recruiter: (body: RecruiterRegistrationRequest) => apiMutation<RegistrationCreated>("POST", "/api/cadastro/recrutador", body),
+  // Public registration must obtain the antiforgery token before the first
+  // POST, so a normal first submission does not depend on a failed request.
+  // apiMutation keeps its one-time antiforgery retry as a fallback for stale
+  // or invalidated token pairs.
+  student: async (body: StudentRegistrationRequest) => {
+    await ensureCsrfToken();
+    return apiMutation<RegistrationCreated>("POST", "/api/cadastro/aluno", body);
+  },
+  recruiter: async (body: RecruiterRegistrationRequest) => {
+    await ensureCsrfToken();
+    return apiMutation<RegistrationCreated>("POST", "/api/cadastro/recrutador", body);
+  },
 };
