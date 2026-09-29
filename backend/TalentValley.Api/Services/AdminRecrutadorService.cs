@@ -27,8 +27,8 @@ public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountSe
             await database.SaveChangesAsync();
             await transaction.CommitAsync();
         }
-        await accounts.TrySendActivationAsync(user);
-        return new(user.Id, user.NomeCompleto, user.Email!, StatusRecrutador.ATIVO);
+        var activationSent = await accounts.TrySendActivationAsync(user);
+        return new(user.Id, user.NomeCompleto, user.Email!, StatusRecrutador.ATIVO, activationSent);
     }
 
     public async Task<PaginatedResponse<RecrutadorListItem>> ListAsync(RecrutadorListQuery request)

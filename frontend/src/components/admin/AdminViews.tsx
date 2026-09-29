@@ -60,9 +60,15 @@ import {
 } from "@/lib/labels";
 import { ProtectedFileButton } from "@/components/recruiter/ProtectedFileButton";
 import { ProtectedTalentPhoto } from "@/components/recruiter/ProtectedTalentPhoto";
+import {
+  ActivationSnackbar,
+  useActivationFeedback,
+} from "@/components/admin/activationFeedback";
 import type {
   AdminRecruiter,
+  AdminRecruiterCreated,
   AdminRecruiterDetail,
+  AdminStudentCreated,
   AdminStudentListItem,
   AuditItem,
   PaginatedResponse,
@@ -387,6 +393,7 @@ export function AdminStudentsView() {
     [searchError, setSearchError] = useState<string | null>(null),
     [confirmError, setConfirmError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null);
+  const activation = useActivationFeedback();
   const state = useLoad(() => adminApi.students(page, search), [page, search]);
   const submitSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -553,10 +560,12 @@ export function AdminStudentsView() {
       <StudentCreate
         open={create}
         onClose={() => setCreate(false)}
-        onSuccess={() => {
+        onSuccess={(created) => {
           setCreate(false);
-          setNotice(
-            "Acesso de aluno criado. A ativação seguirá o fluxo existente.",
+          activation.reportCreated(
+            created.id,
+            created.activationSent,
+            "Acesso de aluno criado e email de ativação enviado.",
           );
           state.reload();
         }}
@@ -596,6 +605,12 @@ export function AdminStudentsView() {
         onClose={() => setNotice(null)}
         message={notice}
       />
+      <ActivationSnackbar
+        notice={activation.notice}
+        busy={activation.resendBusy}
+        onClose={() => activation.setNotice(null)}
+        onResend={() => void activation.resend()}
+      />
     </Page>
   );
 }
@@ -606,7 +621,7 @@ function StudentCreate({
 }: {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (created: AdminStudentCreated) => void;
 }) {
   const [nomeCompleto, setName] = useState(""),
     [email, setEmail] = useState(""),
@@ -624,13 +639,13 @@ function StudentCreate({
     setBusy(true);
     setError(null);
     try {
-      await adminApi.createStudent({
+      const created = await adminApi.createStudent({
         nomeCompleto: nomeCompleto.trim(),
         email: email.trim(),
       });
       setName("");
       setEmail("");
-      onSuccess();
+      onSuccess(created);
     } catch (reason) {
       setError(getApiErrorMessage(reason, "Não foi possível criar o acesso."));
     } finally {
@@ -940,6 +955,7 @@ export function AdminRecruitersView() {
     [searchError, setSearchError] = useState<string | null>(null),
     [confirmError, setConfirmError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null);
+  const activation = useActivationFeedback();
   const detailRequestRef = useRef(0);
   const state = useLoad(
     () => adminApi.recruiters(page, search, status),
@@ -1113,10 +1129,12 @@ export function AdminRecruitersView() {
       <RecruiterCreate
         open={create}
         onClose={() => setCreate(false)}
-        onSuccess={() => {
+        onSuccess={(created) => {
           setCreate(false);
-          setNotice(
-            "Acesso de recrutador criado. A ativação seguirá o fluxo existente.",
+          activation.reportCreated(
+            created.id,
+            created.activationSent,
+            "Acesso de recrutador criado e email de ativação enviado.",
           );
           state.reload();
         }}
@@ -1151,6 +1169,12 @@ export function AdminRecruitersView() {
         onClose={() => setNotice(null)}
         message={notice}
       />
+      <ActivationSnackbar
+        notice={activation.notice}
+        busy={activation.resendBusy}
+        onClose={() => activation.setNotice(null)}
+        onResend={() => void activation.resend()}
+      />
     </Page>
   );
 }
@@ -1161,7 +1185,7 @@ function RecruiterCreate({
 }: {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (created: AdminRecruiterCreated) => void;
 }) {
   const blank = {
     nomeCompleto: "",
@@ -1194,7 +1218,7 @@ function RecruiterCreate({
     setBusy(true);
     setError(null);
     try {
-      await adminApi.createRecruiter(
+      const created = await adminApi.createRecruiter(
         Object.fromEntries(
           Object.entries(data).map(([k, v]) => [
             k,
@@ -1207,7 +1231,7 @@ function RecruiterCreate({
         ),
       );
       setData(blank);
-      onSuccess();
+      onSuccess(created);
     } catch (reason) {
       setError(getApiErrorMessage(reason, "Não foi possível criar o acesso."));
     } finally {

@@ -34,6 +34,8 @@ public sealed class SolicitarCadastroRecrutadorRequest : SolicitarCadastroBaseRe
 
 public sealed record SolicitacaoCadastroCreatedResponse(Guid Id, StatusSolicitacaoCadastro Status);
 
+public sealed record SolicitacaoAprovacaoResponse(Guid UserId, bool ActivationSent);
+
 public sealed class SolicitacaoCadastroListQuery
 {
     [Range(1, int.MaxValue / 10)] public int Page { get; init; } = 1;

@@ -46,8 +46,8 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
             await database.SaveChangesAsync();
             await transaction.CommitAsync();
         }
-        await accounts.TrySendActivationAsync(user);
-        return new(user.Id, user.NomeCompleto, user.Email!, true);
+        var activationSent = await accounts.TrySendActivationAsync(user);
+        return new(user.Id, user.NomeCompleto, user.Email!, true, activationSent);
     }
 
     public async Task<PaginatedResponse<AlunoListItem>> ListAsync(AdminListQuery request)
