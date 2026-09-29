@@ -101,8 +101,6 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
-Recruiter frontend screens and the admin dashboard remain future phases.
-
 ## Authentication configuration
 
 Run from the repository root in PowerShell. Generate a random signing key locally; never commit it:
@@ -138,7 +136,7 @@ dotnet user-secrets set 'BootstrapAdmin:Password' $bootstrapCredential.Password 
 Remove-Variable bootstrapPassword, bootstrapCredential
 ```
 
-Missing/incomplete settings log an informational skip and startup continues (a valid JWT key and migrated DB are still required). Bootstrap runs only in Development, is idempotent, normalizes `NomeBusca`, and never resets an existing admin password or promotes an existing non-admin. No student/recruiter/demo accounts are seeded. Remove the bootstrap password secret after the initial account is created if bootstrap is no longer needed.
+Missing/incomplete settings log an informational skip and startup continues (a valid JWT key and migrated DB are still required). Bootstrap runs in Development or when `BootstrapAdmin:Enabled` is true, is idempotent, normalizes `NomeBusca`, and never resets an existing admin password or promotes an existing non-admin. No student/recruiter/demo accounts are seeded. Remove the bootstrap password secret after the initial account is created if bootstrap is no longer needed.
 
 ### API and antiforgery request flow
 
@@ -149,9 +147,9 @@ Missing/incomplete settings log an informational skip and startup continues (a v
 
 `POST /api/auth/activate-account` accepts `{ email, token, senha }`; `POST /api/auth/forgot-password` accepts `{ email }`; `POST /api/auth/reset-password` accepts `{ email, token, novaSenha }`. Activation/reset return 204 or a generic 400 and do not log in. Forgot-password returns the same generic 202 for eligible, missing, or unactivated accounts. Malformed requests still receive standard validation problems.
 
-`AccountTokenService` generates activation tokens/links for an existing admin-created user and can send them through `IEmailSender`; no admin creation endpoint exists yet. Links target `${Frontend:BaseUrl}/ativar-conta` and `/redefinir-senha` with URL-encoded `email` and `token`. Activation tokens use a dedicated Identity purpose; reset uses Identity password-reset tokens. Both use Identity's default Data Protection token lifetime (one day) and are invalidated after successful use. Activation sets the first password and confirms email atomically. Unactivated accounts cannot use reset as an activation shortcut.
+`AccountTokenService` generates activation tokens/links for an admin-created user and can send them through `IEmailSender`. Links target `${Frontend:BaseUrl}/ativar-conta` and `/redefinir-senha` with URL-encoded `email` and `token`. Activation tokens use a dedicated Identity purpose; reset uses Identity password-reset tokens. Both use Identity's default Data Protection token lifetime (one day) and are invalidated after successful use. Activation sets the first password and confirms email atomically. Unactivated accounts cannot use reset as an activation shortcut.
 
-The Development sender logs the destination email and full activation/reset URL in the API console; no external provider is needed. It never logs passwords or JWTs. Outside Development, the placeholder sender logs an explicit error and throws on attempted delivery. Forgot-password handles that known delivery error after logging it and preserves its generic 202 to prevent enumeration; it does not claim delivery succeeded. A production email implementation and persistent Data Protection keys must be configured for deployment.
+The `DevelopmentEmailSender` logs the destination email and full activation/reset URL in the API console; no external provider is needed and it never logs passwords or JWTs. Outside Development the API uses `BrevoEmailSender` when `Brevo__ApiKey`, `Brevo__SenderAddress`, and `Brevo__SenderName` are all configured; otherwise it uses `UnavailableEmailSender`, which logs an error and throws on attempted delivery. Forgot-password catches that delivery failure, preserves its generic 202 to prevent enumeration, and does not claim delivery succeeded. Production requires the three Brevo settings and a persistent Data Protection keys path (`DataProtection:KeysPath`) so activation/reset tokens survive restarts.
 
 ## Backend checks
 
