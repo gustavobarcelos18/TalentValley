@@ -59,6 +59,24 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi().AllowAnonymous();
 }
 
+if (!app.Environment.IsDevelopment())
+{
+    // First in the pipeline so redirects, errors and short-circuited responses also carry the headers.
+    app.Use(async (context, next) =>
+    {
+        context.Response.OnStarting(() =>
+        {
+            var headers = context.Response.Headers;
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+            headers["X-Content-Type-Options"] = "nosniff";
+            headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+            headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+            return Task.CompletedTask;
+        });
+        await next();
+    });
+}
+
 // Use generic problem responses in every environment; never send exception details to clients.
 app.UseExceptionHandler();
 app.UseStatusCodePages();
