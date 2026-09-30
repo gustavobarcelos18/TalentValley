@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using TalentValley.Api.Authorization;
 using TalentValley.Api.DTOs;
 using TalentValley.Api.Services;
 
@@ -8,6 +10,7 @@ namespace TalentValley.Api.Controllers;
 [ApiController]
 [Route("api/cadastro")]
 [AllowAnonymous]
+[EnableRateLimiting(RateLimitPolicies.Anonymous)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class CadastroController(SolicitacaoCadastroService solicitacoes) : ControllerBase
 {

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using TalentValley.Api.Authorization;
@@ -40,6 +41,20 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddApplicationSecurity(builder.Configuration, builder.Environment);
+builder.Services.AddRateLimiter(options =>
+{
+    // Fixed window per client IP and endpoint, for anonymous endpoints open to abuse.
+    var permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 5);
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = (context, _) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        return ValueTask.CompletedTask;
+    };
+    options.AddPolicy(RateLimitPolicies.Anonymous, context => RateLimitPartition.GetFixedWindowLimiter(
+        $"{context.Connection.RemoteIpAddress}|{context.Request.Path}",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 
 var app = builder.Build();
 
@@ -93,6 +108,7 @@ if (app.Configuration.GetValue<bool>("Deployment:TrustForwardedHeaders"))
 }
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ApiAntiforgeryMiddleware>();

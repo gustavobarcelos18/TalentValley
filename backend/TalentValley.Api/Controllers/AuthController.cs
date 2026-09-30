@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.DTOs;
 using TalentValley.Api.Services;
@@ -18,6 +19,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
         new CsrfResponse(antiforgery.GetAndStoreTokens(HttpContext).RequestToken!);
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
@@ -58,6 +60,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
             ? NoContent() : InvalidAccountToken();
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> Forgot(ForgotPasswordRequest request)
     {
