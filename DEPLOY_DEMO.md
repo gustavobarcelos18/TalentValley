@@ -21,6 +21,7 @@ Jwt__Audience=TalentValley.Frontend
 Jwt__SigningKey=<BASE64 SECRET WITH AT LEAST 32 RANDOM BYTES>
 Jwt__ExpirationHours=8
 Frontend__BaseUrl=https://YOUR-VERCEL-PROJECT.vercel.app
+AllowedHosts=<RAILWAY-DOMAIN, e.g. your-service.up.railway.app>
 BootstrapAdmin__Enabled=true
 BootstrapAdmin__Email=<DEMO ADMIN EMAIL>
 BootstrapAdmin__Name=<DEMO ADMIN NAME>

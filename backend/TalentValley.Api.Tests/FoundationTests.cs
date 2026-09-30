@@ -132,6 +132,27 @@ public sealed class FoundationTests
     }
 
     [Theory]
+    [InlineData("Production", "")]
+    [InlineData("Production", "*")]
+    [InlineData("Production", "localhost")]
+    [InlineData("Production", "LocalHost;*")]
+    public void Missing_or_unsafe_allowed_hosts_fails_startup_outside_development(string environment, string hosts)
+    {
+        using var factory = new ApiFactory { EnvironmentName = environment };
+        factory.Overrides["AllowedHosts"] = hosts;
+        var exception = Assert.ThrowsAny<Exception>(() => factory.Client());
+        Assert.Contains("AllowedHosts", exception.ToString());
+    }
+
+    [Fact]
+    public void Development_accepts_localhost_allowed_hosts()
+    {
+        using var factory = new ApiFactory { EnvironmentName = "Development" };
+        factory.Overrides["AllowedHosts"] = "localhost";
+        using var client = factory.Client();
+    }
+
+    [Theory]
     [InlineData("abc")]
     [InlineData("Abcdefgh")]
     [InlineData("abcdefgh1")]

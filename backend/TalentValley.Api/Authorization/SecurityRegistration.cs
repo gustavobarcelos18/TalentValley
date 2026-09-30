@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -122,6 +123,10 @@ public static class SecurityRegistration
                 uri.AbsolutePath == "/" && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) && string.IsNullOrEmpty(uri.UserInfo),
                 "Frontend:BaseUrl must be a frontend origin (HTTPS outside Development).")
             .ValidateOnStart();
+        services.AddOptions<HostFilteringOptions>()
+            .Validate(o => environment.IsDevelopment() || HasSpecificAllowedHosts(o.AllowedHosts),
+                "AllowedHosts must list the deployed API host(s) outside Development; empty, \"*\" and \"localhost\" are not allowed.")
+            .ValidateOnStart();
         services.AddAntiforgery(options =>
         {
             options.HeaderName = "X-XSRF-TOKEN";
@@ -138,5 +143,12 @@ public static class SecurityRegistration
                     .WithMethods("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                     .WithHeaders("Content-Type", "X-XSRF-TOKEN").AllowCredentials();
         }));
+    }
+
+    private static bool HasSpecificAllowedHosts(IList<string>? hosts)
+    {
+        var entries = (hosts ?? []).Select(h => h.Trim()).Where(h => h.Length > 0).ToList();
+        return entries.Count > 0 && !entries.Contains("*") &&
+            !entries.All(h => string.Equals(h, "localhost", StringComparison.OrdinalIgnoreCase));
     }
 }

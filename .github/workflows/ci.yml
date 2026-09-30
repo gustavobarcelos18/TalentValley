@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restaurar dependências do backend
+        run: dotnet restore backend/TalentValley.slnx
+
+      - name: Compilar o backend
+        run: dotnet build backend/TalentValley.slnx --no-restore
+
+      - name: Executar testes do backend
+        run: dotnet test backend/TalentValley.slnx --no-build
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências do frontend (npm ci)
+        run: npm ci
+
+      - name: Executar lint do frontend
+        run: npm run lint
+
+      - name: Verificar tipos do frontend (typecheck)
+        run: npm run typecheck
