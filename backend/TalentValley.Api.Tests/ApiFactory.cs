@@ -68,6 +68,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 ["Frontend:BaseUrl"] = EnvironmentName == "Development" ? "http://localhost:3000" : "https://talent.example",
                 ["BootstrapAdmin:Email"] = "", ["BootstrapAdmin:Password"] = "", ["BootstrapAdmin:Name"] = "",
                 ["Storage:RootPath"] = StoragePath,
+                ["RateLimiting:PermitLimit"] = "1000", // Effectively off; rate-limit tests override it.
                 ["Logging:LogLevel:Default"] = "Error"
             };
             foreach (var setting in Overrides) settings[setting.Key] = setting.Value;
