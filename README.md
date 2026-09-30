@@ -101,6 +101,24 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
+## Host validation
+
+The API restricts incoming requests by `Host` header via ASP.NET Core's host-filtering middleware. Development accepts `localhost`. Production **must** configure the real domain through the `AllowedHosts` environment variable to prevent request smuggling and host-header injection.
+
+Example for a Vercel or Railway deployment with domain `talent.example`:
+
+```powershell
+# via environment variable
+$env:AllowedHosts = "talent.example"
+dotnet run
+```
+
+In containerized deployments, set it through your orchestration system (Docker ENV, Kubernetes env, etc.):
+
+```dockerfile
+ENV AllowedHosts=talent.example
+```
+
 ## Authentication configuration
 
 Run from the repository root in PowerShell. Generate a random signing key locally; never commit it:
@@ -115,7 +133,15 @@ dotnet user-secrets set 'Jwt:SigningKey' $jwtKey --project backend/TalentValley.
 Remove-Variable jwtKey, jwtBytes, jwtRandom
 ```
 
-`Jwt:SigningKey` must be Base64 encoding at least 32 cryptographically random bytes. Missing, short, or repetitive keys fail startup in every environment. Development configuration supplies `Jwt:Issuer=TalentValley.Api`, `Jwt:Audience=TalentValley.Frontend`, `Jwt:ExpirationHours=8`, and `Frontend:BaseUrl=http://localhost:3000`. Lifetime must be greater than 0 and at most 24 hours. Outside Development, supply the issuer, audience, signing key, frontend HTTPS origin, and connection string through deployment configuration/secrets. CORS only permits the configured Development origin with credentials; Production uses same-origin routing.
+`Jwt:SigningKey` must be Base64 encoding at least 32 cryptographically random bytes. Missing, short, or repetitive keys fail startup in every environment. Development configuration supplies `Jwt:Issuer=TalentValley.Api`, `Jwt:Audience=TalentValley.Frontend`, `Jwt:ExpirationHours=8`, and `Frontend:BaseUrl=http://localhost:3000`. Lifetime must be greater than 0 and at most 24 hours.
+
+Outside Development, supply:
+- `AllowedHosts`: the production domain (e.g., `talent.example`) to reject requests with incorrect Host headers.
+- `Jwt:SigningKey`: base64-encoded 32-byte key.
+- `Jwt:Issuer`, `Jwt:Audience`, and `Frontend:BaseUrl`: production HTTPS origin.
+- `ConnectionStrings:DefaultConnection`: production database connection string.
+
+CORS only permits the configured Development origin with credentials; Production uses same-origin routing.
 
 Identity requires a unique email and passwords with at least 8 characters, uppercase, lowercase, and a digit; symbols are optional. Five failed password attempts lock sign-in for 15 minutes. Accounts require activation/email confirmation before sign-in. Successful login shifts `UltimoLoginEm` into `LoginAnteriorEm` and records the current UTC time.
 
