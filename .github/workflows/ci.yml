@@ -49,5 +49,5 @@ jobs:
       - name: Executar lint do frontend
         run: npm run lint
 
-      - name: Verificar tipos do frontend (typecheck)
-        run: npm run typecheck
+      - name: Compilar o frontend (build)
+        run: npm run build
