@@ -16,6 +16,9 @@ public enum SolicitacaoRejectionResult { Rejected, NotFound, InvalidState }
 public sealed class SolicitacaoCadastroService(AppDbContext database, UserManager<ApplicationUser> users,
     AdminAccountService accounts, AuditoriaService audit, SlugService slugs, IHttpContextAccessor context)
 {
+    // Bump when the published terms of use / privacy policy change.
+    public const string VersaoTermosAtual = "1.0";
+
     public async Task CreateAlunoAsync(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
     {
         var entity = Base(request, TipoSolicitacaoCadastro.ALUNO);
@@ -89,7 +92,8 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
         catch (DuplicateAccountEmailException) { return new(SolicitacaoApprovalResult.EmailUnavailable); }
         if (request.Tipo == TipoSolicitacaoCadastro.ALUNO)
             database.Alunos.Add(new Aluno { UserId = user.Id, Slug = await slugs.GenerateAsync(user.NomeCompleto), Ativo = true,
-                Cidade = request.Cidade, Uf = request.Uf, Telefone = request.Telefone, EmailProfissional = request.Email, AtualizadoEm = DateTimeOffset.UtcNow });
+                Cidade = request.Cidade, Uf = request.Uf, Telefone = request.Telefone, EmailProfissional = request.Email, AtualizadoEm = DateTimeOffset.UtcNow,
+                ConsentimentoEm = request.ConsentimentoEm, VersaoTermos = request.VersaoTermos });
         else
             database.Recrutadores.Add(new Recrutador { UserId = user.Id, Empresa = request.Empresa!, EmpresaBusca = NameNormalizer.Normalize(request.Empresa!),
                 Cargo = request.Cargo!, Telefone = request.Telefone, Cidade = request.Cidade, Uf = request.Uf, Status = StatusRecrutador.ATIVO });
@@ -125,6 +129,8 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
 
     private static SolicitacaoCadastro Base(SolicitarCadastroBaseRequest request, TipoSolicitacaoCadastro type) => new()
     { Id = Guid.NewGuid(), Tipo = type, Status = StatusSolicitacaoCadastro.PENDENTE, NomeCompleto = request.NomeCompleto, Email = request.Email,
-        EmailNormalizado = request.Email.ToUpperInvariant(), Telefone = request.Telefone, Cidade = request.Cidade, Uf = request.Uf, CriadoEm = DateTimeOffset.UtcNow };
+        EmailNormalizado = request.Email.ToUpperInvariant(), Telefone = request.Telefone, Cidade = request.Cidade, Uf = request.Uf, CriadoEm = DateTimeOffset.UtcNow,
+        // Validation guarantees ConsentTermos is true; the server records when and which terms version was accepted.
+        ConsentimentoEm = DateTimeOffset.UtcNow, VersaoTermos = VersaoTermosAtual };
     private Guid CurrentAdminId() => Guid.Parse(context.HttpContext!.User.FindFirst("sub")!.Value);
 }

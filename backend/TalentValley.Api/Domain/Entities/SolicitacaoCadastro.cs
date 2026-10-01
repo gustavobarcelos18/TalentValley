@@ -27,4 +27,7 @@ public class SolicitacaoCadastro
     public Guid? AdminUserId { get; set; }
     public ApplicationUser? AdminUser { get; set; }
     public string? MotivoRejeicao { get; set; }
+    // LGPD: when and which version of the terms the requester accepted.
+    public DateTimeOffset? ConsentimentoEm { get; set; }
+    public string? VersaoTermos { get; set; }
 }

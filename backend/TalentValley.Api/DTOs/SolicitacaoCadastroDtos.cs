@@ -11,6 +11,9 @@ public abstract class SolicitarCadastroBaseRequest
     [Required, StringLength(20), BrazilianPhone] public string Telefone { get => telefone; init => telefone = value?.Trim() ?? string.Empty; }
     [Required, StringLength(120, MinimumLength = 2), CityName, NoEmoji] public string Cidade { get => cidade; init => cidade = Normalize(value); }
     [Required, BrazilianUf] public string Uf { get => uf; init => uf = value?.Trim().ToUpperInvariant() ?? string.Empty; }
+    // LGPD: the terms checkbox must be explicitly accepted; a missing value binds as false and is rejected.
+    [Range(typeof(bool), "true", "true", ErrorMessage = "É necessário aceitar os termos de uso e a política de privacidade.")]
+    public bool ConsentTermos { get; init; }
     private static string Normalize(string? value) => string.Join(' ', (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 }
 

@@ -12,7 +12,7 @@ namespace TalentValley.Api.Controllers;
 [Authorize(Policy = AppPolicies.RequireActiveStudent)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class AlunosController(AlunoService alunoService, TrajetoriaService trajetoriaService,
-    StudentFileService files) : ControllerBase
+    StudentFileService files, IHostEnvironment environment) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirst("sub")!.Value);
 
@@ -27,6 +27,25 @@ public sealed class AlunosController(AlunoService alunoService, TrajetoriaServic
         return profile is null
             ? Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.")
             : Ok(profile);
+    }
+
+    // LGPD self-deletion. Class-level policy requires an active student; the CSRF middleware covers DELETE.
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMyProfile(DeleteOwnProfileRequest request, CancellationToken cancellationToken)
+    {
+        switch (await alunoService.DeleteOwnAsync(CurrentUserId, request.SenhaAtual, cancellationToken))
+        {
+            case AlunoSelfDeleteResult.Deleted:
+                Response.Cookies.Delete(AuthCookie.Name, AuthCookie.Options(environment));
+                return NoContent();
+            case AlunoSelfDeleteResult.InvalidPassword:
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Senha incorreta.");
+            case AlunoSelfDeleteResult.LockedOut:
+                return Problem(statusCode: StatusCodes.Status423Locked,
+                    title: "Conta temporariamente bloqueada por tentativas inválidas.");
+            default:
+                return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.");
+        }
     }
 
     [HttpPost("me/foto")]

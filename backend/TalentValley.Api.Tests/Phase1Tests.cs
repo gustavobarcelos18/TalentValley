@@ -16,12 +16,12 @@ public sealed class Phase1Tests
     private static object Student(string email) => new
     {
         nomeCompleto = "Ana Silva", email, telefone = "(32) 99999-0000", cidade = "Rio Pomba", uf = "MG",
-        instituicaoEnsino = "IF Sudeste MG", curso = "Sistemas de Informação", tipoFormacao = "GRADUACAO"
+        instituicaoEnsino = "IF Sudeste MG", curso = "Sistemas de Informação", tipoFormacao = "GRADUACAO", consentTermos = true
     };
     private static object Recruiter(string email) => new
     {
         nomeCompleto = "Carlos Souza", email, telefone = "(32) 99999-0001", cidade = "Ubá", uf = "MG",
-        empresa = "Empresa Exemplo", cargo = "Analista de RH", siteEmpresa = "https://example.test"
+        empresa = "Empresa Exemplo", cargo = "Analista de RH", siteEmpresa = "https://example.test", consentTermos = true
     };
 
     // B2. Invalid tokens are rejected with 400 (never 429) until the window is exhausted.

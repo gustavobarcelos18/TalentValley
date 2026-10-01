@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TalentValley.Api.Data;
 using TalentValley.Api.Domain.Entities;
@@ -12,8 +13,32 @@ public sealed class InvalidUrlException : Exception
     public InvalidUrlException(string message) : base(message) { }
 }
 
-public sealed class AlunoService(AppDbContext database)
+public enum AlunoSelfDeleteResult { Deleted, NotFound, InvalidPassword, LockedOut }
+
+public sealed class AlunoService(AppDbContext database, SignInManager<ApplicationUser> signIn,
+    AlunoDeletionService deletion)
 {
+    // LGPD self-deletion: the student confirms with the current password; failures count toward lockout.
+    public async Task<AlunoSelfDeleteResult> DeleteOwnAsync(Guid userId, string password, CancellationToken cancellationToken)
+    {
+        var user = await signIn.UserManager.FindByIdAsync(userId.ToString());
+        if (user is null) return AlunoSelfDeleteResult.NotFound;
+        var check = await signIn.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+        if (check.IsLockedOut) return AlunoSelfDeleteResult.LockedOut;
+        if (!check.Succeeded) return AlunoSelfDeleteResult.InvalidPassword;
+
+        IReadOnlyList<StoredFile> files;
+        await using (var transaction = await database.Database.BeginTransactionAsync(cancellationToken))
+        {
+            var aluno = await deletion.LoadAsync(userId, cancellationToken);
+            if (aluno is null) return AlunoSelfDeleteResult.NotFound;
+            files = await deletion.RemoveAsync(aluno, selfDeletion: true, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        await deletion.DeleteFilesAsync(files);
+        return AlunoSelfDeleteResult.Deleted;
+    }
+
     public async Task<MeResponse?> GetProfileAsync(Guid userId)
     {
         var aluno = await database.Alunos.AsNoTracking()
