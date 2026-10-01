@@ -9,6 +9,7 @@ using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Domain.Enums;
 using TalentValley.Api.DTOs;
 using TalentValley.Api.Email;
+using TalentValley.Api.Services;
 
 namespace TalentValley.Api.Tests;
 
@@ -19,12 +20,12 @@ public sealed class RegistrationRequestTests : IDisposable
     {
         nomeCompleto = "Ana Silva", email, telefone = "(32) 99999-0000", cidade = "Rio Pomba", uf = "mg",
         instituicaoEnsino = "IF Sudeste MG", curso = "Sistemas de Informação", tipoFormacao = "GRADUACAO",
-        anoConclusaoPrevisto = 2027, relacaoRioPombaValley = "Estudante da região"
+        anoConclusaoPrevisto = 2027, relacaoRioPombaValley = "Estudante da região", consentTermos = true
     };
     private static object Recruiter(string email = "rh@example.test") => new
     {
         nomeCompleto = "Carlos Souza", email, telefone = "(32) 99999-0001", cidade = "Ubá", uf = "mg",
-        empresa = "Empresa Exemplo", cargo = "Analista de RH", siteEmpresa = "https://example.test"
+        empresa = "Empresa Exemplo", cargo = "Analista de RH", siteEmpresa = "https://example.test", consentTermos = true
     };
 
     [Fact]
@@ -147,7 +148,7 @@ public sealed class RegistrationRequestTests : IDisposable
         var response = await client.PostAsJsonAsync("/api/cadastro/aluno", new
         {
             nomeCompleto = name, email = "valid@example.test", telefone = phone, cidade = city, uf,
-            instituicaoEnsino = "IF Sudeste MG", curso = "CS50", tipoFormacao = "GRADUACAO"
+            instituicaoEnsino = "IF Sudeste MG", curso = "CS50", tipoFormacao = "GRADUACAO", consentTermos = true
         });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -164,7 +165,7 @@ public sealed class RegistrationRequestTests : IDisposable
         {
             nomeCompleto = "Ana Silva", email = "overlong-phone@example.test", telefone = phone,
             cidade = "Rio Pomba", uf = "MG", instituicaoEnsino = "IF Sudeste MG", curso = "CS50",
-            tipoFormacao = "GRADUACAO"
+            tipoFormacao = "GRADUACAO", consentTermos = true
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -178,14 +179,14 @@ public sealed class RegistrationRequestTests : IDisposable
         var invalid = await client.PostAsJsonAsync("/api/cadastro/recrutador", new
         {
             nomeCompleto = "João D'Ávila", email = "secure-url@example.test", telefone = "32999990000", cidade = "São João del-Rei", uf = "MG",
-            empresa = "3M", cargo = "Desenvolvedor .NET N2", siteEmpresa = "javascript:alert(1)"
+            empresa = "3M", cargo = "Desenvolvedor .NET N2", siteEmpresa = "javascript:alert(1)", consentTermos = true
         });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
 
         var valid = await client.PostAsJsonAsync("/api/cadastro/recrutador", new
         {
             nomeCompleto = "João D'Ávila", email = "business-text@example.test", telefone = "32999990000", cidade = "São João del-Rei", uf = "MG",
-            empresa = "3M", cargo = "Desenvolvedor .NET N2", siteEmpresa = "https://example.test"
+            empresa = "3M", cargo = "Desenvolvedor .NET N2", siteEmpresa = "https://example.test", consentTermos = true
         });
         Assert.Equal(HttpStatusCode.Accepted, valid.StatusCode);
     }
@@ -211,10 +212,36 @@ public sealed class RegistrationRequestTests : IDisposable
         var response = await client.PostAsJsonAsync("/api/cadastro/recrutador", new
         {
             nomeCompleto = "Ana Maria", email = "url-emoji@example.test", telefone = "32999990000", cidade = "Rio Pomba", uf = "MG",
-            empresa = "3M", cargo = "Analista N2", siteEmpresa = "https://example\U0001F600.test"
+            empresa = "3M", cargo = "Analista N2", siteEmpresa = "https://example\U0001F600.test", consentTermos = true
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("aluno", false)]
+    [InlineData("aluno", null)]
+    [InlineData("recrutador", false)]
+    [InlineData("recrutador", null)]
+    public async Task Public_registration_requires_accepting_the_terms(string kind, bool? consent)
+    {
+        using var client = factory.Client();
+        await ApiFactory.SetCsrfAsync(client);
+        object body = kind == "aluno"
+            ? new
+            {
+                nomeCompleto = "Ana Silva", email = "no-consent@example.test", telefone = "(32) 99999-0000", cidade = "Rio Pomba", uf = "MG",
+                instituicaoEnsino = "IF Sudeste MG", curso = "Sistemas de Informação", tipoFormacao = "GRADUACAO", consentTermos = consent
+            }
+            : new
+            {
+                nomeCompleto = "Carlos Souza", email = "no-consent@example.test", telefone = "(32) 99999-0001", cidade = "Ubá", uf = "MG",
+                empresa = "Empresa Exemplo", cargo = "Analista de RH", consentTermos = consent
+            };
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync($"/api/cadastro/{kind}", body)).StatusCode);
+        await factory.InScopeAsync(async provider =>
+            Assert.Empty(await provider.GetRequiredService<AppDbContext>().SolicitacoesCadastro.ToListAsync()));
     }
 
     [Fact]
@@ -248,6 +275,10 @@ public sealed class RegistrationRequestTests : IDisposable
             var aluno = await db.Alunos.SingleAsync(x => x.UserId == user.Id);
             Assert.Equal("Rio Pomba", aluno.Cidade);
             Assert.Equal("ana@example.test", aluno.EmailProfissional);
+            Assert.NotNull(request.ConsentimentoEm);
+            Assert.Equal(SolicitacaoCadastroService.VersaoTermosAtual, request.VersaoTermos);
+            Assert.Equal(request.ConsentimentoEm, aluno.ConsentimentoEm);
+            Assert.Equal(request.VersaoTermos, aluno.VersaoTermos);
             Assert.Contains(await db.Auditorias.ToListAsync(), x => x.Acao == AcaoAuditoria.SOLICITACAO_CADASTRO_APROVADA);
         });
         Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsync($"/api/admin/solicitacoes-cadastro/{requestId}/aprovar", null)).StatusCode);

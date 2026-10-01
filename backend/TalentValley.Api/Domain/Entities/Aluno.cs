@@ -17,6 +17,9 @@ public class Aluno
     public string? CurriculoStorageKey { get; set; }
     public bool Ativo { get; set; }
     public DateTimeOffset AtualizadoEm { get; set; }
+    // LGPD consent copied from the approved registration request.
+    public DateTimeOffset? ConsentimentoEm { get; set; }
+    public string? VersaoTermos { get; set; }
     public ICollection<AlunoCompetencia> Competencias { get; set; } = [];
     public ICollection<AlunoIdioma> Idiomas { get; set; } = [];
     public ICollection<Formacao> Formacoes { get; set; } = [];
