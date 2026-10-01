@@ -142,10 +142,15 @@ public sealed class AdminProvisioningTests : IDisposable
         Assert.Equal(HttpStatusCode.NoContent, (await user.GetAsync($"/api/probe/{probe}")).StatusCode);
         for (var i = 0; i < 2; i++)
             Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsync($"/api/admin/{resource}/{id}/bloquear", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync($"/api/probe/{probe}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/auth/me")).StatusCode);
+        // Blocking rotates the security stamp: the existing JWT stops authenticating at all.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync($"/api/probe/{probe}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await ApiFactory.LoginAsync(user, "person@example.test")).StatusCode);
         for (var i = 0; i < 2; i++)
             Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsync($"/api/admin/{resource}/{id}/reativar", null)).StatusCode);
+        // Reactivation does not resurrect the pre-block session; a fresh login is required.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync($"/api/probe/{probe}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(user, "person@example.test")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await user.GetAsync($"/api/probe/{probe}")).StatusCode);
         await factory.InScopeAsync(async provider =>
         {

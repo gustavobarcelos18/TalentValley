@@ -42,6 +42,11 @@ public sealed class AdminAccountService(UserManager<ApplicationUser> users, Acco
         return user;
     }
 
+    // Rotating the Identity security stamp invalidates every JWT already issued to this account.
+    // The owning student/recruiter service supplies the transaction covering all persistence.
+    public async Task RevokeSessionsAsync(ApplicationUser user) =>
+        RequireSuccess(await users.UpdateSecurityStampAsync(user));
+
     public static void RequireSuccess(IdentityResult result)
     {
         if (!result.Succeeded) throw new InvalidOperationException("Required Identity persistence failed.");

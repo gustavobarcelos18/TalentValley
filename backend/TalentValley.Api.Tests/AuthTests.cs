@@ -39,7 +39,7 @@ public sealed class AuthTests : IDisposable
         Assert.Contains("expires=", cookie);
         var token = cookie.Split(';')[0]["tv_access=".Length..];
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
-        Assert.Equal(["aud", "exp", "iss", "name", "nbf", "role", "sub"], jwt.Payload.Keys.Order().ToArray());
+        Assert.Equal(["aud", "exp", "iss", "name", "nbf", "role", "security_stamp", "sub"], jwt.Payload.Keys.Order().ToArray());
         Assert.Equal(id.ToString(), jwt.Subject);
         Assert.InRange(jwt.ValidTo - jwt.ValidFrom, TimeSpan.FromHours(8) - TimeSpan.FromSeconds(1), TimeSpan.FromHours(8) + TimeSpan.FromSeconds(1));
         Assert.DoesNotContain(token, await response.Content.ReadAsStringAsync());

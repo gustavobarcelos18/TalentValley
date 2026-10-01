@@ -73,15 +73,27 @@ public static class SecurityRegistration
                         else context.NoResult(); // Do not fall back to Authorization headers.
                         return Task.CompletedTask;
                     },
-                    OnTokenValidated = context =>
+                    OnTokenValidated = async context =>
                     {
                         var subject = context.Principal?.FindFirst("sub")?.Value;
                         if (!Guid.TryParse(subject, out _) || context.Principal?.FindFirst("role") is null)
+                        {
                             context.Fail("Invalid identity claims.");
-                        else
-                            // Antiforgery binds tokens to the stable subject, never to a display name.
-                            ((ClaimsIdentity)context.Principal!.Identity!).AddClaim(new Claim(ClaimTypes.NameIdentifier, subject));
-                        return Task.CompletedTask;
+                            return;
+                        }
+                        // Password reset (and admin block/reactivation) rotates the Identity security stamp,
+                        // so tokens issued before that change stop authenticating (401) immediately.
+                        var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+                        var user = await users.FindByIdAsync(subject);
+                        var claimed = context.Principal.FindFirst(JwtTokenService.SecurityStampClaim)?.Value;
+                        if (user is null || claimed is null ||
+                            claimed != JwtTokenService.HashSecurityStamp(await users.GetSecurityStampAsync(user)))
+                        {
+                            context.Fail("Session is no longer valid.");
+                            return;
+                        }
+                        // Antiforgery binds tokens to the stable subject, never to a display name.
+                        ((ClaimsIdentity)context.Principal.Identity!).AddClaim(new Claim(ClaimTypes.NameIdentifier, subject));
                     }
                 };
             });
