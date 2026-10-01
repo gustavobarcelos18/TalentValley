@@ -3,7 +3,7 @@ import type { TipoFormacao } from "@/types/student";
 export type RegistrationRequestType = "ALUNO" | "RECRUTADOR";
 export type RegistrationRequestStatus = "PENDENTE" | "APROVADA" | "REJEITADA";
 
-export interface RegistrationCreated { id: string; status: RegistrationRequestStatus; }
+export interface RegistrationCreated { mensagem: string; }
 export interface StudentRegistrationRequest {
   nomeCompleto: string; email: string; telefone: string; cidade: string; uf: string;
   instituicaoEnsino: string; curso: string; tipoFormacao: TipoFormacao;

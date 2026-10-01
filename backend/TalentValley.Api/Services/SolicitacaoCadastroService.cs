@@ -16,9 +16,7 @@ public enum SolicitacaoRejectionResult { Rejected, NotFound, InvalidState }
 public sealed class SolicitacaoCadastroService(AppDbContext database, UserManager<ApplicationUser> users,
     AdminAccountService accounts, AuditoriaService audit, SlugService slugs, IHttpContextAccessor context)
 {
-    private const string ExistingRequestMessage = "Já existe uma conta ou solicitação em andamento para este e-mail.";
-
-    public async Task<SolicitacaoCadastroCreatedResponse> CreateAlunoAsync(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
+    public async Task CreateAlunoAsync(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
     {
         var entity = Base(request, TipoSolicitacaoCadastro.ALUNO);
         entity.InstituicaoEnsino = request.InstituicaoEnsino;
@@ -26,29 +24,29 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
         entity.TipoFormacao = request.TipoFormacao!.Value;
         entity.AnoConclusaoPrevisto = request.AnoConclusaoPrevisto;
         entity.RelacaoRioPombaValley = request.RelacaoRioPombaValley;
-        return await CreateAsync(entity, cancellationToken);
+        await CreateAsync(entity, cancellationToken);
     }
 
-    public async Task<SolicitacaoCadastroCreatedResponse> CreateRecrutadorAsync(SolicitarCadastroRecrutadorRequest request, CancellationToken cancellationToken)
+    public async Task CreateRecrutadorAsync(SolicitarCadastroRecrutadorRequest request, CancellationToken cancellationToken)
     {
         var entity = Base(request, TipoSolicitacaoCadastro.RECRUTADOR);
         entity.Empresa = request.Empresa;
         entity.Cargo = request.Cargo;
         entity.SiteEmpresa = request.SiteEmpresa;
-        return await CreateAsync(entity, cancellationToken);
+        await CreateAsync(entity, cancellationToken);
     }
 
-    private async Task<SolicitacaoCadastroCreatedResponse> CreateAsync(SolicitacaoCadastro entity, CancellationToken cancellationToken)
+    // A duplicate (existing account or pending request) is silently ignored so the caller cannot enumerate e-mails.
+    private async Task CreateAsync(SolicitacaoCadastro entity, CancellationToken cancellationToken)
     {
         if (await users.FindByEmailAsync(entity.Email) is not null || await database.SolicitacoesCadastro
                 .AnyAsync(x => x.EmailNormalizado == entity.EmailNormalizado && x.Status == StatusSolicitacaoCadastro.PENDENTE, cancellationToken))
-            throw new DuplicateRegistrationException();
+            return;
         database.SolicitacoesCadastro.Add(entity);
         try { await database.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateException exception) when (exception.InnerException is SqliteException { SqliteExtendedErrorCode: 2067 } sqlite &&
             sqlite.Message.Contains("SolicitacoesCadastro.EmailNormalizado", StringComparison.Ordinal))
-        { throw new DuplicateRegistrationException(); }
-        return new(entity.Id, entity.Status);
+        { /* Concurrent duplicate: same silent outcome. */ }
     }
 
     public async Task<PaginatedResponse<SolicitacaoCadastroListItem>> ListAsync(SolicitacaoCadastroListQuery request, CancellationToken cancellationToken)
@@ -100,6 +98,10 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
         request.AdminUserId = CurrentAdminId();
         await audit.RecordAsync(AcaoAuditoria.SOLICITACAO_CADASTRO_APROVADA, "SOLICITACAO_CADASTRO", request.Id,
             $"Solicitação de cadastro de {request.NomeCompleto} aprovada.");
+        if (request.Tipo == TipoSolicitacaoCadastro.ALUNO)
+            await audit.RecordAsync(AcaoAuditoria.ALUNO_CRIADO, AppRoles.Student, user.Id, $"Aluno {request.NomeCompleto} criado por aprovação de solicitação.");
+        else
+            await audit.RecordAsync(AcaoAuditoria.RECRUTADOR_CRIADO, AppRoles.Recruiter, user.Id, $"Recrutador {request.NomeCompleto} criado por aprovação de solicitação.");
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var activationSent = await accounts.TrySendActivationAsync(user);
@@ -125,9 +127,4 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
     { Id = Guid.NewGuid(), Tipo = type, Status = StatusSolicitacaoCadastro.PENDENTE, NomeCompleto = request.NomeCompleto, Email = request.Email,
         EmailNormalizado = request.Email.ToUpperInvariant(), Telefone = request.Telefone, Cidade = request.Cidade, Uf = request.Uf, CriadoEm = DateTimeOffset.UtcNow };
     private Guid CurrentAdminId() => Guid.Parse(context.HttpContext!.User.FindFirst("sub")!.Value);
-}
-
-public sealed class DuplicateRegistrationException : Exception
-{
-    public const string MessageForClient = "Já existe uma conta ou solicitação em andamento para este e-mail.";
 }

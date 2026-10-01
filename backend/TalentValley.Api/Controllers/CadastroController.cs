@@ -14,16 +14,19 @@ namespace TalentValley.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class CadastroController(SolicitacaoCadastroService solicitacoes) : ControllerBase
 {
+    // Always the same response, so the endpoint never reveals whether an e-mail is already registered.
+    private const string AcceptedMessage = "Solicitação recebida. Se aprovada, você receberá as instruções por e-mail.";
+
     [HttpPost("aluno")]
-    public async Task<ActionResult<SolicitacaoCadastroCreatedResponse>> Aluno(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SolicitacaoCadastroAcceptedResponse>> Aluno(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
     {
-        try { return StatusCode(StatusCodes.Status201Created, await solicitacoes.CreateAlunoAsync(request, cancellationToken)); }
-        catch (DuplicateRegistrationException) { return Problem(statusCode: StatusCodes.Status409Conflict, title: DuplicateRegistrationException.MessageForClient); }
+        await solicitacoes.CreateAlunoAsync(request, cancellationToken);
+        return Accepted(new SolicitacaoCadastroAcceptedResponse(AcceptedMessage));
     }
     [HttpPost("recrutador")]
-    public async Task<ActionResult<SolicitacaoCadastroCreatedResponse>> Recrutador(SolicitarCadastroRecrutadorRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SolicitacaoCadastroAcceptedResponse>> Recrutador(SolicitarCadastroRecrutadorRequest request, CancellationToken cancellationToken)
     {
-        try { return StatusCode(StatusCodes.Status201Created, await solicitacoes.CreateRecrutadorAsync(request, cancellationToken)); }
-        catch (DuplicateRegistrationException) { return Problem(statusCode: StatusCodes.Status409Conflict, title: DuplicateRegistrationException.MessageForClient); }
+        await solicitacoes.CreateRecrutadorAsync(request, cancellationToken);
+        return Accepted(new SolicitacaoCadastroAcceptedResponse(AcceptedMessage));
     }
 }

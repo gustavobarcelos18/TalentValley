@@ -32,7 +32,7 @@ public sealed class SolicitarCadastroRecrutadorRequest : SolicitarCadastroBaseRe
     [StringLength(2048), SafeHttpUrl, NoEmoji] public string? SiteEmpresa { get => string.IsNullOrWhiteSpace(site) ? null : site; init => site = value?.Trim() ?? string.Empty; }
 }
 
-public sealed record SolicitacaoCadastroCreatedResponse(Guid Id, StatusSolicitacaoCadastro Status);
+public sealed record SolicitacaoCadastroAcceptedResponse(string Mensagem);
 
 public sealed record SolicitacaoAprovacaoResponse(Guid UserId, bool ActivationSent);
 

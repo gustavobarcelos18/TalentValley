@@ -33,13 +33,13 @@ public sealed class RegistrationRequestTests : IDisposable
         using var client = factory.Client();
         await ApiFactory.SetCsrfAsync(client);
         var response = await client.PostAsJsonAsync("/api/cadastro/aluno", Student(" ANA@EXAMPLE.TEST "));
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<SolicitacaoCadastroCreatedResponse>(ApiFactory.JsonOptions);
-        Assert.Equal(StatusSolicitacaoCadastro.PENDENTE, result!.Status);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace((await response.Content.ReadFromJsonAsync<SolicitacaoCadastroAcceptedResponse>(ApiFactory.JsonOptions))!.Mensagem));
         await factory.InScopeAsync(async provider =>
         {
             var db = provider.GetRequiredService<AppDbContext>();
             var request = await db.SolicitacoesCadastro.SingleAsync();
+            Assert.Equal(StatusSolicitacaoCadastro.PENDENTE, request.Status);
             Assert.Equal("ANA@EXAMPLE.TEST", request.EmailNormalizado);
             Assert.Equal("MG", request.Uf);
             Assert.Equal(TipoFormacao.GRADUACAO, request.TipoFormacao);
@@ -54,8 +54,8 @@ public sealed class RegistrationRequestTests : IDisposable
         using var publicClient = factory.Client();
         await ApiFactory.SetCsrfAsync(publicClient);
         var created = await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student());
-        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
-        var request = await created.Content.ReadFromJsonAsync<SolicitacaoCadastroCreatedResponse>(ApiFactory.JsonOptions);
+        Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
+        var requestId = await RequestIdAsync();
 
         await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
         using var admin = factory.Client();
@@ -65,7 +65,7 @@ public sealed class RegistrationRequestTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var list = await response.Content.ReadFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(ApiFactory.JsonOptions);
         Assert.Equal(1, list!.TotalItems);
-        Assert.Equal(request!.Id, Assert.Single(list.Items).Id);
+        Assert.Equal(requestId, Assert.Single(list.Items).Id);
     }
 
     [Fact]
@@ -118,21 +118,21 @@ public sealed class RegistrationRequestTests : IDisposable
     }
 
     [Fact]
-    public async Task Duplicate_pending_and_existing_account_emails_are_rejected_but_rejected_request_can_resubmit()
+    public async Task Duplicate_pending_and_existing_account_emails_are_silently_ignored_and_rejected_request_can_resubmit()
     {
         using var client = factory.Client();
         await ApiFactory.SetCsrfAsync(client);
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter(" RH@EXAMPLE.TEST "))).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter(" RH@EXAMPLE.TEST "))).StatusCode);
         await factory.InScopeAsync(async provider =>
         {
             var db = provider.GetRequiredService<AppDbContext>();
             (await db.SolicitacoesCadastro.SingleAsync()).Status = StatusSolicitacaoCadastro.REJEITADA;
             await db.SaveChangesAsync();
         });
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
         await factory.CreateUserAsync("existing@example.test", AppRoles.Student);
-        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/cadastro/aluno", Student("EXISTING@example.test"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/cadastro/aluno", Student("EXISTING@example.test"))).StatusCode);
     }
 
     [Theory]
@@ -187,7 +187,7 @@ public sealed class RegistrationRequestTests : IDisposable
             nomeCompleto = "João D'Ávila", email = "business-text@example.test", telefone = "32999990000", cidade = "São João del-Rei", uf = "MG",
             empresa = "3M", cargo = "Desenvolvedor .NET N2", siteEmpresa = "https://example.test"
         });
-        Assert.Equal(HttpStatusCode.Created, valid.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, valid.StatusCode);
     }
 
     [Theory]
@@ -222,7 +222,7 @@ public sealed class RegistrationRequestTests : IDisposable
     {
         using var publicClient = factory.Client();
         await ApiFactory.SetCsrfAsync(publicClient);
-        Assert.Equal(HttpStatusCode.Created, (await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student())).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student())).StatusCode);
         var adminId = await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
         using var admin = factory.Client();
         Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(admin, "admin@example.test")).StatusCode);
@@ -259,7 +259,7 @@ public sealed class RegistrationRequestTests : IDisposable
         using var publicClient = factory.Client();
         Assert.Equal(HttpStatusCode.BadRequest, (await publicClient.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
         await ApiFactory.SetCsrfAsync(publicClient);
-        Assert.Equal(HttpStatusCode.Created, (await publicClient.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await publicClient.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter())).StatusCode);
         var requestId = await RequestIdAsync();
         await factory.InScopeAsync(async provider =>
         {
@@ -301,7 +301,7 @@ public sealed class RegistrationRequestTests : IDisposable
         var created = tipo == "ALUNO"
             ? await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student())
             : await publicClient.PostAsJsonAsync("/api/cadastro/recrutador", Recruiter());
-        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, created.StatusCode);
         var requestId = await RequestIdAsync();
         await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
         using var admin = factory.Client();
@@ -336,7 +336,7 @@ public sealed class RegistrationRequestTests : IDisposable
     {
         using var publicClient = factory.Client();
         await ApiFactory.SetCsrfAsync(publicClient);
-        Assert.Equal(HttpStatusCode.Created, (await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student())).StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, (await publicClient.PostAsJsonAsync("/api/cadastro/aluno", Student())).StatusCode);
         var requestId = await RequestIdAsync();
         await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
         using var admin = factory.Client();

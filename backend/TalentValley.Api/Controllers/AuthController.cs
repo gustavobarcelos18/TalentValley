@@ -54,6 +54,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("activate-account")]
     public async Task<IActionResult> Activate(ActivateAccountRequest request) =>
         await accountTokens.ActivateAsync(request.Email, request.Token, request.Senha)
@@ -69,6 +70,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("reset-password")]
     public async Task<IActionResult> Reset(ResetPasswordRequest request) =>
         await accountTokens.ResetPasswordAsync(request.Email, request.Token, request.NovaSenha)
