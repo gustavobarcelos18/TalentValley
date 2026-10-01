@@ -2,7 +2,7 @@ bin/
 obj/
 Database/*.db
 Database/*.db-*
-storage/
+App_Data/
 .git/
 .gitignore
 *.user

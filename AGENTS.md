@@ -73,6 +73,7 @@ Use the smallest relevant set of skills under `.agents/skills/`.
 - `talent-valley-auth-security`: Identity, JWT cookie, CSRF, authorization, protected files.
 - `talent-valley-frontend-ui`: Next.js UI and approved UX patterns.
 - `talent-valley-quality-gate`: validation before completion.
+- `talent-valley-smart-dispatch`: model choice (opus/sonnet/haiku) when delegating to subagents.
 
 Read only the references needed for the current task.
 
