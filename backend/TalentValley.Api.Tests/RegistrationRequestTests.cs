@@ -389,6 +389,43 @@ public sealed class RegistrationRequestTests : IDisposable
         Assert.Empty(factory.Emails.Activations);
     }
 
+    [Fact]
+    public async Task Admin_list_deletes_rejected_requests_older_than_retention_and_keeps_recent_ones()
+    {
+        var oldId = Guid.NewGuid();
+        var recentId = Guid.NewGuid();
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            db.SolicitacoesCadastro.AddRange(Rejected(oldId, "old@example.test", 31), Rejected(recentId, "recent@example.test", 29));
+            await db.SaveChangesAsync();
+        });
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        using var admin = factory.Client();
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(admin, "admin@example.test")).StatusCode);
+
+        var list = await admin.GetFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(
+            "/api/admin/solicitacoes-cadastro", ApiFactory.JsonOptions);
+        Assert.Equal(recentId, Assert.Single(list!.Items).Id);
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            Assert.False(await db.SolicitacoesCadastro.AnyAsync(x => x.Id == oldId));
+            Assert.True(await db.SolicitacoesCadastro.AnyAsync(x => x.Id == recentId));
+        });
+        var again = await admin.GetFromJsonAsync<PaginatedResponse<SolicitacaoCadastroListItem>>(
+            "/api/admin/solicitacoes-cadastro", ApiFactory.JsonOptions);
+        Assert.Equal(recentId, Assert.Single(again!.Items).Id);
+    }
+
+    private static SolicitacaoCadastro Rejected(Guid id, string email, int analyzedDaysAgo) => new()
+    {
+        Id = id, Tipo = TipoSolicitacaoCadastro.RECRUTADOR, Status = StatusSolicitacaoCadastro.REJEITADA, NomeCompleto = "Carlos Souza",
+        Email = email, EmailNormalizado = email.ToUpperInvariant(), Telefone = "(32) 99999-0001", Cidade = "Ubá", Uf = "MG",
+        Empresa = "Empresa Exemplo", Cargo = "Analista de RH", CriadoEm = DateTimeOffset.UtcNow.AddDays(-analyzedDaysAgo - 1),
+        AnalisadoEm = DateTimeOffset.UtcNow.AddDays(-analyzedDaysAgo)
+    };
+
     private async Task<Guid> RequestIdAsync()
     {
         Guid id = Guid.Empty;

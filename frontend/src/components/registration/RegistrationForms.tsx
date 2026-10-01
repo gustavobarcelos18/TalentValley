@@ -12,8 +12,12 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Divider,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
   InputAdornment,
   MenuItem,
   Paper,
@@ -423,6 +427,7 @@ const studentFieldOrder = [
   "tipoFormacao",
   "anoConclusaoPrevisto",
   "relacaoRioPombaValley",
+  "consentTermos",
 ] as const;
 const recruiterFieldOrder = [
   "nomeCompleto",
@@ -434,6 +439,7 @@ const recruiterFieldOrder = [
   "empresa",
   "cargo",
   "siteEmpresa",
+  "consentTermos",
 ] as const;
 
 // Confirmation shown in place of the form after a successful submission.
@@ -498,6 +504,51 @@ function Success() {
     </Stack>
   );
 }
+const CONSENT_ERROR = "Você deve aceitar os termos para continuar.";
+
+function validateConsent(accepted: boolean): string | null {
+  return accepted ? null : CONSENT_ERROR;
+}
+
+function ConsentField({
+  checked,
+  error,
+  disabled,
+  onChange,
+  inputRef,
+}: {
+  checked: boolean;
+  error: string | null | undefined;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+  inputRef: (node: FocusableControl) => void;
+}) {
+  return (
+    <FormControl error={Boolean(error)}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={checked}
+            onChange={(event) => onChange(event.target.checked)}
+            slotProps={{ input: { ref: inputRef } }}
+            disabled={disabled}
+            required
+          />
+        }
+        label={
+          <>
+            Eu li e concordo com os{" "}
+            <Link href="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</Link>
+            {" "}e a{" "}
+            <Link href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>.
+          </>
+        }
+      />
+      {error && <FormHelperText>{error}</FormHelperText>}
+    </FormControl>
+  );
+}
+
 // The submitted city must belong to the selected UF. This only enforces the
 // combination when the official municipality list for that UF is already
 // loaded, so an IBGE lookup failure never invalidates a legitimate selection.
@@ -891,6 +942,7 @@ export function StudentRegistrationForm() {
     anoConclusaoPrevisto: "",
     relacaoRioPombaValley: "",
   });
+  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -913,6 +965,7 @@ export function StudentRegistrationForm() {
     relacaoRioPombaValley: school.relacaoRioPombaValley
       ? validateFreeText(school.relacaoRioPombaValley, 500)
       : null,
+    consentTermos: validateConsent(consent),
   });
   const blurCommon = (key: keyof CommonForm) =>
     setErrors((current) => ({ ...current, [key]: commonErrors(common)[key] }));
@@ -964,6 +1017,7 @@ export function StudentRegistrationForm() {
           ? Number(school.anoConclusaoPrevisto)
           : null,
         relacaoRioPombaValley: school.relacaoRioPombaValley.trim() || null,
+        consentTermos: true,
       });
       setSuccess(true);
     } catch (reason) {
@@ -1181,6 +1235,16 @@ export function StudentRegistrationForm() {
                 }}
               />
             </RegistrationSection>
+            <ConsentField
+              checked={consent}
+              error={errors.consentTermos}
+              disabled={busy}
+              onChange={(checked) => {
+                setConsent(checked);
+                setErrors((current) => ({ ...current, consentTermos: null }));
+              }}
+              inputRef={registerFieldRef("consentTermos")}
+            />
             <Typography variant="caption" color="text.secondary">Os campos com * são obrigatórios.</Typography>
             <Button
               type="submit"
@@ -1204,6 +1268,7 @@ export function RecruiterRegistrationForm() {
     cargo: "",
     siteEmpresa: "",
   });
+  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1220,6 +1285,7 @@ export function RecruiterRegistrationForm() {
     empresa: validateCompanyName(extra.empresa),
     cargo: validateJobTitle(extra.cargo),
     siteEmpresa: validateHttpUrl(extra.siteEmpresa),
+    consentTermos: validateConsent(consent),
   });
   const blurCommon = (key: keyof CommonForm) =>
     setErrors((current) => ({ ...current, [key]: commonErrors(common)[key] }));
@@ -1267,6 +1333,7 @@ export function RecruiterRegistrationForm() {
         empresa: normalizeWhitespace(extra.empresa),
         cargo: normalizeWhitespace(extra.cargo),
         siteEmpresa: extra.siteEmpresa.trim() || null,
+        consentTermos: true,
       });
       setSuccess(true);
     } catch (reason) {
@@ -1391,6 +1458,16 @@ export function RecruiterRegistrationForm() {
                 }}
               />
             </RegistrationSection>
+            <ConsentField
+              checked={consent}
+              error={errors.consentTermos}
+              disabled={busy}
+              onChange={(checked) => {
+                setConsent(checked);
+                setErrors((current) => ({ ...current, consentTermos: null }));
+              }}
+              inputRef={registerFieldRef("consentTermos")}
+            />
             <Typography variant="caption" color="text.secondary">Os campos com * são obrigatórios.</Typography>
             <Button
               type="submit"

@@ -20,6 +20,7 @@ import { ProfileHeader } from "./ProfileHeader";
 import { SobreSection } from "./SobreSection";
 import { TrajetoriaSection } from "./TrajetoriaSection";
 import { ProjetosSection } from "./ProjetosSection";
+import { ExclusaoSection } from "./ExclusaoSection";
 
 // Real student profile page content follows the approved professional profile order.
 export function StudentProfile() {
@@ -77,6 +78,7 @@ export function StudentProfile() {
           <DisponibilidadeSection profile={profile} onChanged={refresh} notify={notify} />
           <ProjetosSection profile={profile} onChanged={refresh} notify={notify} />
           <CurriculoSection profile={profile} onChanged={refresh} notify={notify} />
+          <ExclusaoSection />
         </Stack>
       )}
 

@@ -14,10 +14,12 @@ public sealed record SolicitacaoApprovalOutcome(SolicitacaoApprovalResult Result
 public enum SolicitacaoRejectionResult { Rejected, NotFound, InvalidState }
 
 public sealed class SolicitacaoCadastroService(AppDbContext database, UserManager<ApplicationUser> users,
-    AdminAccountService accounts, AuditoriaService audit, SlugService slugs, IHttpContextAccessor context)
+    AdminAccountService accounts, AuditoriaService audit, SlugService slugs, IHttpContextAccessor context,
+    ILogger<SolicitacaoCadastroService> logger)
 {
     // Bump when the published terms of use / privacy policy change.
     public const string VersaoTermosAtual = "1.0";
+    private const int REJECTED_REQUEST_RETENTION_DAYS = 30;
 
     public async Task CreateAlunoAsync(SolicitarCadastroAlunoRequest request, CancellationToken cancellationToken)
     {
@@ -54,6 +56,7 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
 
     public async Task<PaginatedResponse<SolicitacaoCadastroListItem>> ListAsync(SolicitacaoCadastroListQuery request, CancellationToken cancellationToken)
     {
+        await CleanUpExpiredRejectedAsync(cancellationToken);
         var query = database.SolicitacoesCadastro.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -71,6 +74,21 @@ public sealed class SolicitacaoCadastroService(AppDbContext database, UserManage
                 x.NomeCompleto, x.Email, x.Telefone, x.Cidade, x.Uf, x.InstituicaoEnsino, x.Curso, x.TipoFormacao,
                 x.AnoConclusaoPrevisto, x.Empresa, x.Cargo, x.CriadoEm)).ToListAsync(cancellationToken);
         return new(items, request.Page, 10, total, (int)Math.Ceiling(total / 10d));
+    }
+
+    // Opportunistic retention: rejected requests are deleted on the next admin list view, no scheduler.
+    // The cutoff is compared in memory because SQLite stores DateTimeOffset as text.
+    private async Task CleanUpExpiredRejectedAsync(CancellationToken cancellationToken)
+    {
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-REJECTED_REQUEST_RETENTION_DAYS);
+        var candidates = await database.SolicitacoesCadastro
+            .Where(x => x.Status == StatusSolicitacaoCadastro.REJEITADA && x.AnalisadoEm != null).ToListAsync(cancellationToken);
+        var expired = candidates.Where(x => x.AnalisadoEm < cutoff).ToList();
+        if (expired.Count == 0) return;
+        database.SolicitacoesCadastro.RemoveRange(expired);
+        await database.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Cleaned up {Count} rejected registration requests older than {Days} days",
+            expired.Count, REJECTED_REQUEST_RETENTION_DAYS);
     }
 
     public Task<SolicitacaoCadastroDetailResponse?> GetAsync(Guid id, CancellationToken cancellationToken) => database.SolicitacoesCadastro.AsNoTracking()

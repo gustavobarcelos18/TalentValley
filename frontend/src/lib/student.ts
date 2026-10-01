@@ -1,4 +1,4 @@
-import { apiGet, apiMutation, apiUpload } from "./api";
+import { apiGet, apiMutation, apiUpload, ensureCsrfToken } from "./api";
 import type {
   CatalogoCompetenciaResponse,
   CatalogoIdiomaResponse,
@@ -137,4 +137,9 @@ export function updateProjeto(id: string, request: ProjetoRequest): Promise<Proj
 
 export function deleteProjeto(id: string): Promise<void> {
   return apiMutation<void>("DELETE", `/api/alunos/me/projetos/${id}`);
+}
+
+export async function deleteOwnAccount(senhaAtual: string): Promise<void> {
+  await ensureCsrfToken();
+  await apiMutation<void>("DELETE", "/api/alunos/me", { senhaAtual });
 }
