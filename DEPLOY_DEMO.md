@@ -15,7 +15,7 @@ ConnectionStrings__DefaultConnection=Data Source=/data/talent-valley.db
 Storage__RootPath=/data/storage
 DataProtection__KeysPath=/data/dataprotection
 Deployment__ApplyMigrationsOnStartup=true
-Deployment__TrustForwardedHeaders=true
+Deployment__ForwardedHeaders__Enabled=false
 Jwt__Issuer=TalentValley.Api
 Jwt__Audience=TalentValley.Frontend
 Jwt__SigningKey=<BASE64 SECRET WITH AT LEAST 32 RANDOM BYTES>
@@ -32,6 +32,8 @@ Brevo__SenderName=<SENDER DISPLAY NAME>
 ```
 
 Do not define `PORT`; Railway supplies it. Configure Railway health checking to `/health`.
+
+Forwarded headers (used for the per-IP rate limit) stay disabled until the trusted proxy ranges are known. To enable them, set `Deployment__ForwardedHeaders__Enabled=true`, `Deployment__ForwardedHeaders__IpRanges=<comma-separated CIDRs of the proxies that connect to the API>` and `Deployment__ForwardedHeaders__ForwardLimit=<number of trusted hops>`. Startup fails if `Enabled=true` with no valid range, and if the removed `Deployment__TrustForwardedHeaders` variable is still set.
 
 Generate the signing key locally and copy only its Base64 result into Railway:
 
