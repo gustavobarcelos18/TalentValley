@@ -26,6 +26,17 @@ jobs:
       - name: Executar testes do backend
         run: dotnet test backend/TalentValley.slnx --no-build
 
+      - name: Restaurar ferramentas .NET
+        run: dotnet tool restore
+
+      - name: Verificar migrações pendentes
+        run: dotnet ef migrations has-pending-model-changes --project backend/TalentValley.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+
+      - name: Verificar pacotes vulneráveis
+        run: dotnet list backend/TalentValley.slnx package --vulnerable --include-transitive | grep -q "has the following vulnerable packages" && exit 1 || exit 0
+
   frontend:
     name: Frontend (Next.js)
     runs-on: ubuntu-latest
@@ -46,8 +57,24 @@ jobs:
       - name: Instalar dependências do frontend (npm ci)
         run: npm ci
 
+      - name: Auditoria de dependências
+        run: npm audit --audit-level=high
+
       - name: Executar lint do frontend
         run: npm run lint
 
+      - name: Verificar tipos (typecheck)
+        run: npm run typecheck
+
       - name: Compilar o frontend (build)
         run: npm run build
+
+  docker:
+    name: Backend (Docker build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Compilar imagem Docker
+        run: docker build -t talent-valley-api backend/TalentValley.Api
