@@ -61,6 +61,7 @@ Only:
 13. Run the relevant quality checks before declaring a task complete.
 14. If repository behavior conflicts with a task prompt, report the conflict before making broad architectural changes.
 15. Do not rewrite existing working code merely for style.
+16. Whenever there is any doubt, ask the user and wait for the answer. Never infer, assume or deduce missing requirements, behavior, scope or decisions.
 
 ## Repository skills
 
@@ -74,6 +75,7 @@ Use the smallest relevant set of skills under `.agents/skills/`.
 - `talent-valley-frontend-ui`: Next.js UI and approved UX patterns.
 - `talent-valley-quality-gate`: validation before completion.
 - `talent-valley-smart-dispatch`: model choice (opus/sonnet/haiku) when delegating to subagents.
+- `talent-valley-phased-delivery`: phased plans, branch per phase, phase reports, approval, commit/push.
 
 Read only the references needed for the current task.
 
