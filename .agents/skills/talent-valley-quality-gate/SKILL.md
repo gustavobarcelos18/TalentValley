@@ -65,3 +65,5 @@ Report:
 - any unresolved issue.
 
 Do not claim success for checks that were not actually run.
+
+When executing a phased plan, this report is the basis of the phase completion report. Approval, commit and push rules are in `talent-valley-phased-delivery`.
