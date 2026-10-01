@@ -11,8 +11,8 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
 
     public async Task<bool> AddAsync(Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var studentId = await database.Alunos.AsNoTracking()
-            .Where(x => x.Ativo && x.Slug == slug)
+        var studentId = await database.Alunos.AsNoTracking().VisibleToRecruiters()
+            .Where(x => x.Slug == slug)
             .Select(x => (Guid?)x.UserId)
             .SingleOrDefaultAsync(cancellationToken);
         if (studentId is null) return false;
@@ -23,17 +23,18 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
             INSERT OR IGNORE INTO "Favoritos" ("RecrutadorId", "AlunoId", "CriadoEm")
             SELECT {recruiterId}, a."UserId", {DateTimeOffset.UtcNow}
             FROM "Alunos" AS a
-            WHERE a."UserId" = {studentId.Value} AND a."Ativo" = 1
+            INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
+            WHERE a."UserId" = {studentId.Value} AND a."Ativo" = 1 AND u."EmailConfirmed" = 1 -- TalentVisibility
             """, cancellationToken);
         if (inserted > 0) return true;
-        return await database.Alunos.AsNoTracking()
-            .AnyAsync(x => x.UserId == studentId.Value && x.Ativo, cancellationToken);
+        return await database.Alunos.AsNoTracking().VisibleToRecruiters()
+            .AnyAsync(x => x.UserId == studentId.Value, cancellationToken);
     }
 
     public async Task<bool> RemoveAsync(Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var studentId = await database.Alunos.AsNoTracking()
-            .Where(x => x.Ativo && x.Slug == slug)
+        var studentId = await database.Alunos.AsNoTracking().VisibleToRecruiters()
+            .Where(x => x.Slug == slug)
             .Select(x => (Guid?)x.UserId)
             .SingleOrDefaultAsync(cancellationToken);
         if (studentId is null) return false;
@@ -48,7 +49,7 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
         Guid recruiterId, int page, CancellationToken cancellationToken)
     {
         var visible = database.Favoritos.AsNoTracking()
-            .Where(x => x.RecrutadorId == recruiterId && x.Aluno.Ativo);
+            .Where(x => x.RecrutadorId == recruiterId).Select(x => x.Aluno).VisibleToRecruiters();
         var total = await visible.CountAsync(cancellationToken);
         var items = await LoadRecentAsync(recruiterId, PageSize, (page - 1) * PageSize, cancellationToken);
         return new(items, page, PageSize, total, (int)Math.Ceiling(total / (double)PageSize));
@@ -62,7 +63,7 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
             FROM "Favoritos" AS f
             INNER JOIN "Alunos" AS a ON a."UserId" = f."AlunoId"
             INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
-            WHERE f."RecrutadorId" = {recruiterId} AND a."Ativo" = 1
+            WHERE f."RecrutadorId" = {recruiterId} AND a."Ativo" = 1 AND u."EmailConfirmed" = 1 -- TalentVisibility
             ORDER BY f."CriadoEm" DESC, u."NomeBusca" ASC, a."UserId" ASC
             LIMIT {limit} OFFSET {offset}
             """).ToListAsync(cancellationToken);

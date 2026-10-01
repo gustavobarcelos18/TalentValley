@@ -26,7 +26,7 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
         if (!(await users.UpdateAsync(user)).Succeeded)
             return new(StatusCodes.Status401Unauthorized);
 
-        var (token, expires) = tokens.Create(user, role);
+        var (token, expires) = tokens.Create(user, role, await users.GetSecurityStampAsync(user));
         var destination = role switch
         {
             AppRoles.Student => "/meu-perfil",

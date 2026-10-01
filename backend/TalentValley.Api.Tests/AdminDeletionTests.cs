@@ -78,7 +78,8 @@ public sealed class AdminDeletionTests : IDisposable
             (await admin.PostAsync($"/api/admin/alunos/{id}/bloquear", null)).StatusCode);
         Assert.Equal(failIdentity ? HttpStatusCode.InternalServerError : HttpStatusCode.NoContent,
             (await admin.DeleteAsync($"/api/admin/alunos/{id}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden,
+        // Blocking rotated the security stamp, so the old session no longer authenticates.
+        Assert.Equal(HttpStatusCode.Unauthorized,
             (await student.GetAsync("/api/auth/me")).StatusCode);
         await factory.InScopeAsync(async provider =>
         {

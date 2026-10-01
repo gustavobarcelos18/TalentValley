@@ -20,18 +20,22 @@ public sealed class RecruiterDashboardService(AppDbContext database, FavoriteSer
             updated = await database.Database.SqlQuery<int>($"""
                 SELECT COUNT(*) AS "Value"
                 FROM "Alunos" AS a
-                WHERE a."Ativo" = 1 AND a."AtualizadoEm" > {boundary.Value}
+                INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
+                WHERE a."Ativo" = 1 AND u."EmailConfirmed" = 1 -- TalentVisibility
+                    AND a."AtualizadoEm" > {boundary.Value}
                 """).SingleAsync(cancellationToken);
             newStudents = await database.Database.SqlQuery<int>($"""
                 SELECT COUNT(*) AS "Value"
                 FROM "Alunos" AS a
                 INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
-                WHERE a."Ativo" = 1 AND u."CriadoEm" > {boundary.Value}
+                WHERE a."Ativo" = 1 AND u."EmailConfirmed" = 1 -- TalentVisibility
+                    AND u."CriadoEm" > {boundary.Value}
                 """).SingleAsync(cancellationToken);
         }
 
         var favoriteCount = await database.Favoritos.AsNoTracking()
-            .CountAsync(x => x.RecrutadorId == recruiterId && x.Aluno.Ativo, cancellationToken);
+            .Where(x => x.RecrutadorId == recruiterId).Select(x => x.Aluno).VisibleToRecruiters()
+            .CountAsync(cancellationToken);
         var recent = await favorites.LoadRecentAsync(recruiterId, 5, 0, cancellationToken);
         return new(boundary, new(updated, newStudents, favoriteCount), recent);
     }

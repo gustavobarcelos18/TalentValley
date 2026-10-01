@@ -76,6 +76,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         aluno.Ativo = active;
         await audit.RecordAsync(active ? AcaoAuditoria.ALUNO_REATIVADO : AcaoAuditoria.ALUNO_BLOQUEADO,
             AppRoles.Student, id, $"Aluno {aluno.User.NomeCompleto} {(active ? "reativado" : "bloqueado")}.");
+        await accounts.RevokeSessionsAsync(aluno.User);
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;

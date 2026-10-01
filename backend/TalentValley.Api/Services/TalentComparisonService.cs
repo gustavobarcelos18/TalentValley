@@ -10,8 +10,8 @@ public sealed class TalentComparisonService(AppDbContext database, TalentDiscove
         Guid recruiterId, string firstSlug, string secondSlug, CancellationToken cancellationToken)
     {
         var slugs = new[] { firstSlug, secondSlug };
-        var students = await talents.FullQuery()
-            .Where(x => x.Ativo && slugs.Contains(x.Slug))
+        var students = await talents.FullQuery().VisibleToRecruiters()
+            .Where(x => slugs.Contains(x.Slug))
             .ToListAsync(cancellationToken);
         if (students.Count != 2) return null;
 

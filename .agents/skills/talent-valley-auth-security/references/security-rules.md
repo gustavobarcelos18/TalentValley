@@ -15,6 +15,7 @@ Claims should remain small:
 - `sub`
 - `role`
 - `name`
+- `security_stamp` (hashed Identity stamp; changes on password reset, forcing re-login)
 
 Do not encode profile/business state into JWT.
 
