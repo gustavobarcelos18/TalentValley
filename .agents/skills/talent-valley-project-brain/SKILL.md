@@ -40,7 +40,7 @@ Refs must be specific paths, not generic advice. If a ref is unknown at planning
 
 ## 3. Phase report (`reports/phase-<n>.md`)
 
-Save the completion report shown to the user, after it is approved: what changed, files affected, checks run and real results, migrations, unresolved issues, branch and commit hash.
+Save the completion report shown to the user, after it is approved: what changed, files affected, checks run and real results, migrations, unresolved issues, the independent review outcome (problems found and how they were fixed), branch and commit hash.
 
 ## 4. Solved problems (`solved/`)
 
