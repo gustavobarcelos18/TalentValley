@@ -1,2 +1,2 @@
-import { StudentRegistrationForm } from "@/components/registration/RegistrationForms";
-export default function Page() { return <StudentRegistrationForm />; }
+import { StudentRegistrationWizard } from "@/components/registration/StudentRegistrationWizard";
+export default function Page() { return <StudentRegistrationWizard />; }
