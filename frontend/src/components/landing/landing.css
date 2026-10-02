@@ -180,15 +180,26 @@
 .hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
 .hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(var(--page-0), var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
 .hero h1 .hero-title-line { display: inline-block; }
-/* Set before the first paint by the root layout script; the reveal removes it. */
-.tv-motion-pending .landing [data-entrance] { opacity: 0; }
+/* Entrance runs in CSS from the server-rendered markup, so it never waits for hydration.
+   `backwards` holds the hidden state during the delay and drops the animation afterwards.
+   The start opacity is .01, not 0: Chromium only counts content for FCP/LCP once an opacity animation
+   ends, but counts it at first paint when it starts above zero. Visually .01 is still hidden. */
+@keyframes landing-rise { from { opacity: .01; transform: translateY(var(--entrance-rise, 18px)); } }
+@keyframes landing-fade { from { opacity: .01; } }
+@media (prefers-reduced-motion: no-preference) {
+  .landing .entrance { animation: landing-rise .75s cubic-bezier(.22, 1, .36, 1) calc(var(--entrance-delay, 0) * 1s) backwards; }
+  .landing .entrance-fade { animation-name: landing-fade; }
+}
+@media (prefers-reduced-motion: no-preference) and (max-width: 767px) {
+  .landing .entrance { --entrance-rise: 8px; animation-duration: .45s; animation-delay: calc(var(--entrance-delay, 0) * .65s); }
+}
 /* Promote only the full-screen scroll-scrubbed layers so their transforms stay on the
    compositor. GSAP/Framer promote transform tweens automatically, so persistent will-change
    on the remaining layers only wastes GPU memory. */
 .hero-background-scroll,
 .hero-atmosphere,
 .hero-technology { will-change: transform; }
-.landing [data-entrance]:focus-within { opacity: 1 !important; transform: none !important; }
+.landing .entrance:focus-within { opacity: 1 !important; transform: none !important; }
 .landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
