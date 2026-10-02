@@ -1,8 +1,5 @@
 import type { ClipboardEvent } from "react";
 
-export const PASSWORD_HELPER_TEXT =
-  "Mínimo de 8 caracteres, com maiúscula, minúscula e dígito.";
-
 export const BRAZILIAN_UFS = [
   "AC",
   "AL",

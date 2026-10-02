@@ -7,7 +7,8 @@ interface AuthFormPageProps {
   title: string;
   subtitle?: string;
   eyebrow?: string;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  /** Omit for result screens (success, invalid link) that have no form to submit. */
+  onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
   ariaBusy?: boolean;
   /** Links under the form (alternative actions, back to start). */
   footer?: ReactNode;
@@ -54,11 +55,11 @@ export function AuthFormPage({
       </Box>
 
       <Stack
-        component="form"
+        component={onSubmit ? "form" : "div"}
         spacing={2.5}
         onSubmit={onSubmit}
         aria-busy={ariaBusy || undefined}
-        noValidate
+        noValidate={onSubmit ? true : undefined}
         sx={{ mt: 3 }}
       >
         {children}
