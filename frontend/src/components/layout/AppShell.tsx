@@ -6,12 +6,16 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   AppBar,
   Box,
+  Button,
   Chip,
   Divider,
   Drawer,
   IconButton,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Stack,
   Toolbar,
   Typography,
@@ -19,7 +23,9 @@ import {
 } from "@mui/material";
 import Close from "@mui/icons-material/Close";
 import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
+import LockOutlined from "@mui/icons-material/LockOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,6 +58,8 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ],
 };
 
+const CHANGE_PASSWORD_HREF = "/conta/senha";
+
 interface AppShellProps {
   children: ReactNode;
 }
@@ -65,6 +73,7 @@ export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const { mode, systemMode, setMode } = useColorScheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountAnchor, setAccountAnchor] = useState<HTMLElement | null>(null);
 
   const navItems = user ? NAV_BY_ROLE[user.role] : [];
   const roleLabel = user ? ROLE_LABELS[user.role] : "";
@@ -72,6 +81,7 @@ export function AppShell({ children }: AppShellProps) {
 
   async function handleLogout() {
     setMenuOpen(false);
+    setAccountAnchor(null);
     await logout();
     router.replace("/login");
   }
@@ -217,17 +227,49 @@ export function AppShell({ children }: AppShellProps) {
                       variant="outlined"
                       sx={{alignItems: "center",  fontWeight: 600 }}
                     />
-                    <UserAvatar key={`${user.id}-${reloadKey}`} name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={32} />
-                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
-                      {user.nome}
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      aria-label="Sair da conta"
-                      onClick={handleLogout}
+                    <Button
+                      id="account-menu-button"
+                      color="inherit"
+                      aria-label={`Menu da conta de ${user.nome}`}
+                      aria-haspopup="menu"
+                      aria-controls={accountAnchor ? "account-menu" : undefined}
+                      aria-expanded={accountAnchor ? "true" : undefined}
+                      onClick={(event) => setAccountAnchor(event.currentTarget)}
+                      startIcon={
+                        <UserAvatar key={`${user.id}-${reloadKey}`} name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={32} />
+                      }
+                      endIcon={<ExpandMore />}
+                      sx={{ textTransform: "none", borderRadius: 2, minWidth: 0 }}
                     >
-                      <LogoutOutlined fontSize="small" />
-                    </IconButton>
+                      <Typography variant="body2" sx={{ fontWeight: 600, maxWidth: 200 }} noWrap>
+                        {user.nome}
+                      </Typography>
+                    </Button>
+                    <Menu
+                      id="account-menu"
+                      anchorEl={accountAnchor}
+                      open={Boolean(accountAnchor)}
+                      onClose={() => setAccountAnchor(null)}
+                      slotProps={{ list: { "aria-labelledby": "account-menu-button" } }}
+                    >
+                      <MenuItem
+                        component={Link}
+                        href={CHANGE_PASSWORD_HREF}
+                        selected={pathname === CHANGE_PASSWORD_HREF}
+                        onClick={() => setAccountAnchor(null)}
+                      >
+                        <ListItemIcon>
+                          <LockOutlined fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText>Alterar senha</ListItemText>
+                      </MenuItem>
+                      <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
+                        <ListItemIcon sx={{ color: "inherit" }}>
+                          <LogoutOutlined fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText>Sair</ListItemText>
+                      </MenuItem>
+                    </Menu>
                   </Stack>
                   <IconButton
                     aria-label="Abrir menu"
@@ -289,6 +331,16 @@ export function AppShell({ children }: AppShellProps) {
             ))}
           </Stack>
           <Divider />
+          <ListItemButton
+            component={Link}
+            href={CHANGE_PASSWORD_HREF}
+            selected={pathname === CHANGE_PASSWORD_HREF}
+            onClick={() => setMenuOpen(false)}
+            sx={{ borderRadius: 2 }}
+          >
+            <ListItemText primary="Alterar senha" />
+            <LockOutlined fontSize="small" />
+          </ListItemButton>
           <ListItemButton
             onClick={handleLogout}
             sx={{ borderRadius: 2, color: "error.main" }}
