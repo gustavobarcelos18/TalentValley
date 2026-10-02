@@ -2,10 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Box, Button, Paper, Typography } from "@mui/material";
-import { TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import { ConsentField } from "./ConsentField";
 import type { CommonForm, FocusableControl } from "./registrationForm";
-import type { StudentEducationForm } from "./StudentEducationStep";
 
 const EMPTY = "Não informado";
 
@@ -52,9 +50,17 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Second summary card of the review: the profile-specific data (education for
+// students, company for recruiters), always reached through step 1.
+export interface ReviewDetails {
+  title: string;
+  editLabel: string;
+  rows: { label: string; value: string }[];
+}
+
 interface ReviewStepProps {
   personal: CommonForm;
-  education: StudentEducationForm;
+  details: ReviewDetails;
   consent: boolean;
   consentError: string | null | undefined;
   disabled: boolean;
@@ -63,11 +69,11 @@ interface ReviewStepProps {
   registerFieldRef: (key: string) => (node: FocusableControl) => void;
 }
 
-// Step "Revisão e termos" of the student wizard: read-only summary with a way
+// Step "Revisão e termos" of the signup wizards: read-only summary with a way
 // back to each step, plus the terms consent that gates the submission.
 export function ReviewStep({
   personal,
-  education,
+  details,
   consent,
   consentError,
   disabled,
@@ -91,19 +97,14 @@ export function ReviewStep({
       </SummaryCard>
 
       <SummaryCard
-        title="Formação acadêmica"
-        editLabel="Editar formação acadêmica"
+        title={details.title}
+        editLabel={details.editLabel}
         onEdit={() => onEditStep(1)}
         disabled={disabled}
       >
-        <SummaryRow label="Instituição de ensino" value={education.instituicaoEnsino} />
-        <SummaryRow label="Curso" value={education.curso} />
-        <SummaryRow
-          label="Tipo de formação"
-          value={education.tipoFormacao ? TIPO_FORMACAO_LABELS[education.tipoFormacao] : ""}
-        />
-        <SummaryRow label="Ano previsto de conclusão" value={education.anoConclusaoPrevisto} />
-        <SummaryRow label="Relação com o Rio Pomba Valley" value={education.relacaoRioPombaValley} />
+        {details.rows.map((row) => (
+          <SummaryRow key={row.label} label={row.label} value={row.value} />
+        ))}
       </SummaryCard>
 
       <ConsentField
