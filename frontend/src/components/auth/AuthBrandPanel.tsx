@@ -5,7 +5,7 @@ import { Box, Typography } from "@mui/material";
 import { Brand } from "@/components/landing/Brand";
 import { LoginVisualScene } from "./LoginVisualScene";
 
-export type AuthPanelVariant = "login" | "recovery" | "signup";
+export type AuthPanelVariant = "login" | "recovery" | "signup" | "system";
 
 // Message shown on the panel, one entry per route variant. New variants (recovery,
 // signup, ...) are added here without touching the panel structure.
@@ -38,6 +38,17 @@ const PANEL_CONTENT: Record<AuthPanelVariant, { headline: ReactNode }> = {
         Seu próximo capítulo começa com uma{" "}
         <Box component="span" sx={{ color: "primary.main" }}>
           conexão
+        </Box>
+        .
+      </>
+    ),
+  },
+  system: {
+    headline: (
+      <>
+        Vamos te levar de volta ao{" "}
+        <Box component="span" sx={{ color: "primary.main" }}>
+          caminho certo
         </Box>
         .
       </>
