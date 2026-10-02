@@ -3,7 +3,7 @@ import { SystemStatePage } from "@/components/auth/SystemStatePage";
 
 export default function NotFound() {
   return (
-    <AuthShell variant="system">
+    <AuthShell>
       <SystemStatePage
         eyebrow="ERRO 404"
         title="Página não encontrada"
