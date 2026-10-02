@@ -3,10 +3,13 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
+import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import { AuthField } from "@/components/auth/AuthField";
 import { AuthFormPage } from "@/components/auth/AuthFormPage";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { useMotionPolicy } from "@/components/auth/motion/useMotionPolicy";
+import { useRetryCountdown } from "@/components/auth/motion/useRetryCountdown";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { useAuth } from "@/hooks/useAuth";
 import { login } from "@/lib/auth";
@@ -37,6 +40,9 @@ function LoginFallback() {
   );
 }
 
+// How long the drawn check stays on the button before the app opens.
+const SUCCESS_PAUSE_MS = 700;
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,7 +51,19 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const retry = useRetryCountdown();
+  const reducedMotion = useMotionPolicy() === "reduced";
+
+  // Set false on unmount so a login that finishes after the user left does not navigate.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const senhaInputRef = useRef<HTMLInputElement | null>(null);
@@ -98,6 +116,12 @@ function LoginContent() {
         email: normalizeEmailInput(email),
         senha,
       });
+
+      // The check is drawn before the session is published: once the user is signed in,
+      // GuestOnly leaves this screen at once.
+      setSuccess(true);
+      if (!reducedMotion) await new Promise((resolve) => setTimeout(resolve, SUCCESS_PAUSE_MS));
+      if (!mounted.current) return;
       loginCompleted(response.usuario);
 
       const destination =
@@ -107,6 +131,7 @@ function LoginContent() {
 
       router.replace(destination);
     } catch (err) {
+      retry.observe(err);
       reportError(
         getAuthErrorMessage(err, {
           fallback: "Não foi possível fazer login. Tente novamente.",
@@ -124,6 +149,7 @@ function LoginContent() {
       subtitle="Acesse sua conta para continuar"
       onSubmit={handleSubmit}
       ariaBusy={loading}
+      shakeKey={errorSequence}
       footer={<LoginFooter />}
     >
       {sessionExpired && !error && (
@@ -154,7 +180,7 @@ function LoginContent() {
         onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
         onPaste={stripEmojiOnPaste}
         inputRef={emailInputRef}
-        disabled={loading}
+        disabled={loading || success}
       />
 
       <PasswordField
@@ -165,7 +191,7 @@ function LoginContent() {
         value={senha}
         onChange={(e) => setSenha(e.target.value)}
         inputRef={senhaInputRef}
-        disabled={loading}
+        disabled={loading || success}
       />
 
       <Box className="text-right">
@@ -183,9 +209,9 @@ function LoginContent() {
         </Typography>
       </Box>
 
-      <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
-        {loading ? "Entrando..." : "Entrar"}
-      </Button>
+      <AuthSubmitButton loading={loading} success={success} retry={retry} loadingLabel="Entrando...">
+        Entrar
+      </AuthSubmitButton>
     </AuthFormPage>
   );
 }

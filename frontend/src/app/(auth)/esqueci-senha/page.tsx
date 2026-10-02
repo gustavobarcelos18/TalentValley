@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Alert, Button } from "@mui/material";
+import { Alert } from "@mui/material";
 import { AuthField } from "@/components/auth/AuthField";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { useRetryCountdown } from "@/components/auth/motion/useRetryCountdown";
 import { AuthFooterLink } from "@/components/auth/AuthFooterLink";
 import { AuthFormPage } from "@/components/auth/AuthFormPage";
 import { AuthResultPage } from "@/components/auth/AuthResultPage";
@@ -23,6 +25,7 @@ export default function EsqueciSenhaPage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const retry = useRetryCountdown();
 
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const errorAlertRef = useRef<HTMLDivElement | null>(null);
@@ -63,6 +66,7 @@ export default function EsqueciSenhaPage() {
       await forgotPassword(normalizeEmailInput(email));
       setSubmitted(true);
     } catch (err) {
+      retry.observe(err);
       // Client errors other than rate limiting get the same neutral success
       // screen, so the answer never reveals whether the account exists.
       if (err instanceof ApiError && err.status < 500 && err.status !== 429) {
@@ -99,6 +103,7 @@ export default function EsqueciSenhaPage() {
       subtitle="Informe seu e-mail para receber as instruções de redefinição"
       onSubmit={handleSubmit}
       ariaBusy={loading}
+      shakeKey={errorSequence}
       footer={<AuthFooterLink href="/login">Voltar ao login</AuthFooterLink>}
     >
       {error && (
@@ -126,9 +131,9 @@ export default function EsqueciSenhaPage() {
         disabled={loading}
       />
 
-      <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
-        {loading ? "Enviando..." : "Enviar instruções"}
-      </Button>
+      <AuthSubmitButton loading={loading} retry={retry} loadingLabel="Enviando...">
+        Enviar instruções
+      </AuthSubmitButton>
     </AuthFormPage>
   );
 }

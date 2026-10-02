@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button } from "@mui/material";
+import { Alert } from "@mui/material";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { useRetryCountdown } from "@/components/auth/motion/useRetryCountdown";
 import { AuthFooterLink } from "@/components/auth/AuthFooterLink";
 import { AuthFormPage } from "@/components/auth/AuthFormPage";
 import { AuthResultPage } from "@/components/auth/AuthResultPage";
@@ -32,6 +34,7 @@ function RedefinirSenhaContent() {
   const [confirmacao, setConfirmacao] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const retry = useRetryCountdown();
   const [success, setSuccess] = useState(false);
   const [linkRejected, setLinkRejected] = useState(false);
 
@@ -87,6 +90,7 @@ function RedefinirSenhaContent() {
       await resetPassword({ email, token, novaSenha });
       setSuccess(true);
     } catch (err) {
+      retry.observe(err);
       // The password already passed the client rules, so a 400 means the link
       // was rejected (expired, already used or tampered with).
       if (err instanceof ApiError && err.status === 400) {
@@ -141,6 +145,7 @@ function RedefinirSenhaContent() {
       subtitle="Digite sua nova senha"
       onSubmit={handleSubmit}
       ariaBusy={loading}
+      shakeKey={errorSequence}
       footer={<AuthFooterLink href="/login">Voltar ao login</AuthFooterLink>}
     >
       {error && (
@@ -178,9 +183,9 @@ function RedefinirSenhaContent() {
         disabled={loading}
       />
 
-      <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
-        {loading ? "Redefinindo..." : "Redefinir senha"}
-      </Button>
+      <AuthSubmitButton loading={loading} retry={retry} loadingLabel="Redefinindo...">
+        Redefinir senha
+      </AuthSubmitButton>
     </AuthFormPage>
   );
 }
