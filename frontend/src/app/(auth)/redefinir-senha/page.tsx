@@ -1,34 +1,19 @@
 "use client";
 
-import {
-  Suspense,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type Ref,
-} from "react";
-import Link from "next/link";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  Alert,
-  Button,
-  IconButton,
-  InputAdornment,
-  Stack,
-  TextField,
-} from "@mui/material";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { Alert, Button } from "@mui/material";
+import { AuthFooterLink } from "@/components/auth/AuthFooterLink";
+import { AuthFormPage } from "@/components/auth/AuthFormPage";
+import { AuthResultPage } from "@/components/auth/AuthResultPage";
 import { AuthSuspenseFallback } from "@/components/auth/AuthSuspenseFallback";
-import { GuestOnly } from "@/components/auth/GuestOnly";
+import { PasswordField } from "@/components/auth/PasswordField";
 import { ApiError } from "@/lib/api";
 import { resetPassword } from "@/lib/auth";
-import {
-  PASSWORD_HELPER_TEXT,
-  validatePassword,
-} from "@/lib/validation";
+import { getAuthErrorMessage } from "@/lib/authErrors";
+import { validatePassword } from "@/lib/validation";
+
+const EYEBROW = "RECUPERAR ACESSO";
 
 export default function RedefinirSenhaPage() {
   return (
@@ -45,11 +30,10 @@ function RedefinirSenhaContent() {
 
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmacao, setShowConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [linkRejected, setLinkRejected] = useState(false);
 
   const novaSenhaInputRef = useRef<HTMLInputElement | null>(null);
   const confirmacaoInputRef = useRef<HTMLInputElement | null>(null);
@@ -103,213 +87,100 @@ function RedefinirSenhaContent() {
       await resetPassword({ email, token, novaSenha });
       setSuccess(true);
     } catch (err) {
-      if (err instanceof ApiError) {
-        reportError(
-          err.status === 400
-            ? "Não foi possível redefinir a senha. Verifique o link."
-            : "Não foi possível processar. Tente novamente.",
-        );
+      // The password already passed the client rules, so a 400 means the link
+      // was rejected (expired, already used or tampered with).
+      if (err instanceof ApiError && err.status === 400) {
+        setLinkRejected(true);
       } else {
-        reportError("Não foi possível conectar. Tente novamente.");
+        reportError(
+          getAuthErrorMessage(err, {
+            fallback: "Não foi possível redefinir a senha. Tente novamente.",
+          }),
+        );
       }
     } finally {
       setLoading(false);
     }
   }
 
-  if (missingParams) {
+  if (missingParams || linkRejected) {
     return (
-      <GuestOnly>
-        <InvalidLinkState />
-      </GuestOnly>
+      <AuthResultPage
+        eyebrow={EYEBROW}
+        title="Link inválido ou expirado"
+        severity="error"
+        message={
+          missingParams
+            ? "Este link de redefinição está incompleto. Solicite um novo."
+            : "Este link de redefinição é inválido, expirou ou já foi usado. Solicite um novo."
+        }
+        actionHref="/esqueci-senha"
+        actionLabel="Solicitar novo link"
+        footer={<AuthFooterLink href="/login">Voltar ao login</AuthFooterLink>}
+      />
+    );
+  }
+
+  if (success) {
+    return (
+      <AuthResultPage
+        eyebrow={EYEBROW}
+        title="Senha redefinida"
+        severity="success"
+        message="Sua senha foi redefinida com sucesso."
+        actionHref="/login"
+        actionLabel="Ir para o login"
+      />
     );
   }
 
   return (
-    <GuestOnly>
-      <AuthPageShell
-        title="Redefinir senha"
-        subtitle="Digite sua nova senha"
-        onSubmit={success ? undefined : handleSubmit}
-        ariaBusy={loading}
-      >
-        {success ? (
-          <SuccessState />
-        ) : (
-          <>
-            {error && (
-              <Alert
-                ref={errorAlertRef}
-                tabIndex={-1}
-                severity="error"
-                variant="filled"
-                sx={{ fontSize: "0.875rem" }}
-              >
-                {error}
-              </Alert>
-            )}
-
-            <PasswordField
-              id="novaSenha"
-              label="Nova senha"
-              value={novaSenha}
-              onChange={setNovaSenha}
-              inputRef={novaSenhaInputRef}
-              showPassword={showPassword}
-              onTogglePassword={() => setShowPassword((v) => !v)}
-              disabled={loading}
-              helperText={PASSWORD_HELPER_TEXT}
-            />
-
-            <PasswordField
-              id="confirmacao"
-              label="Confirmar nova senha"
-              value={confirmacao}
-              onChange={setConfirmacao}
-              inputRef={confirmacaoInputRef}
-              showPassword={showConfirmacao}
-              onTogglePassword={() => setShowConfirmacao((v) => !v)}
-              disabled={loading}
-              showAriaLabel="Mostrar confirmação da nova senha"
-              hideAriaLabel="Ocultar confirmação da nova senha"
-            />
-
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              fullWidth
-              disabled={loading}
-            >
-              {loading ? "Redefinindo..." : "Redefinir senha"}
-            </Button>
-          </>
-        )}
-      </AuthPageShell>
-    </GuestOnly>
-  );
-}
-
-
-function InvalidLinkState() {
-  return (
-    <AuthPageShell title="Link inválido">
-      <Stack spacing={3} sx={{ textAlign: "center" }}>
-        <Alert severity="error" variant="filled" sx={{ fontSize: "0.875rem" }}>
-          Este link de redefinição é inválido ou está incompleto. Solicite um novo.
-        </Alert>
-        <Button
-          component={Link}
-          href="/esqueci-senha"
-          variant="contained"
-          size="large"
-          fullWidth
+    <AuthFormPage
+      eyebrow={EYEBROW}
+      title="Redefinir senha"
+      subtitle="Digite sua nova senha"
+      onSubmit={handleSubmit}
+      ariaBusy={loading}
+      footer={<AuthFooterLink href="/login">Voltar ao login</AuthFooterLink>}
+    >
+      {error && (
+        <Alert
+          ref={errorAlertRef}
+          tabIndex={-1}
+          severity="error"
+          variant="filled"
+          sx={{ fontSize: "0.875rem" }}
         >
-          Solicitar novo link
-        </Button>
-      </Stack>
-    </AuthPageShell>
-  );
-}
+          {error}
+        </Alert>
+      )}
 
-function SuccessState() {
-  const alertRef = useRef<HTMLDivElement | null>(null);
+      <PasswordField
+        id="novaSenha"
+        name="novaSenha"
+        label="Nova senha"
+        autoComplete="new-password"
+        value={novaSenha}
+        onChange={(e) => setNovaSenha(e.target.value)}
+        inputRef={novaSenhaInputRef}
+        disabled={loading}
+        showRules
+      />
 
-  // Move focus to the success message when the form is replaced by it.
-  useEffect(() => {
-    alertRef.current?.focus();
-  }, []);
+      <PasswordField
+        id="confirmacao"
+        name="confirmacao"
+        label="Confirmação da nova senha"
+        autoComplete="new-password"
+        value={confirmacao}
+        onChange={(e) => setConfirmacao(e.target.value)}
+        inputRef={confirmacaoInputRef}
+        disabled={loading}
+      />
 
-  return (
-    <Stack spacing={3}>
-      <Alert
-        ref={alertRef}
-        tabIndex={-1}
-        severity="success"
-        variant="filled"
-        sx={{ fontSize: "0.9375rem" }}
-      >
-        Sua senha foi redefinida com sucesso.
-      </Alert>
-      <Button
-        component={Link}
-        href="/login"
-        variant="contained"
-        size="large"
-        fullWidth
-      >
-        Ir para o login
+      <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
+        {loading ? "Redefinindo..." : "Redefinir senha"}
       </Button>
-    </Stack>
-  );
-}
-
-interface PasswordFieldProps {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  inputRef?: Ref<HTMLInputElement>;
-  showPassword: boolean;
-  onTogglePassword: () => void;
-  disabled?: boolean;
-  helperText?: string;
-  /** Toggle button aria-label when the value is hidden (password type). */
-  showAriaLabel?: string;
-  /** Toggle button aria-label when the value is shown (text type). */
-  hideAriaLabel?: string;
-}
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  inputRef,
-  showPassword,
-  onTogglePassword,
-  disabled,
-  helperText,
-  showAriaLabel,
-  hideAriaLabel,
-}: PasswordFieldProps) {
-  const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
-  const ariaLabel = showPassword
-    ? (hideAriaLabel ?? "Ocultar senha")
-    : (showAriaLabel ?? "Mostrar senha");
-  const inputType = showPassword ? "text" : "password";
-
-  return (
-    <TextField
-      id={id}
-      name={id}
-      label={label}
-      type={inputType}
-      autoComplete="new-password"
-      required
-      fullWidth
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      inputRef={inputRef}
-      disabled={disabled}
-      helperText={helperText}
-      slotProps={{
-        htmlInput: { "aria-label": label },
-        input: {
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton
-                type="button"
-                aria-label={ariaLabel}
-                onClick={onTogglePassword}
-                edge="end"
-              >
-                {visibilityIcon}
-              </IconButton>
-            </InputAdornment>
-          ),
-        },
-      }}
-    />
+    </AuthFormPage>
   );
 }

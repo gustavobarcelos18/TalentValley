@@ -58,6 +58,11 @@ export async function resetPassword(request: ResetPasswordRequest): Promise<void
   await apiMutation<void>("POST", "/api/auth/reset-password", request);
 }
 
+export async function resendActivation(email: string): Promise<void> {
+  await ensureCsrfToken();
+  await apiMutation<void>("POST", "/api/auth/resend-activation", { email });
+}
+
 export async function activateAccount(request: ActivateAccountRequest): Promise<void> {
   await ensureCsrfToken();
   await apiMutation<void>("POST", "/api/auth/activate-account", request);

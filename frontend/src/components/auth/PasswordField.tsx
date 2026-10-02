@@ -23,7 +23,7 @@ export function PasswordField({ showRules = false, ...props }: PasswordFieldProp
         endAdornment={
           <IconButton
             type="button"
-            aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
+            aria-label={`${visible ? "Ocultar" : "Mostrar"} ${props.label.toLowerCase()}`}
             onClick={() => setVisible((v) => !v)}
             edge="end"
           >

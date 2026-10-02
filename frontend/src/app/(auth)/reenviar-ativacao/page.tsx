@@ -7,7 +7,7 @@ import { AuthFooterLink } from "@/components/auth/AuthFooterLink";
 import { AuthFormPage } from "@/components/auth/AuthFormPage";
 import { AuthResultPage } from "@/components/auth/AuthResultPage";
 import { ApiError } from "@/lib/api";
-import { forgotPassword } from "@/lib/auth";
+import { resendActivation } from "@/lib/auth";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 import {
   normalizeEmailInput,
@@ -16,9 +16,9 @@ import {
   validateEmail,
 } from "@/lib/validation";
 
-const EYEBROW = "RECUPERAR ACESSO";
+const EYEBROW = "ATIVAÇÃO DE CONTA";
 
-export default function EsqueciSenhaPage() {
+export default function ReenviarAtivacaoPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -60,7 +60,7 @@ export default function EsqueciSenhaPage() {
     setLoading(true);
 
     try {
-      await forgotPassword(normalizeEmailInput(email));
+      await resendActivation(normalizeEmailInput(email));
       setSubmitted(true);
     } catch (err) {
       // Client errors other than rate limiting get the same neutral success
@@ -85,7 +85,7 @@ export default function EsqueciSenhaPage() {
         eyebrow={EYEBROW}
         title="Verifique seu e-mail"
         severity="success"
-        message="Se a conta for elegível, enviaremos as instruções para redefinir sua senha."
+        message="Se a conta estiver aguardando ativação, enviaremos um novo link para o e-mail informado."
         actionHref="/login"
         actionLabel="Voltar ao login"
       />
@@ -95,8 +95,8 @@ export default function EsqueciSenhaPage() {
   return (
     <AuthFormPage
       eyebrow={EYEBROW}
-      title="Esqueci minha senha"
-      subtitle="Informe seu e-mail para receber as instruções de redefinição"
+      title="Receber novo link de ativação"
+      subtitle="Informe o e-mail da sua conta para receber um novo link"
       onSubmit={handleSubmit}
       ariaBusy={loading}
       footer={<AuthFooterLink href="/login">Voltar ao login</AuthFooterLink>}
@@ -127,7 +127,7 @@ export default function EsqueciSenhaPage() {
       />
 
       <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
-        {loading ? "Enviando..." : "Enviar instruções"}
+        {loading ? "Enviando..." : "Enviar novo link"}
       </Button>
     </AuthFormPage>
   );

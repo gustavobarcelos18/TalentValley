@@ -9,6 +9,10 @@ import { AuthBrandPanel, type AuthPanelVariant } from "./AuthBrandPanel";
 // still renders its own shell, so screens can move over one phase at a time.
 const PANEL_VARIANT_BY_PATH: Record<string, AuthPanelVariant> = {
   "/login": "login",
+  "/esqueci-senha": "recovery",
+  "/redefinir-senha": "recovery",
+  "/ativar-conta": "recovery",
+  "/reenviar-ativacao": "recovery",
 };
 
 // Single layout for the entry screens: brand panel + form area. It lives in the
