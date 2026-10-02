@@ -44,6 +44,41 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
         return user is null ? Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.") : Ok(user);
     }
 
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var result = await auth.ChangePasswordAsync(Guid.Parse(User.FindFirst("sub")!.Value), request);
+        switch (result.Status)
+        {
+            case StatusCodes.Status204NoContent:
+                Response.Cookies.Append(AuthCookie.Name, result.Token!, AuthCookie.Options(environment, result.Expires));
+                return NoContent();
+            case StatusCodes.Status400BadRequest:
+                ModelState.AddModelError(result.Field!, result.Field == ChangePasswordResult.CurrentPasswordField
+                    ? "A senha atual está incorreta."
+                    : "A nova senha não atende aos requisitos de segurança.");
+                return ValidationProblem(ModelState);
+            default:
+                return Problem(statusCode: result.Status, title: result.Status switch
+                {
+                    StatusCodes.Status423Locked => "Sign-in is temporarily locked. Try again later.",
+                    StatusCodes.Status403Forbidden => "Account access is unavailable.",
+                    _ => "Authentication is required."
+                });
+        }
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
+    [HttpPost("resend-activation")]
+    public async Task<IActionResult> ResendActivation(ResendActivationRequest request)
+    {
+        await accountTokens.ResendActivationAsync(request.Email);
+        return Accepted(new { mensagem = "If the account is eligible, a new activation link will be sent." });
+    }
+
     // Even expired or blocked sessions can clear their cookie; antiforgery still applies.
     [AllowAnonymous]
     [HttpPost("logout")]

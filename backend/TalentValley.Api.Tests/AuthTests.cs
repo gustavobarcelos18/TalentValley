@@ -191,5 +191,83 @@ public sealed class AuthTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/probe/admin")).StatusCode);
     }
 
+    [Fact]
+    public async Task Change_password_keeps_current_session_and_revokes_other_sessions()
+    {
+        await factory.CreateUserAsync("maria@example.test");
+        using var client = factory.Client();
+        using var other = factory.Client();
+        await ApiFactory.LoginAsync(client, "maria@example.test");
+        await ApiFactory.LoginAsync(other, "maria@example.test");
+        await ApiFactory.SetCsrfAsync(client);
+
+        var response = await client.PostAsJsonAsync("/api/auth/change-password", new ChangePasswordRequest(ApiFactory.Password, "NewPassword123"));
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), x => x.StartsWith("tv_access="));
+        Assert.Contains("httponly", cookie);
+        Assert.DoesNotContain(cookie.Split(';')[0]["tv_access=".Length..], await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await other.GetAsync("/api/auth/me")).StatusCode);
+        using var fresh = factory.Client();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await ApiFactory.LoginAsync(fresh, "maria@example.test")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(fresh, "maria@example.test", "NewPassword123")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("wrong-current", "senhaAtual")]
+    [InlineData("weak-new", "novaSenha")]
+    public async Task Invalid_change_password_returns_field_error_and_changes_nothing(string fault, string field)
+    {
+        await factory.CreateUserAsync("maria@example.test");
+        using var client = factory.Client();
+        await ApiFactory.LoginAsync(client, "maria@example.test");
+        await ApiFactory.SetCsrfAsync(client);
+
+        var response = await client.PostAsJsonAsync("/api/auth/change-password", fault == "wrong-current"
+            ? new ChangePasswordRequest("WrongPassword123", "NewPassword123")
+            : new ChangePasswordRequest(ApiFactory.Password, "weak"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ValidationProblemDetails>();
+        Assert.Equal([field], problem!.Errors.Keys);
+        Assert.False(response.Headers.Contains("Set-Cookie"));
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
+        using var fresh = factory.Client();
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(fresh, "maria@example.test")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Wrong_current_passwords_count_toward_lockout()
+    {
+        await factory.CreateUserAsync("maria@example.test");
+        using var client = factory.Client();
+        await ApiFactory.LoginAsync(client, "maria@example.test");
+        await ApiFactory.SetCsrfAsync(client);
+        var wrong = new ChangePasswordRequest("WrongPassword123", "NewPassword123");
+        for (var i = 0; i < 4; i++)
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/change-password", wrong)).StatusCode);
+        Assert.Equal(HttpStatusCode.Locked, (await client.PostAsJsonAsync("/api/auth/change-password", wrong)).StatusCode);
+        Assert.Equal(HttpStatusCode.Locked,
+            (await client.PostAsJsonAsync("/api/auth/change-password", new ChangePasswordRequest(ApiFactory.Password, "NewPassword123"))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Change_password_requires_session_and_antiforgery()
+    {
+        await factory.CreateUserAsync("maria@example.test");
+        using var anonymous = factory.Client();
+        await ApiFactory.SetCsrfAsync(anonymous);
+        var request = new ChangePasswordRequest(ApiFactory.Password, "NewPassword123");
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PostAsJsonAsync("/api/auth/change-password", request)).StatusCode);
+
+        using var client = factory.Client();
+        await ApiFactory.LoginAsync(client, "maria@example.test");
+        client.DefaultRequestHeaders.Remove("X-XSRF-TOKEN");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/change-password", request)).StatusCode);
+        using var fresh = factory.Client();
+        Assert.Equal(HttpStatusCode.OK, (await ApiFactory.LoginAsync(fresh, "maria@example.test")).StatusCode);
+    }
+
     public void Dispose() => factory.Dispose();
 }
