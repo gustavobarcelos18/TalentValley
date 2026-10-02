@@ -6,6 +6,7 @@ import { CircularProgress, Stack, Typography } from "@mui/material";
 import { AuthCheckError } from "@/components/auth/AuthCheckError";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { getRoleDestination } from "@/lib/paths";
 
 interface GuestOnlyProps {
   children: ReactNode;
@@ -69,17 +70,4 @@ function LoadingStatus({ message }: { message: string }) {
       </Typography>
     </Stack>
   );
-}
-
-function getRoleDestination(role: string): string {
-  switch (role) {
-    case "ALUNO":
-      return "/meu-perfil";
-    case "RECRUTADOR":
-      return "/recrutador";
-    case "ADMIN":
-      return "/admin";
-    default:
-      return "/login";
-  }
 }

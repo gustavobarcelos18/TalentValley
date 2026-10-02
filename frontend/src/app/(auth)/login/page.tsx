@@ -3,23 +3,14 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Alert,
-  Box,
-  Button,
-  IconButton,
-  InputAdornment,
-  TextField,
-  Typography,
-} from "@mui/material";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { LoginLayout } from "@/components/auth/LoginLayout";
-import { LoginSuspenseFallback } from "@/components/auth/LoginSuspenseFallback";
-import { GuestOnly } from "@/components/auth/GuestOnly";
+import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
+import ArrowBack from "@mui/icons-material/ArrowBack";
+import { AuthField } from "@/components/auth/AuthField";
+import { AuthFormPage } from "@/components/auth/AuthFormPage";
+import { PasswordField } from "@/components/auth/PasswordField";
 import { useAuth } from "@/hooks/useAuth";
-import { ApiError } from "@/lib/api";
 import { login } from "@/lib/auth";
+import { getAuthErrorMessage } from "@/lib/authErrors";
 import {
   normalizeEmailInput,
   stripEmoji,
@@ -29,9 +20,20 @@ import {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoginSuspenseFallback />}>
+    <Suspense fallback={<LoginFallback />}>
       <LoginContent />
     </Suspense>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <Stack spacing={2} role="status" aria-live="polite" sx={{ alignItems: "center", py: 8 }}>
+      <CircularProgress />
+      <Typography variant="body2" color="text.secondary">
+        Carregando...
+      </Typography>
+    </Stack>
   );
 }
 
@@ -42,7 +44,6 @@ function LoginContent() {
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,8 +54,7 @@ function LoginContent() {
   const lastErrorFocus = useRef<"email" | "senha" | null>(null);
 
   const returnUrl = searchParams.get("returnUrl");
-
-  const visibilityIcon = showPassword ? <VisibilityOff /> : <Visibility />;
+  const sessionExpired = searchParams.get("sessao") === "expirada";
 
   // After a failed submit, move focus to the first invalid field or, for
   // submission errors, to the error summary. The sequence id re-runs the
@@ -107,126 +107,127 @@ function LoginContent() {
 
       router.replace(destination);
     } catch (err) {
-      if (err instanceof ApiError) {
-        switch (err.status) {
-          case 401:
-            reportError("E-mail ou senha incorretos.");
-            break;
-          case 403:
-            reportError("Acesso indisponível para esta conta.");
-            break;
-          case 423:
-            reportError(
-              "Conta temporariamente bloqueada. Tente novamente mais tarde.",
-            );
-            break;
-          default:
-            reportError("Não foi possível fazer login. Tente novamente.");
-        }
-      } else {
-        reportError("Não foi possível conectar ao servidor. Tente novamente.");
-      }
+      reportError(
+        getAuthErrorMessage(err, {
+          fallback: "Não foi possível fazer login. Tente novamente.",
+          overrides: { 401: "E-mail ou senha incorretos." },
+        }),
+      );
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <GuestOnly>
-      <LoginLayout
-        title="Entrar no Talent Valley"
-        subtitle="Acesse sua conta para continuar"
-        onSubmit={handleSubmit}
-        ariaBusy={loading}
-      >
-        {error && (
-          <Alert
-            ref={errorAlertRef}
-            tabIndex={-1}
-            severity="error"
-            variant="filled"
-            sx={{ fontSize: "0.875rem" }}
-          >
-            {error}
-          </Alert>
-        )}
+    <AuthFormPage
+      title="Entrar no Talent Valley"
+      subtitle="Acesse sua conta para continuar"
+      onSubmit={handleSubmit}
+      ariaBusy={loading}
+      footer={<LoginFooter />}
+    >
+      {sessionExpired && !error && (
+        <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
+          Sua sessão expirou. Entre novamente para continuar.
+        </Alert>
+      )}
 
-        <TextField
-          id="email"
-          name="email"
-          label="E-mail"
-          type="email"
-          autoComplete="email"
-          required
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
-          inputRef={emailInputRef}
-          disabled={loading}
-          slotProps={{
-            htmlInput: { "aria-label": "E-mail", onPaste: stripEmojiOnPaste },
-          }}
-        />
-
-        <TextField
-          id="senha"
-          name="senha"
-          label="Senha"
-          type={showPassword ? "text" : "password"}
-          autoComplete="current-password"
-          required
-          fullWidth
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          inputRef={senhaInputRef}
-          disabled={loading}
-          slotProps={{
-            htmlInput: { "aria-label": "Senha" },
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    type="button"
-                    aria-label={
-                      showPassword ? "Ocultar senha" : "Mostrar senha"
-                    }
-                    onClick={() => setShowPassword((v) => !v)}
-                    edge="end"
-                  >
-                    {visibilityIcon}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-
-        <Box className="text-right">
-          <Typography
-            component={Link}
-            href="/esqueci-senha"
-            variant="body2"
-            sx={{
-              color: "primary.main",
-              fontWeight: 500,
-              "&:hover": { textDecoration: "underline" },
-            }}
-          >
-            Esqueceu sua senha?
-          </Typography>
-        </Box>
-
-        <Button
-          type="submit"
-          variant="contained"
-          size="large"
-          fullWidth
-          disabled={loading}
+      {error && (
+        <Alert
+          ref={errorAlertRef}
+          tabIndex={-1}
+          severity="error"
+          variant="filled"
+          sx={{ fontSize: "0.875rem" }}
         >
-          {loading ? "Entrando..." : "Entrar"}
-        </Button>
-      </LoginLayout>
-    </GuestOnly>
+          {error}
+        </Alert>
+      )}
+
+      <AuthField
+        id="email"
+        name="email"
+        label="E-mail"
+        type="email"
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
+        onPaste={stripEmojiOnPaste}
+        inputRef={emailInputRef}
+        disabled={loading}
+      />
+
+      <PasswordField
+        id="senha"
+        name="senha"
+        label="Senha"
+        autoComplete="current-password"
+        value={senha}
+        onChange={(e) => setSenha(e.target.value)}
+        inputRef={senhaInputRef}
+        disabled={loading}
+      />
+
+      <Box className="text-right">
+        <Typography
+          component={Link}
+          href="/esqueci-senha"
+          variant="body2"
+          sx={{
+            color: "primary.main",
+            fontWeight: 500,
+            "&:hover": { textDecoration: "underline" },
+          }}
+        >
+          Esqueceu sua senha?
+        </Typography>
+      </Box>
+
+      <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
+        {loading ? "Entrando..." : "Entrar"}
+      </Button>
+    </AuthFormPage>
+  );
+}
+
+function LoginFooter() {
+  return (
+    <>
+      <Typography align="center" variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+        Ainda não possui acesso?{" "}
+        <Typography
+          component={Link}
+          href="/cadastro"
+          variant="body2"
+          sx={{
+            color: "primary.main",
+            fontWeight: 600,
+            "&:hover": { textDecoration: "underline" },
+          }}
+        >
+          Solicitar cadastro
+        </Typography>
+      </Typography>
+
+      <Box sx={{ textAlign: "center", mt: 4 }}>
+        <Typography
+          component={Link}
+          href="/"
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            transition: "color 0.2s",
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <ArrowBack sx={{ fontSize: "1rem" }} />
+          Voltar para o início
+        </Typography>
+      </Box>
+    </>
   );
 }
 
