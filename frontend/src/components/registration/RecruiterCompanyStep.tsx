@@ -69,23 +69,25 @@ export function RecruiterCompanyStep({
         maxLength={120}
       />
 
-      <AuthField
-        id="siteEmpresa"
-        name="siteEmpresa"
-        label="Site da empresa"
-        type="url"
-        required={false}
-        value={value.siteEmpresa}
-        onChange={(e) => onChange("siteEmpresa", stripEmoji(e.target.value).slice(0, 2048))}
-        onBlur={() => onBlur("siteEmpresa")}
-        onPaste={stripEmojiOnPaste}
-        inputRef={registerFieldRef("siteEmpresa")}
-        disabled={disabled}
-        error={Boolean(errors.siteEmpresa)}
-        helperText={errors.siteEmpresa ?? "Opcional; use um endereço HTTP ou HTTPS."}
-        inputMode="url"
-        maxLength={2048}
-      />
+      <div className="sm:col-span-2">
+        <AuthField
+          id="siteEmpresa"
+          name="siteEmpresa"
+          label="Site da empresa"
+          type="url"
+          required={false}
+          value={value.siteEmpresa}
+          onChange={(e) => onChange("siteEmpresa", stripEmoji(e.target.value).slice(0, 2048))}
+          onBlur={() => onBlur("siteEmpresa")}
+          onPaste={stripEmojiOnPaste}
+          inputRef={registerFieldRef("siteEmpresa")}
+          disabled={disabled}
+          error={Boolean(errors.siteEmpresa)}
+          helperText={errors.siteEmpresa ?? "Opcional; use um endereço HTTP ou HTTPS."}
+          inputMode="url"
+          maxLength={2048}
+        />
+      </div>
     </>
   );
 }

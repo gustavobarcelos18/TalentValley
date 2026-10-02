@@ -4,8 +4,11 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Alert, Button } from "@mui/material";
 import { AuthFormPage } from "./AuthFormPage";
+import { SystemScene, type SystemSceneKind } from "./SystemScene";
 
 interface SystemStatePageProps {
+  /** Illustration above the message. */
+  scene: SystemSceneKind;
   eyebrow: string;
   title: string;
   message: string;
@@ -16,7 +19,7 @@ interface SystemStatePageProps {
 
 // Screen for system states (404, error, access denied): a message that takes
 // focus plus a single next action, inside the unified entry layout.
-export function SystemStatePage({ eyebrow, title, message, severity, action }: SystemStatePageProps) {
+export function SystemStatePage({ scene, eyebrow, title, message, severity, action }: SystemStatePageProps) {
   const alertRef = useRef<HTMLDivElement | null>(null);
 
   // The screen replaces whatever was being shown, so move focus to the message.
@@ -26,6 +29,8 @@ export function SystemStatePage({ eyebrow, title, message, severity, action }: S
 
   return (
     <AuthFormPage title={title} eyebrow={eyebrow}>
+      <SystemScene kind={scene} />
+
       <Alert
         ref={alertRef}
         tabIndex={-1}

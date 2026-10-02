@@ -188,6 +188,7 @@ export function PersonalDataStep({
           component="p"
           variant="caption"
           role="status"
+          className="sm:col-span-2"
           sx={{ color: cepStatus.type === "error" ? "error.main" : "success.main" }}
         >
           {cepStatus.type === "error"
@@ -196,7 +197,7 @@ export function PersonalDataStep({
         </Typography>
       )}
 
-      <div className="grid grid-cols-[6.5rem_1fr] items-start gap-4">
+      <div className="grid grid-cols-[6.5rem_1fr] items-start gap-4 sm:col-span-2">
         <AuthField
           id="uf"
           name="uf"
@@ -289,7 +290,7 @@ export function PersonalDataStep({
       </div>
 
       {error && (
-        <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+        <Stack direction="row" spacing={1} useFlexGap className="sm:col-span-2" sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Typography component="span" variant="caption" color="text.secondary" role="status">
             Não foi possível carregar a lista oficial. Digite a cidade manualmente ou tente novamente.
           </Typography>

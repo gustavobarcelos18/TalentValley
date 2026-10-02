@@ -4,10 +4,19 @@ import Link from "next/link";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import { Box, Typography } from "@mui/material";
 
-// Secondary link under an entry screen, e.g. back to the login.
-export function AuthFooterLink({ href, children }: { href: string; children: string }) {
+// Secondary link under an entry screen, e.g. back to the login. `inline` drops the centering and the
+// top margin, for a link that shares a row with another one.
+export function AuthFooterLink({
+  href,
+  inline = false,
+  children,
+}: {
+  href: string;
+  inline?: boolean;
+  children: string;
+}) {
   return (
-    <Box sx={{ textAlign: "center", mt: 4 }}>
+    <Box sx={inline ? undefined : { textAlign: "center", mt: 4 }}>
       <Typography
         component={Link}
         href={href}
