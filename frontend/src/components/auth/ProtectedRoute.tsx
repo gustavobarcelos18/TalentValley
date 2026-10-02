@@ -3,9 +3,9 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CircularProgress, Stack } from "@mui/material";
+import { AccessDenied } from "@/components/auth/AccessDenied";
 import { AuthCheckError } from "@/components/auth/AuthCheckError";
 import { useAuth } from "@/hooks/useAuth";
-import { getRoleDestination } from "@/lib/paths";
 import type { UserRole } from "@/types/auth";
 
 interface ProtectedRouteProps {
@@ -26,13 +26,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
     if (!user) {
       router.replace("/login");
-      return;
     }
-
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-      router.replace(getRoleDestination(user.role));
-    }
-  }, [user, loading, error, allowedRoles, router]);
+  }, [user, loading, error, router]);
 
   if (loading) {
     return (
@@ -63,7 +58,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return null;
+    return <AccessDenied role={user.role} />;
   }
 
   return <>{children}</>;
