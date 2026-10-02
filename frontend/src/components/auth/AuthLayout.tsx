@@ -13,6 +13,8 @@ const PANEL_VARIANT_BY_PATH: Record<string, AuthPanelVariant> = {
   "/redefinir-senha": "recovery",
   "/ativar-conta": "recovery",
   "/reenviar-ativacao": "recovery",
+  "/cadastro": "signup",
+  "/cadastro/aluno": "signup",
 };
 
 // Single layout for the entry screens: brand panel + form area. It lives in the

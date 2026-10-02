@@ -110,23 +110,6 @@
   background: var(--mui-palette-action-disabledBackground);
   color: var(--mui-palette-action-disabled);
 }
-.tv-registration__choices { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.tv-registration .tv-registration__choice {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 28px;
-  border: 1px solid var(--mui-palette-divider);
-  color: var(--mui-palette-text-primary);
-  transition: border-color 160ms ease, background-color 160ms ease;
-}
-.tv-registration .tv-registration__choice:hover {
-  border-color: var(--mui-palette-primary-main);
-  background: var(--mui-palette-action-hover);
-}
-.tv-registration__choice-icon,
 .tv-registration__success-icon {
   display: flex;
   align-items: center;
@@ -136,18 +119,6 @@
   border: 1px solid var(--mui-palette-divider);
   border-radius: 12px;
   color: var(--registration-accent);
-}
-.tv-registration__choice h2 { font-size: 1.2rem; margin-bottom: 8px; }
-.tv-registration__choice p { line-height: 1.7; }
-.tv-registration__choice-arrow {
-  position: absolute;
-  top: 40px;
-  right: 28px;
-  color: var(--mui-palette-text-secondary);
-  transition: transform 160ms ease;
-}
-@media (hover: hover) {
-  .tv-registration__choice:hover .tv-registration__choice-arrow { transform: translateX(3px); }
 }
 .tv-registration__success {
   padding: 28px;
@@ -176,8 +147,7 @@
 @media (min-width: 600px) {
   .tv-registration__panel { padding: 48px 40px; }
   .tv-registration__brand-region { padding-inline: 40px; }
-  .tv-registration__fields,
-  .tv-registration__choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tv-registration__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 1024px) {
   .tv-registration {

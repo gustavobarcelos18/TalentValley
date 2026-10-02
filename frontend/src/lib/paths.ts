@@ -2,7 +2,7 @@ import type { UserRole } from "@/types/auth";
 
 export const AppPaths = {
   protected: ["/meu-perfil", "/recrutador", "/admin"],
-  guestOnly: ["/login", "/esqueci-senha", "/redefinir-senha", "/ativar-conta", "/reenviar-ativacao"],
+  guestOnly: ["/login", "/esqueci-senha", "/redefinir-senha", "/ativar-conta", "/reenviar-ativacao", "/cadastro", "/cadastro/aluno"],
 } as const;
 
 // Authenticated home of each role. Single source for every redirect or link
