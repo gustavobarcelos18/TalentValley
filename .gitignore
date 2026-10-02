@@ -28,3 +28,6 @@ backend/TalentValley.Api/App_Data/
 backend/TalentValley.Api/Database/*.db
 backend/TalentValley.Api/Database/*.db-shm
 backend/TalentValley.Api/Database/*.db-wal
+
+# Local project brain (plans, reports, solved problems)
+.agents/brain/
