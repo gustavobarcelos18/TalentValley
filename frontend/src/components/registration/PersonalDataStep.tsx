@@ -32,8 +32,8 @@ interface PersonalDataStepProps {
   cepStatus: CepStatus;
 }
 
-// Step "Dados pessoais": identification, contact and location. Used by the
-// student wizard; the recruiter wizard reuses it in Phase 5.
+// Step "Dados pessoais": identification, contact and location. Shared by the
+// student and recruiter wizards.
 export function PersonalDataStep({
   value,
   errors,

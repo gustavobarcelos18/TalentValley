@@ -9,22 +9,19 @@ import {
   normalizeEmailInput,
   normalizePhone,
   normalizeWhitespace,
-  validateCourseName,
-  validateFreeText,
-  validateInstitutionName,
-  validateYear,
+  validateCompanyName,
+  validateHttpUrl,
+  validateJobTitle,
 } from "@/lib/validation";
-import { TIPO_FORMACAO_LABELS } from "@/lib/labels";
-import type { TipoFormacao } from "@/types/student";
 import { PersonalDataStep } from "./PersonalDataStep";
+import {
+  recruiterCompanyBlank,
+  RecruiterCompanyStep,
+  type RecruiterCompanyForm,
+} from "./RecruiterCompanyStep";
 import { RegistrationSuccess } from "./RegistrationSuccess";
 import { ReviewStep } from "./ReviewStep";
 import { SignupFooter } from "./SignupFooter";
-import {
-  studentEducationBlank,
-  StudentEducationStep,
-  type StudentEducationForm,
-} from "./StudentEducationStep";
 import {
   commonBlank,
   commonErrors,
@@ -41,9 +38,9 @@ import { WizardProgress, WizardStepHeading } from "./WizardProgress";
 const STEPS = [
   { label: "Dados", title: "Dados pessoais", description: "Como podemos identificar você." },
   {
-    label: "Formação",
-    title: "Formação acadêmica",
-    description: "Conte onde você estuda e qual formação está cursando.",
+    label: "Empresa",
+    title: "Dados da empresa",
+    description: "Apresente a empresa e sua atuação profissional.",
   },
   {
     label: "Revisão",
@@ -55,28 +52,24 @@ const STEPS = [
 // Visual/DOM order of each step's fields. Used to focus the first invalid field.
 const STEP_FIELD_ORDER: string[][] = [
   ["nomeCompleto", "email", "telefone", "cep", "uf", "cidade"],
-  ["instituicaoEnsino", "curso", "tipoFormacao", "anoConclusaoPrevisto", "relacaoRioPombaValley"],
+  ["empresa", "cargo", "siteEmpresa"],
   ["consentTermos"],
 ];
 
-function educationErrors(school: StudentEducationForm): FieldErrors {
+function companyErrors(company: RecruiterCompanyForm): FieldErrors {
   return {
-    instituicaoEnsino: validateInstitutionName(school.instituicaoEnsino),
-    curso: validateCourseName(school.curso),
-    tipoFormacao: school.tipoFormacao ? null : "Selecione um tipo de formação válido.",
-    anoConclusaoPrevisto: validateYear(school.anoConclusaoPrevisto),
-    relacaoRioPombaValley: school.relacaoRioPombaValley
-      ? validateFreeText(school.relacaoRioPombaValley, 500)
-      : null,
+    empresa: validateCompanyName(company.empresa),
+    cargo: validateJobTitle(company.cargo),
+    siteEmpresa: validateHttpUrl(company.siteEmpresa),
   };
 }
 
-// Student signup in three steps: personal data, education, review and terms.
+// Recruiter signup in three steps: personal data, company, review and terms.
 // All data lives here, so moving between steps never loses what was typed.
-export function StudentRegistrationWizard() {
+export function RecruiterRegistrationWizard() {
   const wizard = useWizard(STEPS.length);
   const [common, setCommon] = useState<CommonForm>(commonBlank);
-  const [school, setSchool] = useState<StudentEducationForm>(studentEducationBlank);
+  const [company, setCompany] = useState<RecruiterCompanyForm>(recruiterCompanyBlank);
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
@@ -94,8 +87,8 @@ export function StudentRegistrationWizard() {
     [clearError],
   );
 
-  const changeSchool = (key: keyof StudentEducationForm, value: string) => {
-    setSchool((current) => ({ ...current, [key]: value }));
+  const changeCompany = (key: keyof RecruiterCompanyForm, value: string) => {
+    setCompany((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: null }));
     clearError();
   };
@@ -112,14 +105,14 @@ export function StudentRegistrationWizard() {
 
   const stepErrors = (step: number): FieldErrors => {
     if (step === 0) return commonErrors(common);
-    if (step === 1) return educationErrors(school);
+    if (step === 1) return companyErrors(company);
     return { consentTermos: validateConsent(consent) };
   };
 
   const blurCommon = (key: keyof CommonForm) =>
     setErrors((current) => ({ ...current, [key]: commonErrors(common)[key] }));
-  const blurSchool = (key: keyof StudentEducationForm) =>
-    setErrors((current) => ({ ...current, [key]: educationErrors(school)[key] }));
+  const blurCompany = (key: keyof RecruiterCompanyForm) =>
+    setErrors((current) => ({ ...current, [key]: companyErrors(company)[key] }));
 
   const editStep = (step: number) => {
     clearError();
@@ -130,20 +123,15 @@ export function StudentRegistrationWizard() {
     setBusy(true);
     try {
       // CEP is a frontend-only lookup helper and must not be sent to the API.
-      await registrationApi.student({
-        ...school,
+      await registrationApi.recruiter({
         nomeCompleto: normalizeWhitespace(common.nomeCompleto),
         email: normalizeEmailInput(common.email),
         telefone: normalizePhone(common.telefone),
         cidade: normalizeWhitespace(common.cidade),
         uf: common.uf,
-        instituicaoEnsino: normalizeWhitespace(school.instituicaoEnsino),
-        curso: normalizeWhitespace(school.curso),
-        tipoFormacao: school.tipoFormacao as TipoFormacao,
-        anoConclusaoPrevisto: school.anoConclusaoPrevisto
-          ? Number(school.anoConclusaoPrevisto)
-          : null,
-        relacaoRioPombaValley: school.relacaoRioPombaValley.trim() || null,
+        empresa: normalizeWhitespace(company.empresa),
+        cargo: normalizeWhitespace(company.cargo),
+        siteEmpresa: company.siteEmpresa.trim() || null,
         consentTermos: true,
       });
       setSuccess(true);
@@ -194,7 +182,7 @@ export function StudentRegistrationWizard() {
   return (
     <AuthFormPage
       eyebrow="FAÇA PARTE DO TALENT VALLEY"
-      title="Solicitar acesso como aluno"
+      title="Solicitar acesso como recrutador"
       subtitle="Seu pedido será analisado pela equipe do Talent Valley antes da criação da conta."
       onSubmit={handleSubmit}
       ariaBusy={busy}
@@ -234,11 +222,11 @@ export function StudentRegistrationWizard() {
       )}
 
       {wizard.step === 1 && (
-        <StudentEducationStep
-          value={school}
+        <RecruiterCompanyStep
+          value={company}
           errors={errors}
-          onChange={changeSchool}
-          onBlur={blurSchool}
+          onChange={changeCompany}
+          onBlur={blurCompany}
           registerFieldRef={registerFieldRef}
           disabled={busy}
         />
@@ -248,17 +236,12 @@ export function StudentRegistrationWizard() {
         <ReviewStep
           personal={common}
           details={{
-            title: "Formação acadêmica",
-            editLabel: "Editar formação acadêmica",
+            title: "Dados da empresa",
+            editLabel: "Editar dados da empresa",
             rows: [
-              { label: "Instituição de ensino", value: school.instituicaoEnsino },
-              { label: "Curso", value: school.curso },
-              {
-                label: "Tipo de formação",
-                value: school.tipoFormacao ? TIPO_FORMACAO_LABELS[school.tipoFormacao] : "",
-              },
-              { label: "Ano previsto de conclusão", value: school.anoConclusaoPrevisto },
-              { label: "Relação com o Rio Pomba Valley", value: school.relacaoRioPombaValley },
+              { label: "Empresa", value: company.empresa },
+              { label: "Cargo", value: company.cargo },
+              { label: "Site da empresa", value: company.siteEmpresa },
             ],
           }}
           consent={consent}
