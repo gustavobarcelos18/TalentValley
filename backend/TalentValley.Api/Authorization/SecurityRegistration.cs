@@ -153,7 +153,7 @@ public static class SecurityRegistration
             if (environment.IsDevelopment())
                 policy.WithOrigins(configuration["Frontend:BaseUrl"]!.TrimEnd('/'))
                     .WithMethods("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                    .WithHeaders("Content-Type", "X-XSRF-TOKEN").AllowCredentials();
+                    .WithHeaders("Content-Type", "X-XSRF-TOKEN").WithExposedHeaders("Retry-After").AllowCredentials();
         }));
     }
 
