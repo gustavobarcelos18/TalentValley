@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ValleyScene, SceneContours, SceneConnections } from "./ValleyScene";
 import { PublicHeader } from "./PublicHeader";
 import { Brand } from "./Brand";
-import { destinations } from "./navigation";
+import { getRoleDestination } from "@/lib/paths";
 import { LandingMotion } from "./motion/LandingMotion";
 import { useLandingEntrance } from "./motion/useLandingEntrance";
 import { useHeroDepth } from "./motion/useHeroDepth";
@@ -22,7 +22,7 @@ import "./landing.css";
 function JoinActions({ audience, hero = false }: { audience?: "talent" | "company"; hero?: boolean }) {
   const { user } = useAuth();
   if (hero) return <HeroActions user={user} />;
-  if (user) return <div className="join-actions"><ActionMotion><Button component={Link} href={destinations[user.role]} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></ActionMotion></div>;
+  if (user) return <div className="join-actions"><ActionMotion><Button component={Link} href={getRoleDestination(user.role)} variant="contained" endIcon={<ArrowForward />}>Acessar minha área</Button></ActionMotion></div>;
   return <div className="join-actions">
     {audience !== "company" && <ActionMotion><Button component={Link} href="/cadastro/aluno" variant="contained" endIcon={<ArrowForward />}>Sou Talento</Button></ActionMotion>}
     {audience !== "talent" && <ActionMotion><Button component={Link} href="/cadastro/recrutador" variant={audience ? "contained" : "outlined"} endIcon={<ArrowForward />}>Sou Recrutador</Button></ActionMotion>}
@@ -32,7 +32,7 @@ function JoinActions({ audience, hero = false }: { audience?: "talent" | "compan
 function HeroActions({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   const entrance = useLandingEntrance();
   const actions = user
-    ? [{ href: destinations[user.role], label: "Acessar minha área", contained: true }]
+    ? [{ href: getRoleDestination(user.role), label: "Acessar minha área", contained: true }]
     : [{ href: "/cadastro/aluno", label: "Sou Talento", contained: true }, { href: "/cadastro/recrutador", label: "Sou Recrutador", contained: false }];
   return <div ref={entrance} className="join-actions" data-motion-scope>{actions.map((action, index) =>
     <div key={action.href} data-entrance={0.8 + index * 0.1} data-hero-action>
@@ -119,6 +119,6 @@ function LandingContent() {
         <div className="institution-copy"><p className="eyebrow">NOSSA ORIGEM, NOSSA FORÇA</p><h2 id="rpv-title">Um vale de pessoas.<br/><em>Um mundo de potencial.</em></h2><p>O Rio Pomba Valley conecta pessoas, empresas, educação, tecnologia e inovação. Uma rede que valoriza o conhecimento da nossa região e abre caminhos para o seu desenvolvimento.</p><p>O Talent Valley nasce dessa conexão: um espaço para aproximar quem está construindo sua trajetória de quem acredita no seu potencial.</p><div className="ecosystem-words"><span>Pessoas</span><span>Educação</span><span>Empresas</span><span>Tecnologia</span><span>Inovação</span></div></div>
       </section>
     </main>
-    <footer className="landing-footer"><div className="footer-main"><Link className="brand-link" href="#hero"><Brand/></Link><p>O próximo capítulo começa com uma conexão.</p><Link href={user ? destinations[user.role] : "/login"}>{user ? "Minha área" : "Login"}<NorthEast fontSize="small"/></Link></div><div className="footer-bottom"><span>Talent Valley · Uma iniciativa Rio Pomba Valley</span><span>Feito de pessoas. Conectado ao futuro.</span></div></footer>
+    <footer className="landing-footer"><div className="footer-main"><Link className="brand-link" href="#hero"><Brand/></Link><p>O próximo capítulo começa com uma conexão.</p><Link href={user ? getRoleDestination(user.role) : "/login"}>{user ? "Minha área" : "Login"}<NorthEast fontSize="small"/></Link></div><div className="footer-bottom"><span>Talent Valley · Uma iniciativa Rio Pomba Valley</span><span>Feito de pessoas. Conectado ao futuro.</span></div></footer>
   </div>;
 }

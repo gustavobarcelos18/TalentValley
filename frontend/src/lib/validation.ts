@@ -377,6 +377,15 @@ export function validateAlphanumericWithPunctuation(
   return validateMeaningfulText(value, minLength, maxLength);
 }
 
+// Checklist shown while the user types a new password. Keep in sync with the
+// rules enforced by validatePassword below.
+export const PASSWORD_RULES = [
+  { id: "length", label: "Mínimo de 8 caracteres", test: (s: string) => s.length >= 8 },
+  { id: "upper", label: "Uma letra maiúscula", test: (s: string) => /[A-Z]/.test(s) },
+  { id: "lower", label: "Uma letra minúscula", test: (s: string) => /[a-z]/.test(s) },
+  { id: "digit", label: "Um dígito", test: (s: string) => /\d/.test(s) },
+] as const;
+
 export function validatePassword(senha: string): string | null {
   if (senha.length < 8) return "A senha deve ter pelo menos 8 caracteres.";
   if (!/[A-Z]/.test(senha))

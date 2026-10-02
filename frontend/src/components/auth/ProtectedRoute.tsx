@@ -5,24 +5,12 @@ import { useRouter } from "next/navigation";
 import { CircularProgress, Stack } from "@mui/material";
 import { AuthCheckError } from "@/components/auth/AuthCheckError";
 import { useAuth } from "@/hooks/useAuth";
+import { getRoleDestination } from "@/lib/paths";
 import type { UserRole } from "@/types/auth";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   allowedRoles?: UserRole[];
-}
-
-function getRoleDestination(role: UserRole): string {
-  switch (role) {
-    case "ALUNO":
-      return "/meu-perfil";
-    case "RECRUTADOR":
-      return "/recrutador";
-    case "ADMIN":
-      return "/admin";
-    default:
-      return "/login";
-  }
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {

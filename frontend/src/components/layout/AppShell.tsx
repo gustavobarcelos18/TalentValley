@@ -27,6 +27,7 @@ import { useMyPhoto } from "@/hooks/useMyPhoto";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { TalentValleyMark } from "@/components/brand/TalentValleyMark";
 import { ROLE_LABELS } from "@/lib/labels";
+import { getRoleDestination } from "@/lib/paths";
 import type { UserRole } from "@/types/auth";
 
 interface NavItem {
@@ -49,15 +50,6 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { label: "Validações RPV", href: "/admin/validacoes-rpv" },
     { label: "Auditoria", href: "/admin/auditoria" },
   ],
-};
-
-// The brand always leads to the authenticated user's own home. This is a
-// semantic rule of its own, so it stays explicit and independent from the
-// NAV_BY_ROLE order, array indexes or the current pathname.
-const HOME_BY_ROLE: Record<UserRole, string> = {
-  ALUNO: "/meu-perfil",
-  RECRUTADOR: "/recrutador",
-  ADMIN: "/admin",
 };
 
 interface AppShellProps {
@@ -85,7 +77,9 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   function renderBrand(onNavigate?: () => void) {
-    const homeHref = user ? HOME_BY_ROLE[user.role] : null;
+    // The brand always leads to the authenticated user's own home, independent
+    // from the NAV_BY_ROLE order, array indexes or the current pathname.
+    const homeHref = user ? getRoleDestination(user.role) : null;
 
     const brandContent = (
       <>

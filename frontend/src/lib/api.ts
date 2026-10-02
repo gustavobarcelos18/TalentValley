@@ -26,13 +26,29 @@ export async function fetchCsrfToken(): Promise<string> {
 export class ApiError extends Error {
   status: number;
   problem?: ProblemDetails;
+  /** Seconds the server asked the client to wait (429 `Retry-After`). */
+  retryAfterSeconds?: number;
 
-  constructor(status: number, message: string, problem?: ProblemDetails) {
+  constructor(
+    status: number,
+    message: string,
+    problem?: ProblemDetails,
+    retryAfterSeconds?: number
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.problem = problem;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+// Called for every 401 response. The auth provider registers it so an expired
+// session ends the local login in one place instead of in each screen.
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -170,20 +186,43 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+// `Retry-After` is either a number of seconds or an HTTP date; the backend
+// sends seconds. Anything else is ignored.
+function parseRetryAfter(response: Response): number | undefined {
+  const value = response.headers.get("retry-after");
+  if (!value || !/^\d+$/.test(value.trim())) return undefined;
+  return Number(value.trim());
+}
+
 async function parseError(response: Response): Promise<ApiError> {
+  if (response.status === 401) {
+    unauthorizedHandler?.();
+  }
+
+  const retryAfterSeconds = parseRetryAfter(response);
   const contentType = response.headers.get("content-type") ?? "";
 
   if (contentType.includes("json")) {
     try {
       const problem = (await response.json()) as ProblemDetails;
       const message = problem.title ?? `Erro na requisição (${response.status})`;
-      return new ApiError(response.status, message, problem);
+      return new ApiError(response.status, message, problem, retryAfterSeconds);
     } catch {
-      return new ApiError(response.status, `Erro na requisição (${response.status})`);
+      return new ApiError(
+        response.status,
+        `Erro na requisição (${response.status})`,
+        undefined,
+        retryAfterSeconds
+      );
     }
   }
 
-  return new ApiError(response.status, `Erro na requisição (${response.status})`);
+  return new ApiError(
+    response.status,
+    `Erro na requisição (${response.status})`,
+    undefined,
+    retryAfterSeconds
+  );
 }
 
 export async function ensureCsrfToken(): Promise<void> {
