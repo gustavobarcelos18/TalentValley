@@ -1,3 +1,4 @@
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
 .landing {
   --page: #0d1114;
   --page-0: rgb(13 17 20 / 0);
@@ -39,22 +40,29 @@
   --scene-line: #518e7c;
   --scene-node: #006852;
 }
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
 .landing a { text-decoration: none; color: inherit; }
 .landing :is(a, button, [tabindex="0"]):focus-visible { outline: 3px solid var(--teal); outline-offset: 5px; }
 .landing section { scroll-margin-top: 105px; }
 .landing :is(h1, h2, h3, p) { margin: 0; }
 .landing h2 { font-family: var(--font-display), sans-serif; font-size: clamp(2.2rem, 3.6vw, 3.6rem); line-height: 1.15; font-weight: 500; letter-spacing: -.055em; text-wrap: balance; }
 .landing h2 em { font-style: normal; color: var(--accent); }
+.landing h3 { font-family: var(--font-display), sans-serif; font-size: 1.23rem; font-weight: 600; letter-spacing: -.035em; margin-bottom: 12px; }
 .landing p { color: var(--muted); line-height: 1.85; }
 .landing .eyebrow { color: var(--accent); font-size: .67rem; font-weight: 600; letter-spacing: .2em; margin-bottom: 26px; line-height: 1.7; }
+.skip-link { position: fixed; left: 20px; top: -80px; z-index: 50; padding: 16px 24px; background: var(--surface); border: 2px solid var(--teal); }
+.skip-link:focus { top: 15px; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
 .landing-header { position: fixed; top: 0; width: 100%; z-index: 20; border-bottom: 1px solid rgb(168 178 176 / 18%); transition: background-color .3s, border-color .3s, box-shadow .3s; }
 .landing-header.is-elevated { background: var(--nav); border-color: var(--line); box-shadow: 0 8px 28px rgb(0 0 0 / 8%); }
 .nav-inner { max-width: 1800px; min-height: 92px; margin: auto; padding: 18px 3.2%; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .brand-link { display: inline-flex; flex-shrink: 0; }
-.tv-brand { display: flex; align-items: center; gap: 10px; }
-.tv-brand strong { font-family: Georgia, serif; font-size: 2rem; font-weight: 600; letter-spacing: -.055em; display: block; line-height: 1.1; }
-.tv-brand em { font-style: normal; color: var(--teal); }
-.tv-brand small { font-size: .8rem; color: var(--muted); display: block; margin-top: 5px; letter-spacing: .015em; }
+.landing .tv-brand { display: flex; align-items: center; gap: 10px; }
+.landing .tv-brand strong { font-family: Georgia, serif; font-size: 2rem; font-weight: 600; letter-spacing: -.055em; display: block; line-height: 1.1; }
+.landing .tv-brand em { font-style: normal; color: var(--teal); }
+.landing .tv-brand small { font-size: .8rem; color: var(--muted); display: block; margin-top: 5px; letter-spacing: .015em; }
 .public-nav { display: flex; gap: clamp(14px, 2vw, 34px); align-items: center; }
 .public-nav a { font-size: .875rem; padding: 15px 0; position: relative; white-space: nowrap; }
 .public-nav a[aria-current]::after { content: ""; height: 2px; background: var(--teal); position: absolute; bottom: 4px; left: 0; width: 100%; }
@@ -70,14 +78,32 @@
 .user-link { display: flex; align-items: center; gap: 8px; font-size: .8rem; max-width: 160px; }
 .user-link > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-link .MuiAvatar-root { background: var(--teal); color: var(--page); width: 36px; height: 36px; font-size: .9rem; }
-.hero { position: relative; min-height: 760px; height: 100svh; max-height: 1200px; isolation: isolate; display: flex; justify-content: center; text-align: center; background: var(--page); overflow: clip; }
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+.hero { position: relative; z-index: 1; min-height: 760px; height: 100svh; max-height: 1200px; isolation: isolate; display: flex; justify-content: center; text-align: center; background: var(--page); }
+/* Scroll and pointer depth use separate transform owners: the scroll layer wraps the pointer layer. */
+.hero-background-scroll { position: absolute; inset: -60px -12px -26svh; z-index: -3; pointer-events: none; }
+.hero-background { position: relative; width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; transform: translateZ(0); }
 .light .hero-background { background-image: url('/landing/valley-light.webp'); }
+/* The landscape bleeds into a rising, feathered backdrop for the next section. */
+.hero-background::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, var(--page-0) 75%, var(--page) 100%); pointer-events: none; }
 .hero-atmosphere { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(13 17 20 / 35%), transparent 56%); }
 .light .hero-atmosphere { background: linear-gradient(180deg, rgb(246 247 242 / 25%), transparent 56%); }
+.hero-glow { position: absolute; inset: 15% -10% -15%; background: radial-gradient(ellipse at 65% 65%, rgb(32 200 192 / 22%), transparent 55%); }
+.hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
+.hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
+.hero-exit-shade { position: absolute; inset: auto 0 -26svh; height: 35svh; background: linear-gradient(var(--page-0), var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
+/* Promote only the full-screen scroll-scrubbed layers so their transforms stay on the
+   compositor. GSAP/Framer promote transform tweens automatically, so persistent will-change
+   on the remaining layers only wastes GPU memory. */
+.hero-background-scroll,
+.hero-atmosphere,
+.hero-technology { will-change: transform; }
 .hero-copy { position: relative; padding: clamp(140px, 15.4vh, 185px) 20px 0; z-index: 2; }
 .hero h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(4.8rem, 6.35vw, 7rem); line-height: .88; letter-spacing: -.065em; }
 .hero h1 span:not(.hero-title-line) { color: #a0d060; background: linear-gradient(100deg, #35dc90, #8cba53); background-clip: text; -webkit-text-fill-color: transparent; }
 .light .hero h1 span:not(.hero-title-line) { color: #36832b; background-image: linear-gradient(100deg, #008652, #52832e); }
+.hero h1 .hero-title-line { display: inline-block; color: inherit; background: none; -webkit-text-fill-color: initial; }
 .hero h1 em { font-style: normal; color: #20c8c0; }
 .light .hero h1 em { color: #007f7b; }
 .hero .hero-subtitle { margin-top: 22px; color: var(--ink); font-size: clamp(1rem, 1.7vw, 1.8rem); line-height: 1.4; letter-spacing: -.025em; }
@@ -94,92 +120,14 @@
 .light .hero .join-actions .MuiButton-outlined { background: rgb(246 247 242 / 80%); border-color: #53605c; }
 .landing .join-actions .MuiButton-outlined { border-color: var(--muted); color: var(--ink); background: var(--nav); }
 .landing .join-actions .MuiButton-outlined:hover { border-color: var(--teal); background: var(--raised); }
+.landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
+}
 .valley-scene { position: absolute; bottom: 0; left: 0; width: 100%; height: 69%; z-index: -1; pointer-events: none; }
 .explore-link { position: absolute; bottom: 20px; display: grid; place-items: center; width: 44px; height: 44px; z-index: 3; }
 .explore-link svg { font-size: 30px; filter: drop-shadow(0 1px 6px var(--page)); }
-.section { max-width: 1240px; margin: 0 auto; padding: 112px 48px; }
-.section-heading { text-align: center; }
-.value-section { padding-top: 100px; padding-bottom: 90px; }
-.value-grid { gap: 48px; margin-top: 65px; }
-.value-grid article { border-top: 1px solid var(--line); padding-top: 30px; }
-.value-grid svg { color: var(--teal); margin-bottom: 22px; font-size: 28px; }
-.landing h3 { font-family: var(--font-display), sans-serif; font-size: 1.23rem; font-weight: 600; letter-spacing: -.035em; margin-bottom: 12px; }
-.value-grid p, .steps-grid p { font-size: .88rem; }
-.audience-section { align-items: center; gap: 85px; border-top: 1px solid var(--line); }
-.audience-copy > p:not(.eyebrow) { font-size: .93rem; margin-top: 28px; }
-.benefits { padding: 0; margin: 30px 0; list-style: none; }
-.benefits li { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .85rem; }
-.benefits li span { color: var(--accent); font: .65rem monospace; margin-right: 20px; }
-.network-panel { position: relative; height: 475px; isolation: isolate; overflow: hidden; border: 1px solid var(--line); border-radius: 3px 90px 3px 3px; background: radial-gradient(ellipse at 50% 50%, rgb(0 168 152 / 14%), transparent 65%), var(--surface); }
-.network-panel .compact { height: 75%; opacity: .6; }
-.panel-coordinate, .panel-caption { position: absolute; left: 27px; font: .6rem monospace; letter-spacing: .14em; color: var(--muted); }
-.panel-coordinate { top: 27px; }
-.panel-caption { bottom: 25px; }
-.network-orbit { position: absolute; border: 1px solid var(--line); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); width: 310px; height: 210px; }
-.orbit-two { width: 430px; height: 310px; transform: translate(-50%, -50%) rotate(30deg); border-style: dashed; }
-.network-center { position: absolute; left: 50%; top: 49%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 15px; align-items: center; background: var(--nav); border: 1px solid var(--scene-line); border-radius: 50%; width: 165px; height: 165px; justify-content: center; box-shadow: 0 0 60px rgb(0 168 152 / 10%); }
-.network-center svg { font-size: 38px; color: var(--teal); }
-.network-center span { font-size: .65rem; }
-.network-label { position: absolute; padding: 11px 16px; border: 1px solid var(--line); background: var(--nav); border-radius: 30px; font-size: .65rem; }
-.label-one { top: 22%; left: 10%; }.label-two { top: 32%; right: 5%; }.label-three { top: 74%; left: 28%; }
-.company-network { border-radius: 90px 3px 3px 3px; }
-.company-note { display: flex; gap: 20px; align-items: center; margin: 34px 0; padding-left: 20px; border-left: 2px solid var(--teal); }
-.company-note svg { color: var(--teal); }.company-note p { font-size: .85rem; }.company-note strong { font-weight: 500; color: var(--ink); }
-.how-section { background: var(--deep); border-block: 1px solid var(--line); }
-.landing .audience-tabs { width: fit-content; max-width: 100%; margin: 40px auto 60px; border: 1px solid var(--line); border-radius: 30px; padding: 5px; min-height: 54px; background: var(--surface); }
-.landing .audience-tabs .MuiTabs-indicator { display: none; }
-.landing .audience-tabs .MuiTab-root { min-height: 44px; padding: 10px 26px; border-radius: 24px; color: var(--muted); text-transform: none; }
-.landing .audience-tabs .Mui-selected { color: var(--ink); background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); }
-.steps-grid { gap: 56px; list-style: none; padding: 0; margin: 0; }
-.step-number { display: block; font-family: var(--font-display), sans-serif; font-size: 3.8rem; font-weight: 400; letter-spacing: -.08em; color: var(--accent); border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 25px; }
-.institution-section { display: grid; grid-template-columns: .7fr 1fr; gap: 100px; align-items: center; }
-.institution-brand { min-height: 350px; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; background: repeating-radial-gradient(ellipse at 20% 80%, transparent 0 22px, var(--line) 23px 24px, transparent 25px 40px); }
-.institution-brand img { width: 220px; height: auto; padding: 20px; background: white; border-radius: 4px; }
-.institution-brand > span { font: .52rem monospace; letter-spacing: .1em; background: var(--page); padding: 8px; }
-.institution-section h2 { font-size: clamp(2rem, 3vw, 3rem); }
-.institution-section p:not(.eyebrow) { font-size: .9rem; margin-top: 24px; }
-.ecosystem-words { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 27px; font-size: .66rem; color: var(--accent); }
-.ecosystem-words span:not(:last-child)::after { content: "/"; margin-left: 16px; color: var(--muted); }
-.landing-footer { background: var(--deep); padding: 50px max(4%, calc((100% - 1144px) / 2)); border-top: 1px solid var(--line); }
-.footer-main { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding-bottom: 40px; }
-.footer-main p { font-size: .78rem; }.footer-main > a:last-child { display: flex; align-items: center; gap: 20px; min-height: 44px; font-size: .83rem; }
-.footer-bottom { border-top: 1px solid var(--line); padding-top: 24px; display: flex; justify-content: space-between; gap: 20px; font-size: .61rem; color: var(--muted); }
-.skip-link { position: fixed; left: 20px; top: -80px; z-index: 50; padding: 16px 24px; background: var(--surface); border: 2px solid var(--teal); }
-.skip-link:focus { top: 15px; }
-@media (max-width: 1350px) { .public-nav { gap: 18px; }.nav-inner { gap: 18px; }.tv-brand strong { font-size: 1.5rem; }.tv-brand > svg { width: 65px; }.audience-section { gap: 45px; }.nav-actions { gap: 16px; }.theme-control { padding-right: 16px; }.landing .login-button { padding-inline: 25px; } }
-@media (max-width: 1023px) {
-  .landing .menu-toggle { display: inline-flex; }
-  .public-nav { display: flex; flex-direction: column; align-items: stretch; gap: 2px; visibility: hidden; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity .2s, transform .2s, visibility .2s; position: absolute; top: 100%; left: 0; width: 100%; background: var(--nav); padding: 16px 6% 24px; border-bottom: 1px solid var(--line); }
-  .public-nav.is-open { visibility: visible; opacity: 1; transform: none; pointer-events: auto; }
-  .public-nav a { min-height: 48px; }
-  .hero h1 { font-size: clamp(4.7rem, 9vw, 7rem); }
-  .hero { height: 900px; min-height: 90svh; }
-  .audience-section { gap: 40px; }.network-panel { height: 400px; }.company-section .audience-copy { order: -1; }
-  .institution-section { gap: 45px; grid-template-columns: .75fr 1fr; }
-}
-@media (max-width: 767px) {
-  .nav-inner { min-height: 80px; padding: 12px 16px; gap: 8px; }.tv-brand { gap: 6px; }.tv-brand > svg { width: 38px; }.tv-brand strong { font-size: 1.25rem; }.tv-brand small { font-size: .53rem; }
-  .nav-actions { gap: 1px; }.landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }.user-link > span { display: none; }.theme-control { border: 0; padding: 0; }.theme-toggle-button { width: 44px; height: 44px; }
-  .hero { min-height: 770px; height: 100svh; max-height: 950px; }.light .hero-background { background-image: url('/landing/valley-light-mobile.webp'); }.hero-copy { padding: 145px 20px 0; }.hero h1 { font-size: clamp(3.35rem, 9.9vw, 5.5rem); line-height: 1.05; letter-spacing: -.065em; }
-  .hero .hero-subtitle { max-width: 310px; margin: 25px auto 0; font-size: 1rem; line-height: 1.6; }.hero .institutional-line { font-size: .78rem; letter-spacing: .06em; margin-top: 20px; }
-  .hero .join-actions { gap: 10px; }.landing .join-actions .MuiButton-root { padding: 12px 20px; font-size: .8rem; gap: 8px; }.hero .join-actions .MuiButton-root { min-width: 0; min-height: 54px; }
-  .valley-scene { height: 49%; width: 150%; left: -25%; opacity: .85; }
-  .section { padding: 76px 24px; }.landing h2 { font-size: clamp(2.2rem, 7.7vw, 3rem); }.landing .eyebrow { font-size: .6rem; margin-bottom: 21px; }.value-grid { gap: 32px; margin-top: 40px; }.value-grid article { padding-top: 25px; }.value-grid svg { margin-bottom: 16px; }
-  .network-panel { height: 370px; }.network-panel .compact { left: -25%; }.audience-copy > p:not(.eyebrow) { font-size: .9rem; }.network-orbit.orbit-two { width: 350px; }.network-center { width: 145px; height: 145px; }
-  .landing .audience-tabs { margin: 30px auto 40px; }.landing .audience-tabs .MuiTab-root { padding-inline: 20px; }.steps-grid { gap: 32px; }.step-number { font-size: 3rem; margin-bottom: 17px; padding-bottom: 12px; }
-  .institution-section { grid-template-columns: 1fr; gap: 45px; }.institution-brand { min-height: 290px; }.institution-brand img { width: 190px; }
-  .footer-main { flex-wrap: wrap; }.footer-main p { order: 3; width: 100%; }.footer-bottom { flex-direction: column; gap: 12px; }.landing-footer { padding: 40px 24px; }
-}
-@media (max-width: 380px) { .nav-inner { padding-inline: 12px; }.tv-brand > svg { display: none; }.hero-copy { padding-inline: 12px; }.hero h1 { font-size: 3rem; }.landing .join-actions .MuiButton-root { padding-inline: 16px; }.section { padding-inline: 20px; } }
-@media (prefers-reduced-motion: reduce) { .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
-/* Hero motion layers have separate transform owners for scroll and pointer depth. */
-.hero-background-scroll { position: absolute; inset: -60px -12px -85px; z-index: -3; pointer-events: none; }
-.hero-background { position: relative; width: 100%; height: 100%; background: url('/landing/valley-dark.webp') center / cover no-repeat; transform: translateZ(0); }
-.hero-technology { position: absolute; inset: 35% 0 -22svh; z-index: -1; pointer-events: none; opacity: .3; }
-.hero-technology-depth, .hero-technology svg { width: 100%; height: 100%; }
-.hero-exit-shade { position: absolute; inset: auto 0 0; height: 32%; background: linear-gradient(var(--page-0), var(--page)); opacity: .3; z-index: 1; pointer-events: none; }
-.hero h1 .hero-title-line { display: inline-block; }
 /* Entrance runs in CSS from the server-rendered markup, so it never waits for hydration.
    `backwards` holds the hidden state during the delay and drops the animation afterwards.
    The start opacity is .01, not 0: Chromium only counts content for FCP/LCP once an opacity animation
@@ -193,77 +141,186 @@
 @media (prefers-reduced-motion: no-preference) and (max-width: 767px) {
   .landing .entrance { --entrance-rise: 8px; animation-duration: .45s; animation-delay: calc(var(--entrance-delay, 0) * .65s); }
 }
-/* Promote only the full-screen scroll-scrubbed layers so their transforms stay on the
-   compositor. GSAP/Framer promote transform tweens automatically, so persistent will-change
-   on the remaining layers only wastes GPU memory. */
-.hero-background-scroll,
-.hero-atmosphere,
-.hero-technology { will-change: transform; }
-.landing .entrance:focus-within { opacity: 1 !important; transform: none !important; }
-.landing .join-actions .MuiButton-endIcon { transition: transform .2s; }
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .landing .join-actions .MuiButton-root:hover .MuiButton-endIcon { transform: translateX(3px); }
-}
-@media (max-width: 767px) {
-  .hero-background-scroll { inset: -24px -2px -20px; }
-  .hero-background { background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .landing .public-nav { transform: none; transition: opacity .16s, visibility .16s !important; }
-}
 
-/* Shared continuation and network paths inherit the live theme's scene colors. */
+/* An element stays visible while it contains the focused control. */
+.landing .entrance:focus-within,
+.hero-actions-scroll:focus-within,
+.story-action:focus-within { opacity: 1 !important; transform: none !important; }
+
+/* ── Sections (shared) ──────────────────────────────────────────────────── */
+.section { max-width: 1240px; margin: 0 auto; padding: 112px 48px; }
+.section-heading { text-align: center; }
 [data-story] { position: relative; }
-.story-continuity { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--scene-line), transparent); pointer-events: none; }
+[data-story]:not(.value-section) { z-index: 2; }
+.story-continuity { position: absolute; top: -60px; left: 0; right: 0; height: 170px; background: repeating-radial-gradient(ellipse at 75% 100%, transparent 0 27px, var(--scene-line) 28px 29px, transparent 30px 48px); pointer-events: none; opacity: .45; mask-image: linear-gradient(transparent, #000 50%, transparent); z-index: -1; }
+.title-mask { display: block; overflow: visible; }
+.title-plane { display: inline-block; transform-origin: 50% 100%; }
+
+/* ── Value ──────────────────────────────────────────────────────────────── */
+/* The landscape bleeds into this section, which sits above it. */
+.value-section { z-index: 2; isolation: isolate; padding-top: 13svh; padding-bottom: 90px; }
+.value-section > .story-continuity { display: none; }
+.value-cover { position: absolute; inset: -8svh calc((100% - 100vw) / 2) -1px; z-index: -1; background: linear-gradient(var(--page-0), var(--page) 24svh); pointer-events: none; }
+.value-grid { gap: 48px; margin-top: 65px; }
+.value-grid article { border-top: 1px solid var(--line); padding-top: 30px; }
+.value-grid svg { color: var(--teal); margin-bottom: 22px; font-size: 28px; }
+.value-grid p, .steps-grid p { font-size: .88rem; }
+
+/* ── Audiences (talents / recruiters) ───────────────────────────────────── */
+.audience-section { align-items: center; gap: 85px; }
+.audience-copy > p:not(.eyebrow) { font-size: .93rem; margin-top: 28px; }
+.benefits { padding: 0; margin: 30px 0; list-style: none; }
+.benefits li { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .85rem; }
+.benefits li span { color: var(--accent); font: .65rem monospace; margin-right: 20px; }
+.network-panel { position: relative; height: 475px; isolation: isolate; border-radius: 3px 90px 3px 3px; }
+.network-panel::before { content: ""; position: absolute; inset: 0; z-index: -2; border: 1px solid var(--line); border-radius: inherit; background: radial-gradient(ellipse at 50% 50%, rgb(0 168 152 / 14%), transparent 65%), var(--surface); }
+.network-panel .compact { height: 75%; opacity: .6; }
+.network-panel .valley-scene { overflow: visible; mask-image: linear-gradient(transparent, #000 25%, #000 65%, transparent); }
+.panel-coordinate, .panel-caption { position: absolute; left: 27px; font: .6rem monospace; letter-spacing: .14em; color: var(--muted); }
+.panel-coordinate { top: 27px; }
+.panel-caption { bottom: 25px; }
+.panel-glow { position: absolute; inset: 40% -8% -15%; pointer-events: none; background: radial-gradient(ellipse, rgb(32 200 192 / 22%), transparent 65%); z-index: 2; }
 .story-paths { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; stroke: var(--scene-node); opacity: .45; }
 .story-paths path { stroke-width: 1; vector-effect: non-scaling-stroke; }
+.path-light { stroke: var(--accent); stroke-dasharray: 4 96; stroke-width: 2 !important; }
+.network-orbit { position: absolute; border: 1px solid var(--line); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); width: 310px; height: 210px; max-width: 115%; }
+.orbit-two { width: 430px; height: 310px; transform: translate(-50%, -50%) rotate(30deg); border-style: dashed; }
+.network-center { position: absolute; left: 50%; top: 49%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 15px; align-items: center; background: var(--nav); border: 1px solid var(--scene-line); border-radius: 50%; width: 165px; height: 165px; justify-content: center; box-shadow: 0 0 60px rgb(0 168 152 / 10%); }
+.network-center svg { font-size: 38px; color: var(--teal); }
+.network-center span { font-size: .65rem; }
+.network-label { position: absolute; padding: 11px 16px; border: 1px solid var(--line); background: var(--nav); border-radius: 30px; font-size: .65rem; }
+.label-one { top: 22%; left: 10%; }
+.label-two { top: 32%; right: 5%; }
+.label-three { top: 74%; left: 28%; }
+.company-network { border-radius: 90px 3px 3px 3px; }
+.company-note { display: flex; gap: 20px; align-items: center; margin: 34px 0; padding-left: 20px; border-left: 2px solid var(--teal); }
+.company-note svg { color: var(--teal); }
+.company-note p { font-size: .85rem; }
+.company-note strong { font-weight: 500; color: var(--ink); }
+
+/* ── How it works ───────────────────────────────────────────────────────── */
+.how-section { background: var(--deep); border-block: 1px solid var(--line); }
+.landing .audience-tabs { width: fit-content; max-width: 100%; margin: 40px auto 60px; border: 1px solid var(--line); border-radius: 30px; padding: 5px; min-height: 54px; background: var(--surface); }
+.landing .audience-tabs .MuiTabs-indicator { display: none; }
+.landing .audience-tabs .MuiTab-root { min-height: 44px; padding: 10px 26px; border-radius: 24px; color: var(--muted); text-transform: none; }
+.landing .audience-tabs .Mui-selected { color: var(--ink); background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); }
+.steps-grid { gap: 56px; list-style: none; padding: 0; margin: 0; }
 .story-steps { display: grid; }
 .story-steps > * { grid-area: 1 / 1; min-width: 0; }
 .steps-measure { visibility: hidden; pointer-events: none; }
-.step-number { position: relative; }
+.step-number { position: relative; display: block; font-family: var(--font-display), sans-serif; font-size: 3.8rem; font-weight: 400; letter-spacing: -.08em; color: var(--accent); border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 25px; }
 .step-connection { position: absolute; bottom: -1px; left: 0; right: -56px; height: 1px; background: linear-gradient(90deg, var(--accent), var(--scene-line)); transform-origin: left; }
 .steps-grid li:last-child .step-connection { right: 0; }
-.story-action:focus-within { opacity: 1 !important; transform: none !important; }
-@media (max-width: 767px) {
-  .step-connection { right: 0; }
-  .story-paths { opacity: .25; }
-}
 
-/* Phase 2.2: the landscape bleeds into a rising, feathered value backdrop. */
-.hero { overflow: visible; z-index: 1; }
-.hero-background-scroll { bottom: -26svh; }
-.hero-background::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, var(--page-0) 75%, var(--page) 100%); pointer-events: none; }
-.hero-glow { position: absolute; inset: 15% -10% -15%; background: radial-gradient(ellipse at 65% 65%, rgb(32 200 192 / 22%), transparent 55%); }
-.hero-exit-shade { bottom: -26svh; height: 35svh; }
-.hero h1 .hero-title-line { color: inherit; background: none; -webkit-text-fill-color: initial; }
-.hero-actions-scroll:focus-within { opacity: 1 !important; transform: none !important; }
-.value-section { z-index: 2; isolation: isolate; padding-top: 13svh; }
-.value-cover { position: absolute; inset: -8svh calc((100% - 100vw) / 2) -1px; z-index: -1; background: linear-gradient(var(--page-0), var(--page) 24svh); pointer-events: none; }
-.value-section > .story-continuity { display: none; }
-.title-mask { display: block; overflow: visible; }
-.title-plane { display: inline-block; transform-origin: 50% 100%; }
-[data-story]:not(.value-section) { z-index: 2; }
-.audience-section { border-top: 0; }
-.story-continuity { top: -60px; height: 170px; opacity: .45; background: repeating-radial-gradient(ellipse at 75% 100%, transparent 0 27px, var(--scene-line) 28px 29px, transparent 30px 48px); mask-image: linear-gradient(transparent, #000 50%, transparent); z-index: -1; }
-.network-panel { overflow: visible; background: none; border: 0; }
-.network-panel::before { content: ""; position: absolute; inset: 0; z-index: -2; border: 1px solid var(--line); border-radius: inherit; background: radial-gradient(ellipse at 50% 50%, rgb(0 168 152 / 14%), transparent 65%), var(--surface); }
-.network-panel .valley-scene { overflow: visible; mask-image: linear-gradient(transparent, #000 25%, #000 65%, transparent); }
-.network-orbit { max-width: 115%; }
-.panel-glow { position: absolute; inset: 40% -8% -15%; pointer-events: none; background: radial-gradient(ellipse, rgb(32 200 192 / 22%), transparent 65%); z-index: 2; }
-.path-light { stroke: var(--accent); stroke-dasharray: 4 96; stroke-width: 2 !important; }
-.institution-section { isolation: isolate; }
+/* ── Institution ────────────────────────────────────────────────────────── */
+.institution-section { display: grid; grid-template-columns: .7fr 1fr; gap: 100px; align-items: center; isolation: isolate; }
 .institution-scene { position: absolute; inset: -10% 0; z-index: -1; opacity: .22; pointer-events: none; }
 .institution-scene .valley-scene { height: 100%; mask-image: linear-gradient(transparent, #000 30%, transparent); }
+.institution-brand { min-height: 350px; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; background: repeating-radial-gradient(ellipse at 20% 80%, transparent 0 22px, var(--line) 23px 24px, transparent 25px 40px); }
+.institution-brand img { width: 220px; height: auto; padding: 20px; background: white; border-radius: 4px; }
+.institution-brand > span { font: .52rem monospace; letter-spacing: .1em; background: var(--page); padding: 8px; }
+.institution-section h2 { font-size: clamp(2rem, 3vw, 3rem); }
+.institution-section p:not(.eyebrow) { font-size: .9rem; margin-top: 24px; }
+.ecosystem-words { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 27px; font-size: .66rem; color: var(--accent); }
+.ecosystem-words span:not(:last-child)::after { content: "/"; margin-left: 16px; color: var(--muted); }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.landing-footer { background: var(--deep); padding: 50px max(4%, calc((100% - 1144px) / 2)); border-top: 1px solid var(--line); }
+.footer-main { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding-bottom: 40px; }
+.footer-main p { font-size: .78rem; }
+.footer-main > a:last-child { display: flex; align-items: center; gap: 20px; min-height: 44px; font-size: .83rem; }
+.footer-bottom { border-top: 1px solid var(--line); padding-top: 24px; display: flex; justify-content: space-between; gap: 20px; font-size: .61rem; color: var(--muted); }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 1350px) {
+  .public-nav { gap: 18px; }
+  .nav-inner { gap: 18px; }
+  .landing .tv-brand strong { font-size: 1.5rem; }
+  .landing .tv-brand > svg { width: 65px; }
+  .audience-section { gap: 45px; }
+  .nav-actions { gap: 16px; }
+  .theme-control { padding-right: 16px; }
+  .landing .login-button { padding-inline: 25px; }
+}
+@media (max-width: 1023px) {
+  .landing .menu-toggle { display: inline-flex; }
+  .public-nav { display: flex; flex-direction: column; align-items: stretch; gap: 2px; visibility: hidden; opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity .2s, transform .2s, visibility .2s; position: absolute; top: 100%; left: 0; width: 100%; background: var(--nav); padding: 16px 6% 24px; border-bottom: 1px solid var(--line); }
+  .public-nav.is-open { visibility: visible; opacity: 1; transform: none; pointer-events: auto; }
+  .public-nav a { min-height: 48px; }
+  .hero h1 { font-size: clamp(4.7rem, 9vw, 7rem); }
+  .hero { height: 900px; min-height: 90svh; }
+  .audience-section { gap: 40px; }
+  .network-panel { height: 400px; }
+  .company-section .audience-copy { order: -1; }
+  .institution-section { gap: 45px; grid-template-columns: .75fr 1fr; }
+}
 @media (max-width: 767px) {
-  .hero-background-scroll { bottom: -16svh; }
+  .nav-inner { min-height: 80px; padding: 12px 16px; gap: 8px; }
+  .landing .tv-brand { gap: 6px; }
+  .landing .tv-brand > svg { width: 38px; }
+  .landing .tv-brand strong { font-size: 1.25rem; }
+  .landing .tv-brand small { font-size: .53rem; }
+  .nav-actions { gap: 1px; }
+  .landing .login-button { padding: 8px 12px; min-width: 0; font-size: .75rem; }
+  .user-link > span { display: none; }
+  .theme-control { border: 0; padding: 0; }
+  .theme-toggle-button { width: 44px; height: 44px; }
+  .hero { min-height: 770px; height: 100svh; max-height: 950px; }
+  .light .hero-background { background-image: url('/landing/valley-light-mobile.webp'); }
+  .hero-background-scroll { inset: -24px -2px -16svh; }
+  .hero-background { background-image: url('/landing/valley-dark-mobile.webp'); background-position: center bottom; }
   .hero-technology { inset: 60% 0 -12svh; opacity: .18; }
   .hero-exit-shade { bottom: -16svh; height: 24svh; }
+  .hero-copy { padding: 145px 20px 0; }
+  .hero h1 { font-size: clamp(3.35rem, 9.9vw, 5.5rem); line-height: 1.05; letter-spacing: -.065em; }
+  .hero .hero-subtitle { max-width: 310px; margin: 25px auto 0; font-size: 1rem; line-height: 1.6; }
+  .hero .institutional-line { font-size: .78rem; letter-spacing: .06em; margin-top: 20px; }
+  .hero .join-actions { gap: 10px; }
+  .landing .join-actions .MuiButton-root { padding: 12px 20px; font-size: .8rem; gap: 8px; }
+  .hero .join-actions .MuiButton-root { min-width: 0; min-height: 54px; }
+  .valley-scene { height: 49%; width: 150%; left: -25%; opacity: .85; }
+  .section { padding: 76px 24px; }
   .value-section { padding-top: 8svh; }
   .value-cover { top: -4svh; background: linear-gradient(var(--page-0), var(--page) 16svh); }
-  .network-panel { margin-inline: 6px; }
-  .network-label { padding: 9px 11px; }
+  .landing h2 { font-size: clamp(2.2rem, 7.7vw, 3rem); }
+  .landing .eyebrow { font-size: .6rem; margin-bottom: 21px; }
+  .value-grid { gap: 32px; margin-top: 40px; }
+  .value-grid article { padding-top: 25px; }
+  .value-grid svg { margin-bottom: 16px; }
+  .network-panel { height: 370px; margin-inline: 6px; }
   .network-panel .compact { width: 100%; left: 0; }
+  .audience-copy > p:not(.eyebrow) { font-size: .9rem; }
+  .network-orbit.orbit-two { width: 350px; }
+  .network-center { width: 145px; height: 145px; }
+  .network-label { padding: 9px 11px; }
   .panel-glow { opacity: .35; }
+  .story-paths { opacity: .25; }
+  .path-light { display: none; }
+  .landing .audience-tabs { margin: 30px auto 40px; }
+  .landing .audience-tabs .MuiTab-root { padding-inline: 20px; }
+  .steps-grid { gap: 32px; }
+  .step-number { font-size: 3rem; margin-bottom: 17px; padding-bottom: 12px; }
+  .step-connection { right: 0; }
+  .institution-section { grid-template-columns: 1fr; gap: 45px; }
+  .institution-brand { min-height: 290px; }
+  .institution-brand img { width: 190px; }
+  .footer-main { flex-wrap: wrap; }
+  .footer-main p { order: 3; width: 100%; }
+  .footer-bottom { flex-direction: column; gap: 12px; }
+  .landing-footer { padding: 40px 24px; }
+}
+@media (max-width: 380px) {
+  .nav-inner { padding-inline: 12px; }
+  .landing .tv-brand > svg { display: none; }
+  .hero-copy { padding-inline: 12px; }
+  .hero h1 { font-size: 3rem; }
+  .landing .join-actions .MuiButton-root { padding-inline: 16px; }
+  .section { padding-inline: 20px; }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .landing *, .landing *::before, .landing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  .landing .public-nav { transform: none; transition: opacity .16s, visibility .16s !important; }
   .path-light { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .path-light { display: none; } }
