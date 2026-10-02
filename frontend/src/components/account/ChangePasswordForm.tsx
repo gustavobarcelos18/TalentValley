@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Alert, Button } from "@mui/material";
+import { Alert } from "@mui/material";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { useRetryCountdown } from "@/components/auth/motion/useRetryCountdown";
 import { AuthFooterLink } from "@/components/auth/AuthFooterLink";
 import { AuthFormPage } from "@/components/auth/AuthFormPage";
 import { AuthResultPage } from "@/components/auth/AuthResultPage";
@@ -28,6 +30,7 @@ export function ChangePasswordForm() {
   const [confirmacao, setConfirmacao] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const retry = useRetryCountdown();
   const [success, setSuccess] = useState(false);
 
   const senhaAtualInputRef = useRef<HTMLInputElement | null>(null);
@@ -85,6 +88,7 @@ export function ChangePasswordForm() {
       await changePassword({ senhaAtual, novaSenha });
       setSuccess(true);
     } catch (err) {
+      retry.observe(err);
       // The new password already passed the client rules; the backend names the
       // rejected field in the 400 validation problem.
       const fields = err instanceof ApiError && err.status === 400 ? err.problem?.errors : undefined;
@@ -124,6 +128,7 @@ export function ChangePasswordForm() {
       subtitle="Informe sua senha atual e escolha uma nova"
       onSubmit={handleSubmit}
       ariaBusy={loading}
+      shakeKey={errorSequence}
       footer={<AuthFooterLink href={homeHref}>Voltar à minha área</AuthFooterLink>}
     >
       {error && (
@@ -172,9 +177,9 @@ export function ChangePasswordForm() {
         disabled={loading}
       />
 
-      <Button type="submit" variant="contained" size="large" fullWidth disabled={loading}>
-        {loading ? "Alterando..." : "Alterar senha"}
-      </Button>
+      <AuthSubmitButton loading={loading} retry={retry} loadingLabel="Alterando...">
+        Alterar senha
+      </AuthSubmitButton>
     </AuthFormPage>
   );
 }

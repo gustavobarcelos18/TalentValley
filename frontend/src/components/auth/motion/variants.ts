@@ -30,8 +30,5 @@ export const drawPath: Variants = {
   visible: { pathLength: 1, opacity: 1, transition: { duration: duration.slow * 2, ease: ease.inOut } },
 };
 
-/** Short horizontal shake; animate to `shake`, rest at `idle`. */
-export const shake: Variants = {
-  idle: { x: 0 },
-  shake: { x: [0, -8, 8, -6, 6, -3, 3, 0], transition: { duration: duration.slow, ease: ease.inOut } },
-};
+/** Short horizontal shake. A `transform` string (not `x`) keeps it on the compositor. */
+export const shakeKeyframes = [0, -8, 8, -6, 6, -3, 3, 0].map((x) => `translateX(${x}px)`);
