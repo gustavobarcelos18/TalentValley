@@ -18,16 +18,9 @@ const PANEL_VARIANT_BY_PATH: Record<string, AuthPanelVariant> = {
   "/cadastro/recrutador": "signup",
 };
 
-// Single layout for the entry screens: brand panel + form area. It lives in the
-// (auth) route-group layout, so the panel stays mounted across auth routes.
-export function AuthLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const variant = PANEL_VARIANT_BY_PATH[pathname];
-
-  if (!variant) {
-    return <>{children}</>;
-  }
-
+// Brand panel + form area. Also used on its own by the system states (404, error,
+// access denied), which render outside the (auth) route group.
+export function AuthShell({ variant, children }: { variant: AuthPanelVariant; children: ReactNode }) {
   return (
     <Box
       component="main"
@@ -44,4 +37,17 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       </Box>
     </Box>
   );
+}
+
+// Single layout for the entry screens. It lives in the (auth) route-group layout,
+// so the panel stays mounted across auth routes.
+export function AuthLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const variant = PANEL_VARIANT_BY_PATH[pathname];
+
+  if (!variant) {
+    return <>{children}</>;
+  }
+
+  return <AuthShell variant={variant}>{children}</AuthShell>;
 }
