@@ -76,6 +76,7 @@ Use the smallest relevant set of skills under `.agents/skills/`.
 - `talent-valley-quality-gate`: validation before completion.
 - `talent-valley-smart-dispatch`: model choice (opus/sonnet/haiku) when delegating to subagents.
 - `talent-valley-phased-delivery`: phased plans, branch per phase, phase reports, approval, commit/push.
+- `talent-valley-project-brain`: local `.agents/brain/` (plans, phase reports, solved problems) and resume after context reset.
 
 Read only the references needed for the current task.
 
