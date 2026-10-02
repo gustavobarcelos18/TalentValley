@@ -139,6 +139,7 @@ export function RecruiterRegistrationWizard() {
       reportError(
         getAuthErrorMessage(reason, {
           fallback: "Não foi possível enviar a solicitação. Revise os dados e tente novamente.",
+          overrides: { 403: "Não foi possível enviar a solicitação agora. Recarregue a página e tente novamente." },
         }),
       );
     } finally {
