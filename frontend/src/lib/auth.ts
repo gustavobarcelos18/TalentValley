@@ -63,6 +63,19 @@ export async function resendActivation(email: string): Promise<void> {
   await apiMutation<void>("POST", "/api/auth/resend-activation", { email });
 }
 
+export interface ChangePasswordRequest {
+  senhaAtual: string;
+  novaSenha: string;
+}
+
+export async function changePassword(request: ChangePasswordRequest): Promise<void> {
+  await ensureCsrfToken();
+  // 204: the backend reissues the session cookie, so the user stays signed in.
+  await apiMutation<void>("POST", "/api/auth/change-password", request);
+  // The session cookie changed; rebind the antiforgery pair like after login.
+  await refreshCsrfToken();
+}
+
 export async function activateAccount(request: ActivateAccountRequest): Promise<void> {
   await ensureCsrfToken();
   await apiMutation<void>("POST", "/api/auth/activate-account", request);

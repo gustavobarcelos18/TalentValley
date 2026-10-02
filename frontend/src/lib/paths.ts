@@ -1,7 +1,7 @@
 import type { UserRole } from "@/types/auth";
 
 export const AppPaths = {
-  protected: ["/meu-perfil", "/recrutador", "/admin"],
+  protected: ["/meu-perfil", "/recrutador", "/admin", "/conta"],
   guestOnly: ["/login", "/esqueci-senha", "/redefinir-senha", "/ativar-conta", "/reenviar-ativacao", "/cadastro", "/cadastro/aluno", "/cadastro/recrutador"],
 } as const;
 
