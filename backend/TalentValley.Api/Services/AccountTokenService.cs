@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
 using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.Email;
@@ -8,7 +9,7 @@ using TalentValley.Api.Email;
 namespace TalentValley.Api.Services;
 
 public sealed class AccountTokenService(
-    UserManager<ApplicationUser> users, AppDbContext database,
+    UserManager<ApplicationUser> users, AppDbContext database, AccountAccess access,
     IOptions<FrontendOptions> frontend, IEmailSender emailSender)
 {
     private const string ActivationPurpose = "AccountActivation";
@@ -25,6 +26,23 @@ public sealed class AccountTokenService(
 
     public async Task SendActivationLinkAsync(ApplicationUser user) =>
         await emailSender.SendActivationLinkAsync(user.Email!, await GenerateActivationLinkAsync(user));
+
+    // Self-service resend: silent for unknown, already activated, inactive or undeliverable accounts so the public response never reveals which.
+    public async Task ResendActivationAsync(string email)
+    {
+        var user = await users.FindByEmailAsync(email.Trim());
+        if (user is null || user.EmailConfirmed || await users.HasPasswordAsync(user)) return;
+        var role = await access.GetRoleAsync(user);
+        if (role is null || !await access.IsActiveAsync(user.Id, role)) return;
+        try
+        {
+            await SendActivationLinkAsync(user);
+        }
+        catch (EmailDeliveryUnavailableException)
+        {
+            // Sender logged an explicit operational failure. Keep the public response identical for every email.
+        }
+    }
 
     public async Task<bool> ActivateAsync(string email, string token, string password)
     {
