@@ -7,7 +7,7 @@ import { SystemStatePage } from "@/components/auth/SystemStatePage";
 // a client error could carry internal details.
 export default function Error({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <AuthShell variant="system">
+    <AuthShell>
       <SystemStatePage
         eyebrow="ERRO INESPERADO"
         title="Algo deu errado"

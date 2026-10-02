@@ -9,7 +9,7 @@ import { SystemStatePage } from "./SystemStatePage";
 // action takes the user to the home of their own role.
 export function AccessDenied({ role }: { role: UserRole }) {
   return (
-    <AuthShell variant="system">
+    <AuthShell>
       <SystemStatePage
         eyebrow="ERRO 403"
         title="Acesso negado"
