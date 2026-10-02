@@ -12,6 +12,7 @@ import { navigation } from "./navigation";
 import { useLandingMotionPolicy } from "./motion/LandingMotion";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { useMyPhoto } from "@/hooks/useMyPhoto";
+import { entrance } from "./entrance";
 
 /** Viewport line that decides which navigation item is active. */
 const activeLine = 120;
@@ -68,7 +69,7 @@ export function PublicHeader() {
   }, []);
 
   return <header className={`landing-header ${scrolled || menuOpen ? "is-elevated" : ""}`} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}>
-      <div className="nav-inner" data-entrance="0.08">
+      <div className="nav-inner entrance" style={entrance(0.08)}>
         <Link href="#hero" className="brand-link" aria-label="Talent Valley — início" onClick={() => setMenuOpen(false)}><Brand /></Link>
         <nav id="public-navigation" aria-label="Navegação principal" className={`public-nav ${menuOpen ? "is-open" : ""}`}>
           {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => setMenuOpen(false)}>{label}</a>)}
