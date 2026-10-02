@@ -11,6 +11,7 @@ export function AccessDenied({ role }: { role: UserRole }) {
   return (
     <AuthShell>
       <SystemStatePage
+        scene="locked"
         eyebrow="ERRO 403"
         title="Acesso negado"
         message="Seu perfil não tem permissão para acessar esta página."

@@ -91,7 +91,16 @@ function BrandLockup({ entrance }: { entrance: boolean }) {
 // Full-screen animated backdrop of the entry screens, with the form card floating over it.
 // The brand entrance plays only when `entrance` is set, so server-rendered pages keep the brand visible.
 // Pointer effects listen on the whole screen, so they keep working while the pointer is over the card.
-export function AuthBackdrop({ entrance, children }: { entrance: boolean; children: ReactNode }) {
+export function AuthBackdrop({
+  entrance,
+  compact = false,
+  children,
+}: {
+  entrance: boolean;
+  /** Less empty space above and below the card. */
+  compact?: boolean;
+  children: ReactNode;
+}) {
   const rootRef = useRef<HTMLElement | null>(null);
   const pointer = usePointerParallax(rootRef);
   const visible = usePageVisible();
@@ -131,7 +140,7 @@ export function AuthBackdrop({ entrance, children }: { entrance: boolean; childr
             px: 2,
             "@media (max-width: 399px)": { px: 1 },
             pt: 14,
-            pb: 6,
+            pb: compact ? 3 : 6,
           }}
         >
           {children}

@@ -5,6 +5,7 @@ export default function NotFound() {
   return (
     <AuthShell>
       <SystemStatePage
+        scene="lost"
         eyebrow="ERRO 404"
         title="Página não encontrada"
         message="O endereço que você tentou abrir não existe ou foi movido."

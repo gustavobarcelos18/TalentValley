@@ -14,6 +14,8 @@ interface AuthFormPageProps {
   ariaBusy?: boolean;
   /** Changes to a new non-zero value on every submit error; each change shakes the content. */
   shakeKey?: number;
+  /** Tighter vertical rhythm, for forms that must fit a laptop screen (the signup wizards). */
+  compact?: boolean;
   /** Links under the form (alternative actions, back to start). */
   footer?: ReactNode;
   children?: ReactNode;
@@ -40,13 +42,19 @@ const enter = (step: number, name: typeof rise | typeof maskUp = rise) => ({
   "@media (prefers-reduced-motion: reduce)": { animation: `${fade} 200ms linear backwards` },
 });
 
-// Children of the form enter one after another (the same rule applies to any that mount later,
-// such as an error alert).
-const formChildrenSx: Record<string, object> = { "& > *": enter(3) };
-for (let i = 0; i < MAX_CHILD_STEPS; i++) {
-  formChildrenSx[`& > *:nth-child(${i + 1})`] = { animationDelay: `${(3 + i) * STEP_MS}ms` };
+// Children enter one after another, the first one after `firstStep` steps (the same rule applies to
+// any that mount later, such as an error alert). A child marked `data-no-enter` is skipped: it
+// stands for a group whose own children are cascaded with this same function.
+export function cascadeSx(firstStep: number): Record<string, object> {
+  const sx: Record<string, object> = { "& > *:not([data-no-enter])": enter(firstStep) };
+  for (let i = 0; i < MAX_CHILD_STEPS; i++) {
+    sx[`& > *:nth-child(${i + 1})`] = { animationDelay: `${(firstStep + i) * STEP_MS}ms` };
+  }
+  sx["@media (prefers-reduced-motion: reduce)"] = { "& > *:nth-child(n)": { animationDelay: "0ms" } };
+  return sx;
 }
-formChildrenSx["@media (prefers-reduced-motion: reduce)"] = { "& > *:nth-child(n)": { animationDelay: "0ms" } };
+
+const formChildrenSx = cascadeSx(3);
 
 // Content of the form area of an entry screen: heading, form and footer links.
 // Each part is its own wrapper so the sections can be targeted individually.
@@ -57,6 +65,7 @@ export function AuthFormPage({
   onSubmit,
   ariaBusy,
   shakeKey = 0,
+  compact = false,
   footer,
   children,
 }: AuthFormPageProps) {
@@ -69,7 +78,7 @@ export function AuthFormPage({
         <Typography
           component="p"
           sx={{
-            mb: 1.5,
+            mb: compact ? 1 : 1.5,
             color: "primary.main",
             fontSize: "0.7rem",
             fontWeight: 600,
@@ -97,11 +106,11 @@ export function AuthFormPage({
 
       <Stack
         component={onSubmit ? "form" : "div"}
-        spacing={2.5}
+        spacing={compact ? 2 : 2.5}
         onSubmit={onSubmit}
         aria-busy={ariaBusy || undefined}
         noValidate={onSubmit ? true : undefined}
-        sx={{ mt: 3, ...formChildrenSx }}
+        sx={{ mt: compact ? 2.5 : 3, ...formChildrenSx }}
       >
         {children}
       </Stack>

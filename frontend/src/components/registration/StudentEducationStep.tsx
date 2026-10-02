@@ -112,30 +112,32 @@ export function StudentEducationStep({
         maxLength={4}
       />
 
-      <AuthField
-        id="relacaoRioPombaValley"
-        name="relacaoRioPombaValley"
-        label="Relação com o Rio Pomba Valley"
-        required={false}
-        multiline
-        minRows={3}
-        value={value.relacaoRioPombaValley}
-        onChange={(e) => onChange("relacaoRioPombaValley", stripEmoji(e.target.value).slice(0, 500))}
-        onBlur={() => onBlur("relacaoRioPombaValley")}
-        onPaste={stripEmojiOnPaste}
-        inputRef={registerFieldRef("relacaoRioPombaValley")}
-        disabled={disabled}
-        error={Boolean(errors.relacaoRioPombaValley)}
-        helperText={
-          <Box component="span" sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
-            <Box component="span">{errors.relacaoRioPombaValley ?? "Opcional; compartilhe seu vínculo com a comunidade."}</Box>
-            <Box component="span" sx={{ color: "text.secondary" }}>
-              {value.relacaoRioPombaValley.length} / 500
+      <div className="sm:col-span-2">
+        <AuthField
+          id="relacaoRioPombaValley"
+          name="relacaoRioPombaValley"
+          label="Relação com o Rio Pomba Valley"
+          required={false}
+          multiline
+          minRows={2}
+          value={value.relacaoRioPombaValley}
+          onChange={(e) => onChange("relacaoRioPombaValley", stripEmoji(e.target.value).slice(0, 500))}
+          onBlur={() => onBlur("relacaoRioPombaValley")}
+          onPaste={stripEmojiOnPaste}
+          inputRef={registerFieldRef("relacaoRioPombaValley")}
+          disabled={disabled}
+          error={Boolean(errors.relacaoRioPombaValley)}
+          helperText={
+            <Box component="span" sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
+              <Box component="span">{errors.relacaoRioPombaValley ?? "Opcional; compartilhe seu vínculo com a comunidade."}</Box>
+              <Box component="span" sx={{ color: "text.secondary" }}>
+                {value.relacaoRioPombaValley.length} / 500
+              </Box>
             </Box>
-          </Box>
-        }
-        maxLength={500}
-      />
+          }
+          maxLength={500}
+        />
+      </div>
     </>
   );
 }

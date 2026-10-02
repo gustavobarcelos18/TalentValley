@@ -3,6 +3,8 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { Alert, Button, Typography } from "@mui/material";
 import { AuthFormPage } from "@/components/auth/AuthFormPage";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { useMotionPolicy } from "@/components/auth/motion/useMotionPolicy";
 import { registrationApi } from "@/lib/admin";
 import { getAuthErrorMessage } from "@/lib/authErrors";
 import {
@@ -20,7 +22,7 @@ import {
   type RecruiterCompanyForm,
 } from "./RecruiterCompanyStep";
 import { RegistrationSuccess } from "./RegistrationSuccess";
-import { ReviewStep } from "./ReviewStep";
+import { REVIEW_FOLD_MS, ReviewStep } from "./ReviewStep";
 import { SignupFooter } from "./SignupFooter";
 import {
   commonBlank,
@@ -33,7 +35,7 @@ import {
 import { useCepLookup } from "./useCepLookup";
 import { useFormFocus } from "./useFormFocus";
 import { useWizard } from "./useWizard";
-import { WizardProgress, WizardStepHeading } from "./WizardProgress";
+import { WizardProgress, WizardStepHeading, WizardStepTransition } from "./WizardProgress";
 
 const STEPS = [
   { label: "Dados", title: "Dados pessoais", description: "Como podemos identificar você." },
@@ -64,6 +66,11 @@ function companyErrors(company: RecruiterCompanyForm): FieldErrors {
   };
 }
 
+// How long the drawn check stays on the button before the confirmation replaces the form.
+const SUCCESS_PAUSE_MS = 700;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Recruiter signup in three steps: personal data, company, review and terms.
 // All data lives here, so moving between steps never loses what was typed.
 export function RecruiterRegistrationWizard() {
@@ -73,7 +80,9 @@ export function RecruiterRegistrationWizard() {
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [success, setSuccess] = useState(false);
+  const reducedMotion = useMotionPolicy() === "reduced";
   const { error, clearError, reportError, errorAlertRef, registerFieldRef } = useFormFocus();
 
   // Editing a field drops the error summary, so it never stays on screen
@@ -122,6 +131,8 @@ export function RecruiterRegistrationWizard() {
   const submit = async () => {
     setBusy(true);
     try {
+      // The review summary folds away before the request leaves.
+      if (!reducedMotion) await wait(REVIEW_FOLD_MS);
       // CEP is a frontend-only lookup helper and must not be sent to the API.
       await registrationApi.recruiter({
         nomeCompleto: normalizeWhitespace(common.nomeCompleto),
@@ -134,6 +145,9 @@ export function RecruiterRegistrationWizard() {
         siteEmpresa: company.siteEmpresa.trim() || null,
         consentTermos: true,
       });
+      // The check is drawn on the button before the confirmation takes over.
+      setFinished(true);
+      if (!reducedMotion) await wait(SUCCESS_PAUSE_MS);
       setSuccess(true);
     } catch (reason) {
       reportError(
@@ -186,8 +200,9 @@ export function RecruiterRegistrationWizard() {
       title="Solicitar acesso como recrutador"
       subtitle="Seu pedido será analisado pela equipe do Talent Valley antes da criação da conta."
       onSubmit={handleSubmit}
+      compact
       ariaBusy={busy}
-      footer={<SignupFooter backHref="/cadastro" backLabel="Voltar para escolher perfil" />}
+      footer={<SignupFooter backHref="/cadastro" backLabel="Voltar para escolher perfil" inline />}
     >
       <WizardProgress steps={STEPS.map((step) => step.label)} activeStep={wizard.step} />
 
@@ -210,53 +225,56 @@ export function RecruiterRegistrationWizard() {
         description={current.description}
       />
 
-      {wizard.step === 0 && (
-        <PersonalDataStep
-          value={common}
-          errors={errors}
-          onChange={changeCommon}
-          onBlur={blurCommon}
-          registerFieldRef={registerFieldRef}
-          disabled={busy}
-          cepStatus={cepStatus}
-        />
-      )}
+      <WizardStepTransition step={wizard.step} direction={wizard.direction} moved={wizard.moved}>
+        {wizard.step === 0 && (
+          <PersonalDataStep
+            value={common}
+            errors={errors}
+            onChange={changeCommon}
+            onBlur={blurCommon}
+            registerFieldRef={registerFieldRef}
+            disabled={busy}
+            cepStatus={cepStatus}
+          />
+        )}
 
-      {wizard.step === 1 && (
-        <RecruiterCompanyStep
-          value={company}
-          errors={errors}
-          onChange={changeCompany}
-          onBlur={blurCompany}
-          registerFieldRef={registerFieldRef}
-          disabled={busy}
-        />
-      )}
+        {wizard.step === 1 && (
+          <RecruiterCompanyStep
+            value={company}
+            errors={errors}
+            onChange={changeCompany}
+            onBlur={blurCompany}
+            registerFieldRef={registerFieldRef}
+            disabled={busy}
+          />
+        )}
 
-      {wizard.step === 2 && (
-        <ReviewStep
-          personal={common}
-          details={{
-            title: "Dados da empresa",
-            editLabel: "Editar dados da empresa",
-            rows: [
-              { label: "Empresa", value: company.empresa },
-              { label: "Cargo", value: company.cargo },
-              { label: "Site da empresa", value: company.siteEmpresa },
-            ],
-          }}
-          consent={consent}
-          consentError={errors.consentTermos}
-          disabled={busy}
-          onConsentChange={(checked) => {
-            setConsent(checked);
-            setErrors((currentErrors) => ({ ...currentErrors, consentTermos: null }));
-            clearError();
-          }}
-          onEditStep={editStep}
-          registerFieldRef={registerFieldRef}
-        />
-      )}
+        {wizard.step === 2 && (
+          <ReviewStep
+            personal={common}
+            details={{
+              title: "Dados da empresa",
+              editLabel: "Editar dados da empresa",
+              rows: [
+                { label: "Empresa", value: company.empresa },
+                { label: "Cargo", value: company.cargo },
+                { label: "Site da empresa", value: company.siteEmpresa },
+              ],
+            }}
+            consent={consent}
+            consentError={errors.consentTermos}
+            disabled={busy}
+            collapsed={busy}
+            onConsentChange={(checked) => {
+              setConsent(checked);
+              setErrors((currentErrors) => ({ ...currentErrors, consentTermos: null }));
+              clearError();
+            }}
+            onEditStep={editStep}
+            registerFieldRef={registerFieldRef}
+          />
+        )}
+      </WizardStepTransition>
 
       {!wizard.isLast && (
         <Typography variant="caption" color="text.secondary">
@@ -277,9 +295,11 @@ export function RecruiterRegistrationWizard() {
             Voltar
           </Button>
         )}
-        <Button type="submit" variant="contained" size="large" fullWidth disabled={busy}>
-          {wizard.isLast ? (busy ? "Enviando..." : "Enviar solicitação") : "Continuar"}
-        </Button>
+        <div className="min-w-0 flex-1">
+          <AuthSubmitButton loading={busy} success={finished} loadingLabel="Enviando solicitação...">
+            {wizard.isLast ? "Enviar solicitação" : "Continuar"}
+          </AuthSubmitButton>
+        </div>
       </div>
     </AuthFormPage>
   );

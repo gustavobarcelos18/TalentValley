@@ -9,6 +9,7 @@ export default function Error({ retry }: { error: Error & { digest?: string }; r
   return (
     <AuthShell>
       <SystemStatePage
+        scene="failed"
         eyebrow="ERRO INESPERADO"
         title="Algo deu errado"
         message="Não foi possível carregar esta página. Tente novamente em instantes."
