@@ -1,6 +1,6 @@
 ---
 name: talent-valley-phased-delivery
-description: Use whenever a Talent Valley implementation plan is written or executed. Defines the phase format for plans, one branch per phase from main, the phase completion report with user approval gate, commit/push only after approval, brain update and context reset after each phase, and the rule to always ask the user instead of assuming.
+description: Use whenever a Talent Valley implementation plan is written or executed. Defines the phase format for plans, one branch per phase from main, the phase completion report with user approval gate, commit/push only after approval, independent review of each phase report before showing it, brain update and context reset after each phase, and the rule to always ask the user instead of assuming.
 ---
 
 # Talent Valley Phased Delivery
@@ -54,15 +54,23 @@ After finishing **each** phase:
    - migrations added, if any;
    - unresolved issues or deviations from the plan;
    - the next phase, for context.
-2. **Stop and wait for explicit user approval.** Do not start the next phase, create its branch, commit or push before approval.
-3. On approval:
+2. **Independent review of the report, before showing it to the user.** Spawn a reviewer subagent with a fresh context (model `opus`, per `talent-valley-smart-dispatch`). Give it only: the plan phase (where/what/checks), the draft report, the phase branch name and the base (`origin/main`), so it inspects the real diff and re-runs checks itself. It must verify and return findings per item:
+   - **Phase vs plan:** everything the phase lists was done, and nothing outside its scope was changed;
+   - **Report vs reality:** every claim in the report (files, checks, results, migrations) matches the actual diff and the real command output;
+   - **Project rules:** compliance with `AGENTS.md` and the relevant skills in the affected areas (security, domain, architecture);
+   - **Technical correctness:** bugs and risks in the phase's code.
+
+   The reviewer is read-only: it reports findings, it does not edit.
+3. **If the review finds problems,** fix them on the same phase branch, re-run the checks, update the report and run the review again. Repeat until it passes. Only then show the report to the user, including the review outcome (what was checked, problems found and how they were fixed). If a problem cannot be fixed within the phase scope, or fixing it needs a decision, ask the user (section 5) instead of deciding alone.
+4. **Stop and wait for explicit user approval.** Do not start the next phase, create its branch, commit or push before approval.
+5. On approval:
    - commit the phase on its branch (Conventional Commits, matching repository history);
    - `git push -u origin <phase-branch>`;
    - confirm the push succeeded;
    - update the project brain (`talent-valley-project-brain`): save the approved report to `reports/phase-<n>.md`, save every problem solved in the phase to `solved/` and `INDEX.md`, mark the phase `aprovada` with its commit hash in `plan.md`, and refresh the resume prompt for the next phase. The brain is local-only: do not commit or push it.
-4. **Context reset.** After the brain is updated, stop. Do not start the next phase in the same context. Tell the user the phase is closed and that they should run `/clear` (the agent cannot run it), and give the resume prompt from `plan.md`. The next session starts from zero and follows the resume protocol in `talent-valley-project-brain`, using the saved plan.
+6. **Context reset.** After the brain is updated, stop. Do not start the next phase in the same context. Tell the user the phase is closed and that they should run `/clear` (the agent cannot run it), and give the resume prompt from `plan.md`. The next session starts from zero and follows the resume protocol in `talent-valley-project-brain`, using the saved plan.
    - After the last phase, mark the plan `concluido` instead and give no resume prompt.
-5. If the user requests changes instead, fix them on the **same** phase branch, re-run checks, and send an updated report. Do not create a new branch for the same phase.
+7. If the user requests changes instead, fix them on the **same** phase branch, re-run checks, run the independent review again, and send an updated report. Do not create a new branch for the same phase.
 
 ## 5. Doubts — always ask
 
