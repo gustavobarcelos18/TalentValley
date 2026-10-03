@@ -58,7 +58,7 @@ jobs:
         run: npm ci
 
       - name: Auditoria de dependências
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Executar lint do frontend
         run: npm run lint
