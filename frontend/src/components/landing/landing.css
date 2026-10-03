@@ -231,7 +231,10 @@
 .footer-main { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding-bottom: 40px; }
 .footer-main p { font-size: .875rem; }
 .footer-main > a:last-child { display: flex; align-items: center; gap: 20px; min-height: 44px; font-size: .875rem; }
-.footer-bottom { border-top: 1px solid var(--line); padding-top: 24px; display: flex; justify-content: space-between; gap: 20px; font-size: .75rem; color: var(--muted); }
+.footer-bottom { border-top: 1px solid var(--line); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: .75rem; color: var(--muted); }
+.footer-legal { display: flex; flex-wrap: wrap; gap: 0 24px; }
+.footer-legal a { display: inline-flex; align-items: center; min-height: 44px; }
+.footer-legal a:hover { color: var(--ink); text-decoration: underline; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 1350px) {
@@ -300,7 +303,7 @@
   .institution-brand img { width: 190px; }
   .footer-main { flex-wrap: wrap; }
   .footer-main p { order: 3; width: 100%; }
-  .footer-bottom { flex-direction: column; gap: 12px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; gap: 12px; }
   .landing-footer { padding: 40px 24px; }
 }
 @media (max-width: 380px) {
