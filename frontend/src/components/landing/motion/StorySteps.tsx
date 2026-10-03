@@ -25,7 +25,7 @@ export function StorySteps({ audience }: { audience: number }) {
     {steps.map((group, index) => <ol key={index} className="steps-grid steps-measure grid md:grid-cols-3" aria-hidden="true" inert>
       {group.map(([title, copy], index) => <li key={title}><span className="step-number">0{index + 1}</span><h3>{title}</h3><p>{copy}</p></li>)}
     </ol>)}
-    <div className="steps-content" role="tabpanel" id={`how-panel-${audience}`} aria-labelledby={`how-tab-${audience}`} tabIndex={0}>
+    <div className="steps-content" role="tabpanel" id="how-panel" aria-labelledby={`how-tab-${audience}`} tabIndex={0}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.ol key={`${audience}-${policy}`} className="steps-grid grid md:grid-cols-3"
           initial={simple ? false : "hidden"} whileInView="visible" viewport={{ once: true, amount: 0.15 }}
