@@ -82,6 +82,7 @@ Applies while planning and while executing.
 - Never infer, assume or deduce. Do not choose a "sensible default" on the user's behalf and do not proceed with a stated assumption.
 - Ask before writing the plan if the doubt affects it; ask mid-phase if it appears during execution, and stop work on the affected part until answered.
 - Prefer the `AskUserQuestion` tool; keep questions specific and, when useful, list the options with a recommendation, but the decision is always the user's.
+- Always write questions, answers and messages to the user in Brazilian Portuguese (pt-BR), including question text and option labels.
 - Do not ask about things already defined in `AGENTS.md`, the skills, or the user's request.
 
 ## 6. Hard limits
