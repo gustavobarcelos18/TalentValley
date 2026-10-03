@@ -67,3 +67,29 @@ Report:
 Do not claim success for checks that were not actually run.
 
 When executing a phased plan, this report is the basis of the phase completion report. Approval, commit and push rules are in `talent-valley-phased-delivery`.
+
+## 7. Code quality review (SonarQube criteria, before the PR)
+
+SonarQube only sees code that was pushed, so before approval the reviewer applies its criteria by hand to the changed files. Report every finding with file and line; all of them must be fixed.
+
+- cognitive complexity and deep nesting; functions or components that are too long or take too many parameters;
+- duplicated code and duplicated string literals;
+- dead code: unused variables, imports, parameters, private members, unreachable branches, commented-out code;
+- empty or swallowed catch blocks, ignored return values, unobserved async calls (`async void`, floating promises);
+- C#: unused usings, magic numbers, mutable public state, missing disposal of `IDisposable`, string concatenation in loops;
+- TypeScript/React: `any`, non-null assertions without need, array index as `key`, missing hook dependencies, nested ternaries, leftover `console.log`;
+- hardcoded credentials, URLs or secrets; weak or unsafe patterns that Sonar flags as vulnerabilities or security hotspots.
+
+Do not "fix" findings by suppressing them (`#pragma warning disable`, `// NOSONAR`, `eslint-disable`) without asking the user.
+
+## 8. SonarQube Cloud verification (after push, on the PR)
+
+The Sonar project is public: `gustavobarcelos18_TalentValley` in organization `gustavobarcelos18`. Reads need no token. Never put the `SONAR_TOKEN` in files or chat.
+
+1. Wait until the `SonarQube Cloud` workflow of the PR has finished (GitHub Actions). If it failed to run, report that instead of assuming the code is clean.
+2. Read the results for the PR number `<N>`:
+   - quality gate: `https://sonarcloud.io/api/qualitygates/project_status?projectKey=gustavobarcelos18_TalentValley&pullRequest=<N>`
+   - issues (code smells, bugs, vulnerabilities): `https://sonarcloud.io/api/issues/search?componentKeys=gustavobarcelos18_TalentValley&pullRequest=<N>&resolved=false&ps=500`
+   - security hotspots: `https://sonarcloud.io/api/hotspots/search?projectKey=gustavobarcelos18_TalentValley&pullRequest=<N>`
+3. Fix every open issue and hotspot on the phase branch, run the checks from sections 2 and 3, push, and read again. Repeat until the PR has no open issues.
+4. Report the outcome in the phase report: how many issues were found, which rules, and how each was fixed. Never claim the PR is clean without having read the API result.
