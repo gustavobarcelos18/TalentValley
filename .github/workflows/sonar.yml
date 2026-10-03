@@ -41,6 +41,9 @@ jobs:
           /d:sonar.host.url="https://sonarcloud.io"
           /d:sonar.exclusions="**/bin/**,**/obj/**,**/Migrations/**,**/.next/**,**/node_modules/**"
           /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+          /d:sonar.javascript.lcov.reportPaths="frontend/coverage/lcov.info"
+          /d:sonar.test.inclusions="frontend/src/__tests__/**"
+          /d:sonar.coverage.exclusions="frontend/vitest.config.mts,frontend/vitest.setup.ts"
 
       - name: Compilar o backend
         run: dotnet build backend/TalentValley.slnx
@@ -50,6 +53,21 @@ jobs:
           dotnet test backend/TalentValley.slnx --no-build
           --collect:"XPlat Code Coverage"
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências do frontend (npm ci)
+        run: npm ci
+        working-directory: frontend
+
+      - name: Executar testes do frontend com cobertura
+        run: npm test
+        working-directory: frontend
 
       - name: Finalizar análise
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
