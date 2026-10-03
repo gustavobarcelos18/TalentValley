@@ -96,10 +96,10 @@ export function AppShell({ children }: AppShellProps) {
         <TalentValleyMark width={46} />
         <Typography
           sx={{
-            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontFamily: "var(--font-display), sans-serif",
             fontWeight: 600,
             fontSize: 17,
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.04em",
             lineHeight: 1.1,
             color: "text.primary",
             whiteSpace: "nowrap",

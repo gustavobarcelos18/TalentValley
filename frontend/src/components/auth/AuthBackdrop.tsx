@@ -29,9 +29,9 @@ const brandSx = {
   },
   "& .tv-brand strong": {
     display: "block",
-    fontFamily: "Georgia, serif",
+    fontFamily: "var(--font-display), sans-serif",
     fontWeight: 600,
-    letterSpacing: "-0.055em",
+    letterSpacing: "-0.04em",
     lineHeight: 1.1,
     fontSize: "1.25rem",
     [MD]: { fontSize: "1.5rem" },

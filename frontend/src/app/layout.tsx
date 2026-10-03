@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 import { ThemeRegistry } from "@/theme/ThemeRegistry";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
@@ -11,6 +11,8 @@ const inter = Inter({
   display: "swap",
 });
 
+const display = Manrope({ subsets: ["latin"], variable: "--font-display", display: "swap" });
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "Talent Valley",
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${inter.variable} ${display.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeRegistry>
