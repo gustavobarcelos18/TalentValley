@@ -32,9 +32,9 @@ export const BRAZILIAN_UFS = [
 
 const ufSet = new Set<string>(BRAZILIAN_UFS);
 const emojiReplacePattern =
-  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
+  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}]|\uFE0F|\u200D|\u20E3/gu;
 const emojiTestPattern =
-  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/u;
+  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}]|\uFE0F|\u200D|\u20E3/u;
 const keycapReplacePattern = /[#*0-9]\uFE0F?\u20E3/gu;
 const keycapTestPattern = /[#*0-9]\uFE0F?\u20E3/u;
 const controlPattern = /[\p{Cc}\p{Cf}]/u;

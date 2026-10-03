@@ -41,7 +41,7 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
 
     public async Task<MeResponse?> GetProfileAsync(Guid userId)
     {
-        var aluno = await database.Alunos.AsNoTracking()
+        var aluno = await database.Alunos.AsNoTracking().AsSplitQuery()
             .Include(x => x.User)
             .Include(x => x.Competencias).ThenInclude(x => x.Competencia)
             .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
@@ -198,7 +198,7 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
 
     private async Task<Aluno> LoadAsync(Guid userId)
     {
-        var aluno = await database.Alunos.Include(x => x.User)
+        var aluno = await database.Alunos.AsSplitQuery().Include(x => x.User)
             .Include(x => x.Competencias)
             .Include(x => x.Idiomas)
             .Include(x => x.Disponibilidades)
