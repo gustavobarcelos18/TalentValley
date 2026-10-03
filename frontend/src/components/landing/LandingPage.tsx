@@ -59,6 +59,6 @@ export function LandingPage() {
         <div className="institution-copy"><p className="eyebrow">NOSSA ORIGEM, NOSSA FORÇA</p><h2 id="rpv-title">Um vale de pessoas.<br/><em>Um mundo de potencial.</em></h2><p>O Rio Pomba Valley conecta pessoas, recrutadores, educação, tecnologia e inovação. Uma rede que valoriza o conhecimento da nossa região e abre caminhos para o seu desenvolvimento.</p><p>O Talent Valley nasce dessa conexão: um espaço para aproximar quem está construindo sua trajetória de quem acredita no seu potencial.</p><div className="ecosystem-words"><span>Pessoas</span><span>Educação</span><span>Recrutadores</span><span>Tecnologia</span><span>Inovação</span></div></div>
       </section>
     </main>
-    <footer className="landing-footer"><div className="footer-main"><Link className="brand-link" href="#hero"><Brand/></Link><p>O próximo capítulo começa com uma conexão.</p><FooterAccessLink /></div><div className="footer-bottom"><span>Talent Valley</span><span>Feito de pessoas. Conectado ao futuro.</span></div></footer>
+    <footer className="landing-footer"><div className="footer-main"><Link className="brand-link" href="#hero"><Brand/></Link><p>O próximo capítulo começa com uma conexão.</p><FooterAccessLink /></div><div className="footer-bottom"><span>Talent Valley</span><nav className="footer-legal" aria-label="Documentos legais"><Link href="/privacidade">Política de Privacidade</Link><Link href="/termos">Termos de Uso</Link></nav><span>Feito de pessoas. Conectado ao futuro.</span></div></footer>
   </LandingRoot>;
 }

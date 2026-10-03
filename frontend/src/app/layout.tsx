@@ -12,8 +12,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "Talent Valley",
-  description: "Career Platform by Rio Pomba Valley",
+  description: "Alunos da região mantêm perfis profissionais atualizados. Recrutadores autorizados descobrem talentos por competências e formação.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
