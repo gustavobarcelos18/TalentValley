@@ -5,7 +5,7 @@ import { SystemStatePage } from "@/components/auth/SystemStatePage";
 
 // The error message is never shown: on the server it is already generic, and
 // a client error could carry internal details.
-export default function Error({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
+export default function RouteError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <AuthShell>
       <SystemStatePage

@@ -60,7 +60,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         .Include(x => x.Modalidades)
         .Include(x => x.Formacoes);
 
-    internal IQueryable<Aluno> FullQuery() => PreviewQuery()
+    // AsSplitQuery is repeated here so the extra collection includes are visibly split.
+    internal IQueryable<Aluno> FullQuery() => PreviewQuery().AsSplitQuery()
         .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
         .Include(x => x.Experiencias)
         .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia);
