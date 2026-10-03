@@ -11,6 +11,7 @@ bin/
 obj/
 .build-check/
 .test-check/
+TestResults/
 
 # Local configuration and secrets
 .env*

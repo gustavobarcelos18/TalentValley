@@ -40,9 +40,16 @@ jobs:
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           /d:sonar.host.url="https://sonarcloud.io"
           /d:sonar.exclusions="**/bin/**,**/obj/**,**/Migrations/**,**/.next/**,**/node_modules/**"
+          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
 
       - name: Compilar o backend
         run: dotnet build backend/TalentValley.slnx
+
+      - name: Executar testes do backend com cobertura
+        run: >
+          dotnet test backend/TalentValley.slnx --no-build
+          --collect:"XPlat Code Coverage"
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
       - name: Finalizar análise
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
