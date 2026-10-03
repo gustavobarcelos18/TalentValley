@@ -1,0 +1,48 @@
+name: SonarQube Cloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonar:
+    name: Análise SonarQube Cloud
+    # Secrets não ficam disponíveis em PRs vindos de forks.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Instalar Java 17 (exigido pelo scanner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dotnet-sonarscanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Iniciar análise
+        run: >
+          dotnet sonarscanner begin
+          /k:"gustavobarcelos18_TalentValley"
+          /o:"gustavobarcelos18"
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.host.url="https://sonarcloud.io"
+          /d:sonar.exclusions="**/bin/**,**/obj/**,**/Migrations/**,**/.next/**,**/node_modules/**"
+
+      - name: Compilar o backend
+        run: dotnet build backend/TalentValley.slnx
+
+      - name: Finalizar análise
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
