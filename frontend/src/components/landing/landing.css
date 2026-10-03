@@ -60,7 +60,7 @@
 .nav-inner { max-width: 1800px; min-height: 92px; margin: auto; padding: 18px 3.2%; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
 .brand-link { display: inline-flex; flex-shrink: 0; }
 .landing .tv-brand { display: flex; align-items: center; gap: 10px; }
-.landing .tv-brand strong { font-family: var(--font-serif), Georgia, serif; font-size: 2rem; font-weight: 600; letter-spacing: -.03em; display: block; line-height: 1.1; }
+.landing .tv-brand strong { font-family: var(--font-display), sans-serif; font-size: 2rem; font-weight: 600; letter-spacing: -.04em; display: block; line-height: 1.1; }
 .landing .tv-brand em { font-style: normal; color: var(--teal); }
 .landing .tv-brand small { font-size: .8rem; color: var(--muted); display: block; margin-top: 5px; letter-spacing: .015em; }
 .public-nav { display: flex; gap: clamp(14px, 2vw, 34px); align-items: center; }
@@ -100,13 +100,13 @@
 .hero-atmosphere,
 .hero-technology { will-change: transform; }
 .hero-copy { position: relative; padding: clamp(140px, 15.4vh, 185px) 20px 0; z-index: 2; }
-.hero h1 { font-family: var(--font-serif), Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(4.8rem, 6.35vw, 7rem); line-height: .88; letter-spacing: -.045em; }
+.hero h1 { font-family: var(--font-display), sans-serif; font-weight: 500; font-size: clamp(4.8rem, 6.35vw, 7rem); line-height: .92; letter-spacing: -.055em; }
 .hero h1 span:not(.hero-title-line) { color: #a0d060; background: linear-gradient(100deg, #35dc90, #8cba53); background-clip: text; -webkit-text-fill-color: transparent; }
 .light .hero h1 span:not(.hero-title-line) { color: #36832b; background-image: linear-gradient(100deg, #008652, #52832e); }
 .hero h1 .hero-title-line { display: inline-block; color: inherit; background: none; -webkit-text-fill-color: initial; }
 .hero h1 em { font-style: normal; color: #20c8c0; }
 .light .hero h1 em { color: #007f7b; }
-.hero .hero-subtitle { margin-top: 22px; color: var(--ink); font-size: clamp(1rem, 1.7vw, 1.8rem); line-height: 1.4; letter-spacing: -.025em; }
+.hero .hero-subtitle { max-width: 36em; margin: 22px auto 0; color: var(--ink); font-size: clamp(1rem, 1.7vw, 1.8rem); line-height: 1.4; letter-spacing: -.025em; text-wrap: balance; }
 .hero .institutional-line { font: 600 .88rem/1.6 var(--font-inter), sans-serif; letter-spacing: .1em; margin: 18px 0 32px; color: var(--ink); text-shadow: 0 1px 12px var(--page); }
 .join-actions { display: flex; flex-wrap: wrap; gap: 14px; min-height: 54px; }
 .hero .join-actions { justify-content: center; gap: 16px; }

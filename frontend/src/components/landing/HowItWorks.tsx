@@ -8,7 +8,7 @@ import { StorySteps } from "./motion/StorySteps";
 export function HowItWorks() {
   const [audience, setAudience] = useState(0);
   return <>
-    <Tabs className="audience-tabs" value={audience} onChange={(_, value: number) => setAudience(value)} centered aria-label="Como funciona para cada público"><Tab id="how-tab-0" aria-controls="how-panel" label="Para talentos"/><Tab id="how-tab-1" aria-controls="how-panel" label="Para empresas"/></Tabs>
+    <Tabs className="audience-tabs" value={audience} onChange={(_, value: number) => setAudience(value)} centered aria-label="Como funciona para cada público"><Tab id="how-tab-0" aria-controls="how-panel" label="Para talentos"/><Tab id="how-tab-1" aria-controls="how-panel" label="Para recrutadores"/></Tabs>
     <StorySteps audience={audience}/>
   </>;
 }

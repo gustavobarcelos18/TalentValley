@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { Manrope, Source_Serif_4 } from "next/font/google";
+import { Manrope } from "next/font/google";
 import { LandingPage } from "@/components/landing/LandingPage";
 
 const display = Manrope({ subsets: ["latin"], variable: "--font-display", display: "swap" });
-const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Talent Valley",
@@ -11,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <div className={`${display.variable} ${serif.variable}`}><LandingPage /></div>;
+  return <div className={display.variable}><LandingPage /></div>;
 }
