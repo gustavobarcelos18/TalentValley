@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import { useLandingMotionPolicy } from "./LandingMotion";
 import "./scrollTriggerSetup";
 
-/** Independent content reveals and reversible depth scrubs; ambient tweens share a visibility observer. */
+/** Independent content reveals and reversible depth scrubs. */
 export function useSectionStories(ref: RefObject<HTMLElement | null>) {
   const policy = useLandingMotionPolicy();
 
@@ -14,33 +14,6 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
     if (!root || policy === "pending" || policy === "reduced") return;
     const mobile = policy === "mobile";
     const d = mobile ? 0.3 : 1;
-    const ambient = new Map<Element, gsap.core.Timeline>();
-    const visible = new Set<Element>();
-    const updateAmbient = () => ambient.forEach((timeline, section) => {
-      if (visible.has(section) && !document.hidden) timeline.play();
-      else timeline.pause();
-    });
-    // Freeze ambient loops while scrolling so they never compete with the scrub for the main thread.
-    let idleTimer: number | undefined;
-    let scrollFrame: number | undefined;
-    const onScroll = () => {
-      ambient.forEach(timeline => timeline.pause());
-      window.clearTimeout(idleTimer);
-      // Throttle the resume timer to once per frame instead of churning a timeout on every scroll event.
-      if (scrollFrame === undefined) {
-        scrollFrame = window.requestAnimationFrame(() => {
-          scrollFrame = undefined;
-          idleTimer = window.setTimeout(updateAmbient, 150);
-        });
-      }
-    };
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) visible.add(entry.target);
-        else visible.delete(entry.target);
-      });
-      updateAmbient();
-    });
     const context = gsap.context(() => {
       root.querySelectorAll<HTMLElement>("[data-story]").forEach(section => {
         const select = gsap.utils.selector(section);
@@ -84,46 +57,12 @@ export function useSectionStories(ref: RefObject<HTMLElement | null>) {
         // SVG <g> groups can't become compositor layers, so per-group parallax forced a full
         // scene re-rasterization every frame. Move the whole scene as one promotable layer.
         depth(".valley-scene", 45);
-        depth(".panel-glow", -100);
-        if (company) {
-          depthFrom(".network-orbit", { scale: 1.35, rotation: 8, duration: 0.65 });
-          depthFrom(".story-paths", { scale: 1.3, opacity: 0.15, duration: 0.65 });
-          depthFrom(".label-one", { x: -55 * d, y: -65 * d, duration: 0.65 });
-          depthFrom(".label-two", { x: 65 * d, y: -40 * d, duration: 0.65 });
-          depthFrom(".label-three", { y: 80 * d, duration: 0.65 });
-        } else {
-          depth(".story-paths", -45);
-          depth(".label-one", -55);
-          depth(".label-two", 38);
-          depth(".label-three", -28);
-          depthFrom(".network-orbit", { rotation: -7, scale: 1.12 });
-        }
-        depthFrom(".network-center", { scale: 0.88, duration: 0.5 });
+        revealFrom(".product-preview", { y: mobile ? 24 : 40, autoAlpha: 0, duration: mobile ? 0.55 : 0.7 }, 0.2);
         revealFrom(".ecosystem-words span", { y: (index: number) => (12 + index * 4) * d, autoAlpha: 0, stagger: 0.06, duration: 0.45 }, 0.24);
         // The original institutional logo is never transformed or filtered.
         revealFrom(".institution-brand", { autoAlpha: 0, duration: 0.55 }, 0.12);
-
-        if (!mobile && select(".panel-glow").length) {
-          const loop = gsap.timeline({ paused: true, repeat: -1, yoyo: true })
-            .fromTo(select(".panel-glow"), { opacity: 0.35 }, { opacity: 0.75, duration: 4, ease: "sine.inOut" }, 0)
-            .fromTo(select(".network-center svg"), { opacity: 0.65 }, { opacity: 1, duration: 3, ease: "sine.inOut" }, 0)
-            // Opacity pulse instead of stroke-dashoffset: dash animation re-rasterizes the SVG path
-            // every frame, while opacity stays on the compositor.
-            .fromTo(select(".path-light"), { opacity: 0.25 }, { opacity: 0.9, duration: 4, ease: "sine.inOut" }, 0);
-          ambient.set(section, loop);
-          observer.observe(section);
-        }
       });
     }, root);
-    document.addEventListener("visibilitychange", updateAmbient);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", updateAmbient);
-      window.removeEventListener("scroll", onScroll);
-      window.clearTimeout(idleTimer);
-      if (scrollFrame !== undefined) window.cancelAnimationFrame(scrollFrame);
-      context.revert();
-    };
+    return () => context.revert();
   }, [policy, ref]);
 }
