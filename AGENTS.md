@@ -62,6 +62,7 @@ Only:
 14. If repository behavior conflicts with a task prompt, report the conflict before making broad architectural changes.
 15. Do not rewrite existing working code merely for style.
 16. Whenever there is any doubt, ask the user and wait for the answer. Never infer, assume or deduce missing requirements, behavior, scope or decisions.
+17. Always answer and ask the user questions in Brazilian Portuguese (pt-BR).
 
 ## Repository skills
 
