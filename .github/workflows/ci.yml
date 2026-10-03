@@ -66,6 +66,9 @@ jobs:
       - name: Verificar tipos (typecheck)
         run: npm run typecheck
 
+      - name: Executar testes do frontend
+        run: npm test
+
       - name: Compilar o frontend (build)
         run: npm run build
 
