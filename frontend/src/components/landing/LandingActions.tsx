@@ -36,5 +36,5 @@ export function HeroActions() {
 /** Footer access link; its label depends on the session. */
 export function FooterAccessLink() {
   const { user } = useAuth();
-  return <Link href={user ? getRoleDestination(user.role) : "/login"}>{user ? "Minha área" : "Login"}<NorthEast fontSize="small"/></Link>;
+  return <Link href={user ? getRoleDestination(user.role) : "/login"}>{user ? "Minha área" : "Entrar"}<NorthEast fontSize="small"/></Link>;
 }
