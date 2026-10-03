@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { KeyboardArrowDown, NorthEast, VisibilityOutlined, HubOutlined, LayersOutlined } from "@mui/icons-material";
 import { ValleyScene, SceneContours, SceneConnections } from "./ValleyScene";
+import { ProductPreview } from "./ProductPreview";
 import { PublicHeader } from "./PublicHeader";
 import { Brand } from "./Brand";
 import { LandingRoot } from "./LandingRoot";
@@ -10,24 +11,7 @@ import { HowItWorks } from "./HowItWorks";
 import { entrance } from "./entrance";
 import "./landing.css";
 
-function NetworkPanel({ company = false }: { company?: boolean }) {
-  return <div className={`network-panel ${company ? "company-network" : ""}`} aria-hidden="true">
-    <span className="panel-coordinate">RPV / {company ? "CONEXÕES" : "TRAJETÓRIAS"}</span>
-    <ValleyScene compact />
-    <div className="panel-glow"/>
-    <svg className="story-paths" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" aria-hidden="true">
-      <path d="M50 49 Q25 48 24 27"/><path className="path-light" pathLength="100" d="M50 49 Q25 48 24 27"/><path d="M50 49 Q68 52 82 37"/><path d="M50 49 Q62 70 45 79"/>
-    </svg>
-    <div className="network-orbit orbit-one"/><div className="network-orbit orbit-two"/>
-    <span className="network-label label-one">{company ? "Competências" : "Formação"}</span>
-    <span className="network-label label-two">{company ? "Potencial" : "Projetos"}</span>
-    <span className="network-label label-three">{company ? "Talentos" : "Oportunidades"}</span>
-    <div className="network-center"><HubOutlined/><span>{company ? "Sua próxima conexão" : "Seu próximo capítulo"}</span></div>
-    <span className="panel-caption">PESSOAS. POSSIBILIDADES. CONEXÕES.</span>
-  </div>;
-}
-
-/** Server-rendered content; only the header, the CTAs and the audience tabs hydrate. */
+/** Server-rendered content; only the header, the CTAs, the audience tabs and the MUI leaves of the previews hydrate. */
 export function LandingPage() {
   return <LandingRoot>
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
@@ -56,12 +40,12 @@ export function LandingPage() {
       </section>
 
       <section data-story="talent" id="talentos" tabIndex={-1} className="section audience-section grid lg:grid-cols-2" aria-labelledby="talents-title"><span className="story-continuity" aria-hidden="true"/>
-        <div className="audience-copy"><p className="eyebrow">01 / PARA TALENTOS</p><h2 id="talents-title">Seu potencial<br/>merece ser <em>encontrado.</em></h2><p>Você tem uma história para construir. Crie seu perfil profissional, apresente sua formação, competências e trajetória e ganhe visibilidade no ecossistema Rio Pomba Valley.</p><ul className="benefits"><li><span>01</span>Monte seu perfil</li><li><span>02</span>Mostre sua trajetória</li><li><span>03</span>Seja encontrado</li></ul><div className="story-action"><JoinActions audience="talent"/></div></div>
-        <NetworkPanel />
+        <div className="audience-copy"><p className="eyebrow">01 / PARA TALENTOS</p><h2 id="talents-title">Seu potencial<br/>merece ser <em>encontrado.</em></h2><p>Você tem uma história para construir. Crie seu perfil profissional, apresente sua formação, competências e trajetória e ganhe visibilidade no ecossistema Rio Pomba Valley.</p><div className="story-action"><JoinActions audience="talent"/></div></div>
+        <ProductPreview audience="talent"/>
       </section>
 
       <section data-story="company" id="empresas" tabIndex={-1} className="section audience-section company-section grid lg:grid-cols-2" aria-labelledby="companies-title"><span className="story-continuity" aria-hidden="true"/>
-        <NetworkPanel company />
+        <ProductPreview audience="company"/>
         <div className="audience-copy"><p className="eyebrow">02 / PARA RECRUTADORES</p><h2 id="companies-title">Encontre talento<br/>onde ele está <em>nascendo.</em></h2><p>O próximo talento da sua equipe pode estar mais perto do que você imagina. Conheça profissionais da região, explore competências e formação e descubra o potencial por trás de cada trajetória.</p><div className="company-note"><NorthEast aria-hidden="true"/><p>Conexões locais.<br/><strong>Possibilidades que vão além.</strong></p></div><div className="story-action"><JoinActions audience="company"/></div></div>
       </section>
 
