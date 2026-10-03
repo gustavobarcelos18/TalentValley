@@ -58,16 +58,18 @@ After finishing **each** phase:
    - **Phase vs plan:** everything the phase lists was done, and nothing outside its scope was changed;
    - **Report vs reality:** every claim in the report (files, checks, results, migrations) matches the actual diff and the real command output;
    - **Project rules:** compliance with `AGENTS.md` and the relevant skills in the affected areas (security, domain, architecture);
-   - **Technical correctness:** bugs and risks in the phase's code.
+   - **Technical correctness:** bugs and risks in the phase's code;
+   - **Code quality (SonarQube criteria):** code smells and bad code in the diff, judged by the rules SonarQube applies. See `talent-valley-quality-gate` section 7 for the checklist. List every finding with file and line.
 
    The reviewer is read-only: it reports findings, it does not edit.
-3. **If the review finds problems,** fix them on the same phase branch, re-run the checks, update the report and run the review again. Repeat until it passes. Only then show the report to the user, including the review outcome (what was checked, problems found and how they were fixed). If a problem cannot be fixed within the phase scope, or fixing it needs a decision, ask the user (section 5) instead of deciding alone.
+3. **If the review finds problems (including code smells),** fix them on the same phase branch, re-run the checks, update the report and run the review again. Repeat until it passes. Only then show the report to the user, including the review outcome (what was checked, problems found and how they were fixed). If a problem cannot be fixed within the phase scope, or fixing it needs a decision, ask the user (section 5) instead of deciding alone.
 4. **Stop and wait for explicit user approval.** Do not start the next phase, create its branch, commit or push before approval.
 5. On approval:
    - commit the phase on its branch (Conventional Commits, matching repository history);
    - `git push -u origin <phase-branch>`;
    - confirm the push succeeded;
-   - update the project brain (`talent-valley-project-brain`): save the approved report to `reports/phase-<n>.md`, save every problem solved in the phase to `solved/` and `INDEX.md`, mark the phase `aprovada` with its commit hash in `plan.md`, and refresh the resume prompt for the next phase. The brain is local-only: do not commit or push it.
+   - **SonarQube verification on the PR** (second quality layer): follow `talent-valley-quality-gate` section 8. Open the PR to `main` (if the PR cannot be opened from the CLI, ask the user to open it and wait), wait for the SonarQube Cloud analysis, and read the real issues. Every issue must be fixed on the same phase branch, pushed, and re-checked until the PR has no open issues. If an issue cannot be fixed within the phase scope, is a suspected false positive, or fixing it needs a decision or changes behavior, ask the user (section 5) instead of deciding alone. Never merge or close issues on your own;
+   - update the project brain (`talent-valley-project-brain`): save the approved report (with the SonarQube outcome: issues found and how they were fixed) to `reports/phase-<n>.md`, save every problem solved in the phase to `solved/` and `INDEX.md`, mark the phase `aprovada` with its commit hash in `plan.md`, and refresh the resume prompt for the next phase. The brain is local-only: do not commit or push it.
 6. **Context reset.** After the brain is updated, stop. Do not start the next phase in the same context. Tell the user the phase is closed and that they should run `/clear` (the agent cannot run it), and give the resume prompt from `plan.md`. The next session starts from zero and follows the resume protocol in `talent-valley-project-brain`, using the saved plan.
    - After the last phase, mark the plan `concluido` instead and give no resume prompt.
 7. If the user requests changes instead, fix them on the **same** phase branch, re-run checks, run the independent review again, and send an updated report. Do not create a new branch for the same phase.

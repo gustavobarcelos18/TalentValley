@@ -13,7 +13,7 @@ Pick the cheapest model that can do the task correctly. Set it with the `model` 
 - Authentication, authorization, JWT cookie, CSRF and protected-file work.
 - Domain-rule interpretation and business logic with several rules interacting.
 - EF Core schema design, migrations, constraints and indexes.
-- Final review before declaring a task complete.
+- Final review before declaring a task complete, including the code quality review (SonarQube criteria) and reading the SonarQube results of the PR (`talent-valley-quality-gate` sections 7 and 8).
 
 ## sonnet — standard implementation
 
