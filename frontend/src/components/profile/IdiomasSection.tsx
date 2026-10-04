@@ -181,6 +181,7 @@ function IdiomasForm({ selecionados, onClose, onSaved }: IdiomasFormProps) {
                   sx={{ maxWidth: { sm: 240 } }}
                   slotProps={{
                     htmlInput: { "aria-label": `Nível de ${item.nome}` },
+                    inputLabel: { "aria-label": `Nível de ${item.nome}` },
                   }}
                 >
                   {NIVEL_IDIOMA_OPCOES.map((nivel) => (

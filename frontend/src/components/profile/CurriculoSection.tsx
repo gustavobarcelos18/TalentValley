@@ -78,7 +78,7 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
         return;
       }
       await uploadStudentCurriculum(file);
-      onChanged();
+      await onChanged();
       notify("Currículo enviado.");
     } catch (err) {
       setError(
@@ -100,6 +100,7 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
+        // The download name is fixed on purpose; the stored file name is not used.
         anchor.download = "curriculo.pdf";
         document.body.appendChild(anchor);
         anchor.click();
@@ -129,8 +130,8 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
     setError(null);
     setDeleting(true);
     deleteStudentCurriculum()
-      .then(() => {
-        onChanged();
+      .then(async () => {
+        await onChanged();
         notify("Currículo removido.");
       })
       .catch((err) => {

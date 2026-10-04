@@ -28,7 +28,10 @@ export function StudentProfile() {
   const [message, setMessage] = useState<string | null>(null);
 
   const notify = useCallback((text: string) => setMessage(text), []);
-  const closeMessage = useCallback(() => setMessage(null), []);
+  const closeMessage = useCallback((_event?: unknown, reason?: string) => {
+    if (reason === "clickaway") return;
+    setMessage(null);
+  }, []);
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, sm: 5 }, width: "100%" }}>
