@@ -1,6 +1,6 @@
 ---
 name: talent-valley-phased-delivery
-description: Use whenever a Talent Valley implementation plan is written or executed. Defines the phase format for plans, one branch per phase from main, the phase completion report with user approval gate, commit/push only after approval, independent review of each phase report before showing it, brain update and context reset after each phase, and the rule to always ask the user instead of assuming.
+description: Use whenever a Talent Valley implementation plan is written or executed. Defines the phase format for plans, one branch per phase from main, the phase completion report with user approval gate, commit/push only after approval, PR merge by rebase once the PR is green (standing authorization), independent review of each phase report before showing it, brain update and context reset after each phase, and the rule to always ask the user instead of assuming.
 ---
 
 # Talent Valley Phased Delivery
@@ -69,7 +69,8 @@ After finishing **each** phase:
    - `git push -u origin <phase-branch>`;
    - confirm the push succeeded;
    - **SonarQube verification on the PR** (second quality layer): follow `talent-valley-quality-gate` section 8. Open the PR to `main` (if the PR cannot be opened from the CLI, ask the user to open it and wait), wait for the SonarQube Cloud analysis, and read the real issues. Every issue must be fixed on the same phase branch, pushed, and re-checked until the PR has no open issues. If an issue cannot be fixed within the phase scope, is a suspected false positive, or fixing it needs a decision or changes behavior, ask the user (section 5) instead of deciding alone. Never merge or close issues on your own;
-   - update the project brain (`talent-valley-project-brain`): save the approved report (with the SonarQube outcome: issues found and how they were fixed) to `reports/phase-<n>.md`, save every problem solved in the phase to `solved/` and `INDEX.md`, mark the phase `aprovada` with its commit hash in `plan.md`, and refresh the resume prompt for the next phase. The brain is local-only: do not commit or push it.
+   - **Merge the PR (standing authorization from the user, 2026-10-04).** Once the phase is approved and the PR is green (all CI checks passing, SonarQube quality gate OK, zero open issues, mergeable and clean), merge it yourself without asking again: `gh pr merge <n> --rebase` (rebase is the repository's merge method; fast-forward style history, no merge commits). Then `git fetch origin` and confirm the commit is on `origin/main`. You may also fast-forward the local `main` (`git switch main && git merge --ff-only origin/main`) and delete the merged phase branch (local and remote) when the working tree is clean. Do not merge if any check is red or pending, if the gate fails, if open issues remain, or if the user has asked to hold the merge. If the harness permission classifier denies the merge, do not work around it: report it and let the user decide;
+   - update the project brain (`talent-valley-project-brain`): save the approved report (with the SonarQube outcome: issues found and how they were fixed) to `reports/phase-<n>.md`, save every problem solved in the phase to `solved/` and `INDEX.md`, mark the phase `aprovada` with its commit hash (the one in `main` after the rebase) in `plan.md`, and refresh the resume prompt for the next phase. The brain is local-only: do not commit or push it.
 6. **Context reset.** After the brain is updated, stop. Do not start the next phase in the same context. Tell the user the phase is closed and that they should run `/clear` (the agent cannot run it), and give the resume prompt from `plan.md`. The next session starts from zero and follows the resume protocol in `talent-valley-project-brain`, using the saved plan.
    - After the last phase, mark the plan `concluido` instead and give no resume prompt.
 7. If the user requests changes instead, fix them on the **same** phase branch, re-run checks, run the independent review again, and send an updated report. Do not create a new branch for the same phase.
@@ -87,7 +88,7 @@ Applies while planning and while executing.
 
 ## 6. Hard limits
 
-- Never push to `main`; never force-push.
+- Never push directly to `main` (it only receives changes through a merged PR, or a local `--ff-only` update from `origin/main`); never force-push.
 - Never commit or push without the approval described above.
-- Approval of one phase does not authorize the next phase's commit/push.
+- Approval of one phase does not authorize the next phase's commit/push. The standing merge authorization (section 4, step 5) covers only merging the PR of a phase the user already approved, and only while it is green.
 - If a phase turns out to need changes outside the plan, stop and report before proceeding (see AGENTS.md rule 14).
