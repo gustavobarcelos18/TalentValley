@@ -284,10 +284,25 @@ describe("login page", () => {
       expect(mocks.replace).toHaveBeenCalledWith("/recrutador/busca");
     });
 
+    it("keeps the query and the hash of a local path", async () => {
+      const user = userEvent.setup({ delay: null });
+      renderLogin(`returnUrl=${encodeURIComponent("/recrutador/busca?q=a//b#x//y")}`);
+      await fillAndSubmit(user);
+      expect(mocks.replace).toHaveBeenCalledWith("/recrutador/busca?q=a//b#x//y");
+    });
+
     it.each([
       ["a protocol-relative url", "//evil.example.com"],
       ["an absolute url", "https://evil.example.com"],
       ["a relative path without a leading slash", "recrutador"],
+      ["a backslash after the slash", "/\\evil.example.com"],
+      ["a slash followed by a backslash and a slash", "/\\/evil.example.com"],
+      ["a tab between the slashes", "/\t/evil.example.com"],
+      ["a line break between the slashes", "/\n/evil.example.com"],
+      ["a dot segment before a double slash", "/.//evil.example.com"],
+      ["a parent segment before a double slash", "/a/..//evil.example.com"],
+      ["an encoded dot segment before a double slash", "/%2e//evil.example.com"],
+      ["a url the parser cannot resolve", "/\\["],
     ])("ignores %s and uses the initial destination", async (_label, returnUrl) => {
       const user = userEvent.setup({ delay: null });
       renderLogin(`returnUrl=${encodeURIComponent(returnUrl)}`);
