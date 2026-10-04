@@ -1,6 +1,6 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { use } from "react";
-import { describe, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import RedefinirSenhaPage from "@/app/(auth)/redefinir-senha/page";
 import { registerPasswordFormTests } from "./passwordFormSuite";
 
@@ -23,6 +23,14 @@ vi.mock("@/lib/auth", () => ({ resetPassword: mocks.resetPassword }));
 vi.mock("@/components/auth/motion/useMotionPolicy", () => ({ useMotionPolicy: () => "reduced" }));
 
 describe("password reset page", () => {
+  it("shows the eyebrow, title and subtitle of the page", () => {
+    mocks.params = new URLSearchParams("email=ana%40example.com&token=abc");
+    render(<RedefinirSenhaPage />);
+    expect(screen.getByText("RECUPERAR ACESSO")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Redefinir senha");
+    expect(screen.getByText("Digite sua nova senha")).toBeTruthy();
+  });
+
   registerPasswordFormTests({
     renderPage: (search) => {
       mocks.params = new URLSearchParams(search);
@@ -37,9 +45,6 @@ describe("password reset page", () => {
     confirmationLabel: "Confirmação da nova senha",
     submit: "Redefinir senha",
     loading: "Redefinindo...",
-    eyebrow: "RECUPERAR ACESSO",
-    title: "Redefinir senha",
-    subtitle: "Digite sua nova senha",
     doneTitle: "Senha redefinida",
     doneMessage: "Sua senha foi redefinida com sucesso.",
     fallbackMessage: "Não foi possível redefinir a senha. Tente novamente.",

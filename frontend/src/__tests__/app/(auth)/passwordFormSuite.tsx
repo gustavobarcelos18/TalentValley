@@ -28,9 +28,6 @@ export type PasswordFormSuiteConfig = {
   confirmationLabel: string;
   submit: string;
   loading: string;
-  eyebrow: string;
-  title: string;
-  subtitle: string;
   doneTitle: string;
   doneMessage: string;
   fallbackMessage: string;
@@ -99,9 +96,6 @@ export function registerPasswordFormTests(config: PasswordFormSuiteConfig) {
 
     it(config.titles.renders, () => {
       renderPage(LINK);
-      expect(screen.getByText(config.eyebrow)).toBeTruthy();
-      expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(config.title);
-      expect(screen.getByText(config.subtitle)).toBeTruthy();
       expect(passwordInput().getAttribute("autocomplete")).toBe("new-password");
       expect(confirmationInput().getAttribute("autocomplete")).toBe("new-password");
       expect(screen.getByText(/Força da senha/)).toBeTruthy();
