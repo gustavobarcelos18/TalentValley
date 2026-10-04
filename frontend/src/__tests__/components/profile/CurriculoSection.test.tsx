@@ -108,6 +108,22 @@ describe("CurriculoSection", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("waits for the profile refresh to finish before announcing the upload", async () => {
+    const user = userEvent.setup();
+    const refresh = deferred<void>();
+    uploadMock.mockResolvedValue(undefined);
+    const props = renderSection(false);
+    vi.mocked(props.onChanged).mockImplementation(() => refresh.promise);
+
+    await user.upload(fileInput(), pdfFile());
+
+    await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
+    expect(props.notify).not.toHaveBeenCalled();
+
+    refresh.resolve();
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith(NOTIFY_UPLOADED));
+  });
+
   it("shows the progress message and disables actions while the upload is pending", async () => {
     const user = userEvent.setup();
     const pending = deferred<void>();
@@ -228,6 +244,8 @@ describe("CurriculoSection", () => {
     expect(createObjectURL).toHaveBeenCalledWith(blob);
     expect(click).toHaveBeenCalledTimes(1);
     const anchor = click.mock.contexts[0] as HTMLAnchorElement;
+    // The download name is fixed ("curriculo.pdf"), not the stored file name.
+    expect(anchor.download).not.toBe(STORED_FILE_NAME);
     expect(anchor.download).toBe(DOWNLOAD_FILE_NAME);
     expect(anchor.href).toBe(OBJECT_URL);
     expect(document.querySelector("a[download]")).toBeNull();
@@ -298,6 +316,23 @@ describe("CurriculoSection", () => {
     expect(deleteMock).toHaveBeenCalledTimes(1);
     expect(props.onChanged).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("waits for the profile refresh to finish before announcing the removal", async () => {
+    const user = userEvent.setup();
+    const refresh = deferred<void>();
+    deleteMock.mockResolvedValue(undefined);
+    const props = renderSection(true);
+    vi.mocked(props.onChanged).mockImplementation(() => refresh.promise);
+
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+    await user.click(screen.getByRole("button", { name: "Excluir currículo" }));
+
+    await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
+    expect(props.notify).not.toHaveBeenCalled();
+
+    refresh.resolve();
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith(NOTIFY_DELETED));
   });
 
   it("locks the dialog buttons and shows the progress label while deleting", async () => {

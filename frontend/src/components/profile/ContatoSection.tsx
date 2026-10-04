@@ -33,38 +33,36 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
     { icon: <LanguageOutlined fontSize="small" />, label: "Portfólio", value: contato.portfolioUrl, kind: "url" },
   ];
 
-  const hasAny = items.some((item) => Boolean(item.value));
+  const filledItems = items.filter((item): item is FilledContactItem => Boolean(item.value?.trim()));
 
   return (
     <SectionCard
       title="Contato"
       editLabel="Editar contato"
       onEdit={() => setOpen(true)}
-      isEmpty={!hasAny}
+      isEmpty={filledItems.length === 0}
       emptyMessage="Informe como recrutadores podem falar com você."
       emptyActionLabel="Adicionar contato"
     >
       <Stack divider={<Divider flexItem />} spacing={1.5}>
-        {items
-          .filter((item) => Boolean(item.value))
-          .map((item) => (
-            <Stack key={item.label} direction="row" spacing={1.5}>
-              <Typography
-                component="span"
-                aria-hidden
-                sx={{alignItems: "center",  display: "inline-flex", color: "primary.main" }}
-              >
-                {item.icon}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ minWidth: 130, color: "text.secondary" }}
-              >
-                {item.label}
-              </Typography>
-              <ContactValue item={item} />
-            </Stack>
-          ))}
+        {filledItems.map((item) => (
+          <Stack key={item.label} direction="row" spacing={1.5}>
+            <Typography
+              component="span"
+              aria-hidden
+              sx={{alignItems: "center",  display: "inline-flex", color: "primary.main" }}
+            >
+              {item.icon}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ minWidth: 130, color: "text.secondary" }}
+            >
+              {item.label}
+            </Typography>
+            <ContactValue item={item} />
+          </Stack>
+        ))}
       </Stack>
       {open && (
         <ContatoForm
@@ -90,6 +88,8 @@ interface ContactItem {
   kind: ContactKind;
 }
 
+type FilledContactItem = ContactItem & { value: string };
+
 function resolveContactLink(kind: ContactKind, value: string): { href: string | null; display: string; external: boolean } {
   if (kind === "phone") {
     const digits = normalizePhone(value);
@@ -111,10 +111,9 @@ function resolveContactLink(kind: ContactKind, value: string): { href: string | 
 // Renders a contact value as an actionable link only when the stored value is a
 // valid, safe target (phone digits, e-mail address or http/https URL). Malformed
 // legacy values are shown as plain text rather than discarded or linked.
-function ContactValue({ item }: { item: ContactItem }) {
-  const raw = item.value ?? "";
+function ContactValue({ item }: { item: FilledContactItem }) {
+  const raw = item.value;
   const trimmed = raw.trim();
-  if (!trimmed) return null;
   const { href, display, external } = resolveContactLink(item.kind, trimmed);
   if (!href) {
     return <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: "break-all" }}>{raw}</Typography>;
@@ -153,39 +152,19 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
   const [portfolio, setPortfolio] = useState(contato.portfolioUrl ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const trimmedEmail = email.trim();
   const emailInvalid = Boolean(trimmedEmail) && Boolean(validateEmail(trimmedEmail));
   const linkedinInvalid = Boolean(linkedin.trim()) && Boolean(validateHttpUrl(linkedin));
   const githubInvalid = Boolean(github.trim()) && Boolean(validateHttpUrl(github));
   const portfolioInvalid = Boolean(portfolio.trim()) && Boolean(validateHttpUrl(portfolio));
-
-  function validate(): string | null {
-    const phoneError = validateBrazilianPhone(telefone, false);
-    if (phoneError) return phoneError;
-    if (trimmedEmail) {
-      const emailError = validateEmail(trimmedEmail);
-      if (emailError) {
-        return "Informe um e-mail profissional válido.";
-      }
-    }
-    const urls: Array<[string, string]> = [
-      ["LinkedIn", linkedin.trim()],
-      ["GitHub", github.trim()],
-      ["Portfólio", portfolio.trim()],
-    ];
-    for (const [label, value] of urls) {
-      if (value && validateHttpUrl(value)) {
-        return `${label} deve ser uma URL válida começando com http:// ou https://.`;
-      }
-    }
-    return null;
-  }
+  const phoneError = validateBrazilianPhone(telefone, false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const validation = validate();
-    if (validation) {
-      setError(validation);
+    if (phoneError || emailInvalid || linkedinInvalid || githubInvalid || portfolioInvalid) {
+      setError(null);
+      setSubmitted(true);
       return;
     }
 
@@ -227,7 +206,8 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           disabled={saving}
           placeholder="(11) 91234-5678"
           slotProps={{ htmlInput: { inputMode: "tel" } }}
-          helperText="Opcional. Informe um telefone brasileiro."
+          error={submitted && Boolean(phoneError)}
+          helperText={submitted && phoneError ? phoneError : "Opcional. Informe um telefone brasileiro."}
         />
         <TextField
           id="contato-email"
