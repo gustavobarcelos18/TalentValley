@@ -121,6 +121,15 @@ describe("IdiomasSection form", () => {
     expect(mockCatalog).toHaveBeenCalledTimes(1);
   });
 
+  it("names each level select after its language", async () => {
+    const user = userEvent.setup();
+    renderSection([ENGLISH_INTERMEDIATE, SPANISH_NATIVE]);
+    const dialog = await openForm(user);
+
+    expect(within(dialog).getByRole("combobox", { name: `Nível de ${ENGLISH}` })).toBeTruthy();
+    expect(within(dialog).getByRole("combobox", { name: `Nível de ${SPANISH}` })).toBeTruthy();
+  });
+
   it("lists the catalog languages as options", async () => {
     const user = userEvent.setup();
     renderSection([]);

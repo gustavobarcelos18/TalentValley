@@ -298,11 +298,19 @@ describe("ProjetosSection add form", () => {
     await openAddDialog(user);
 
     expect(screen.getByText("0/1000")).toBeTruthy();
+    expect(screen.getByText("0/200")).toBeTruthy();
+    expect(screen.queryByText("Informe um nome de projeto válido.")).toBeNull();
     expect(field("Nome").getAttribute("aria-invalid")).toBe("false");
 
     await fill(user, "Nome", "A");
     expect(field("Nome").getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByText("Informe um nome de projeto válido.")).toBeTruthy();
+    expect(screen.queryByText("1/200")).toBeNull();
+
+    await fill(user, "Nome", "");
+    expect(field("Nome").getAttribute("aria-invalid")).toBe("false");
+    expect(screen.getByText("0/200")).toBeTruthy();
+    expect(screen.queryByText("Informe um nome de projeto válido.")).toBeNull();
 
     await fill(user, "Nome", NEW_NAME);
     expect(field("Nome").getAttribute("aria-invalid")).toBe("false");
