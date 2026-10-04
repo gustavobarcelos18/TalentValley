@@ -257,6 +257,15 @@ function LoginFooter() {
   );
 }
 
+// Browsers read "\" as "/" and drop tabs and line breaks, so "/\evil.com" or "/\t/evil.com"
+// would leave the site. Resolving the url the way the browser does catches all of them,
+// and a resolved path starting with "//" ("/.//evil.com") is read as another host later on.
 function isValidLocalRedirect(url: string): boolean {
-  return url.startsWith("/") && !url.startsWith("//");
+  if (!url.startsWith("/")) return false;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.origin === window.location.origin && !parsed.pathname.startsWith("//");
+  } catch {
+    return false;
+  }
 }
