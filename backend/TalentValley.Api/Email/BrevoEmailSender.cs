@@ -7,12 +7,12 @@ public sealed class BrevoEmailSender(HttpClient client, IOptions<BrevoOptions> o
     ILogger<BrevoEmailSender> logger) : IEmailSender
 {
     public Task SendActivationLinkAsync(string email, string link) =>
-        SendAsync(email, "Ative sua conta no Talent Valley", $"Para ativar sua conta, acesse: {link}");
+        SendAsync(email, "Ative sua conta no Talent Valley", AccountEmailTemplates.Activation(link));
 
     public Task SendPasswordResetLinkAsync(string email, string link) =>
-        SendAsync(email, "Redefina sua senha no Talent Valley", $"Para redefinir sua senha, acesse: {link}");
+        SendAsync(email, "Redefina sua senha no Talent Valley", AccountEmailTemplates.PasswordReset(link));
 
-    private async Task SendAsync(string email, string subject, string body)
+    private async Task SendAsync(string email, string subject, EmailContent content)
     {
         var sender = options.Value;
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
@@ -22,7 +22,8 @@ public sealed class BrevoEmailSender(HttpClient client, IOptions<BrevoOptions> o
             sender = new { email = sender.SenderAddress, name = sender.SenderName },
             to = new[] { new { email } },
             subject,
-            textContent = body
+            htmlContent = content.Html,
+            textContent = content.Text
         });
 
         try
