@@ -586,16 +586,6 @@ describe("TrajetoriaSection formation form", () => {
         await fill(user, "Conclusão", "31122019");
       },
     ],
-    // Covers the validation branch only; it does not endorse the UX (the end date field is
-    // disabled while "Em andamento" and the error message is generic).
-    [
-      "an in-progress formation that still carries an end date",
-      async (user, dialog) => {
-        await choose(user, dialog, "Status", "Concluído");
-        await fill(user, "Conclusão", "31122024");
-        await choose(user, dialog, "Status", "Em andamento");
-      },
-    ],
   ];
 
   it.each(invalidFormations)("rejects %s", async (_label, mutate) => {
@@ -688,6 +678,55 @@ describe("TrajetoriaSection formation form", () => {
     expect(field("Carga horária").value).toBe("123");
     await user.clear(field("Carga horária"));
     expect(field("Carga horária").value).toBe("");
+  });
+
+  it("clears the end date when switching to in-progress and saves it as null", async () => {
+    const user = userEvent.setup();
+    createFormationMock.mockResolvedValue(makeFormation());
+    const props = await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await fillValidFormation(user);
+    await choose(user, dialog, "Status", "Concluído");
+    await fill(user, "Conclusão", "31122024");
+    expect(field("Conclusão").value).toBe("31/12/2024");
+    await choose(user, dialog, "Status", "Em andamento");
+
+    expect(field("Conclusão").value).toBe("");
+    expect(field("Conclusão").disabled).toBe(true);
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Formação adicionada."));
+    expect(createFormationMock).toHaveBeenCalledWith(expect.objectContaining({ status: "EM_ANDAMENTO", dataFim: null }));
+    expect(screen.queryByText(FORMATION_REVIEW_ERROR)).toBeNull();
+  });
+
+  it("keeps the end date when switching between statuses that allow one", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await choose(user, dialog, "Status", "Concluído");
+    await fill(user, "Conclusão", "31122024");
+    await choose(user, dialog, "Status", "Trancado");
+
+    expect(field("Conclusão").value).toBe("31/12/2024");
+  });
+
+  it("leaves the workload empty and sends null when only letters are typed", async () => {
+    const user = userEvent.setup();
+    createFormationMock.mockResolvedValue(makeFormation());
+    const props = await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await fillValidFormation(user);
+    await user.type(field("Carga horária"), "abc");
+
+    expect(field("Carga horária").value).toBe("");
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Formação adicionada."));
+    expect(createFormationMock).toHaveBeenCalledWith(expect.objectContaining({ cargaHoraria: null }));
   });
 
   it("clears an optional end date when the field is emptied", async () => {
@@ -1148,6 +1187,46 @@ describe("TrajetoriaSection delete", () => {
 
     expect((await within(dialog).findByRole("alert")).textContent).toBe("Falha ao remover no servidor");
     expect((within(dialog).getByRole("button", { name: "Excluir" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("does not show a previous deletion error when another item is opened after cancelling", async () => {
+    const user = userEvent.setup();
+    deleteFormationMock.mockRejectedValue(new ApiError(500, "Erro", { title: "Falha ao remover no servidor" }));
+    await renderSection([formationItem(), experienceItem()]);
+
+    await user.click(screen.getByRole("button", { name: `Excluir ${FORMATION_NAME}` }));
+    const dialog = await screen.findByRole("dialog", { name: DELETE_FORMATION_TITLE });
+    await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("Falha ao remover no servidor");
+    await user.click(within(dialog).getByRole("button", { name: CANCEL }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    await user.click(screen.getByRole("button", { name: `Excluir ${ROLE}` }));
+    const next = await screen.findByRole("dialog", { name: DELETE_EXPERIENCE_TITLE });
+
+    expect(within(next).queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("Falha ao remover no servidor")).toBeNull();
+  });
+
+  it("clears the previous deletion error when a new deletion starts", async () => {
+    const user = userEvent.setup();
+    const pending = deferred<void>();
+    deleteExperienceMock.mockRejectedValueOnce(new ApiError(500, "Erro", { title: "Falha ao remover no servidor" }));
+    deleteExperienceMock.mockReturnValueOnce(pending.promise);
+    const props = await renderSection([experienceItem()]);
+
+    await user.click(screen.getByRole("button", { name: `Excluir ${ROLE}` }));
+    const dialog = await screen.findByRole("dialog", { name: DELETE_EXPERIENCE_TITLE });
+    await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("Falha ao remover no servidor");
+
+    await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
+
+    await within(dialog).findByRole("button", { name: "Excluindo..." });
+    expect(within(dialog).queryByRole("alert")).toBeNull();
+
+    pending.resolve();
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith(REMOVED_NOTICE));
   });
 
   it("falls back to the generic delete message for an opaque failure", async () => {

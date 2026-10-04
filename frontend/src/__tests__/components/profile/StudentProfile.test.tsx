@@ -205,5 +205,36 @@ describe("StudentProfile", () => {
 
       await waitFor(() => expect(screen.queryByText("aviso de Sobre")).toBeNull());
     });
+
+    it("keeps the message when the user clicks outside and still hides it after the auto-hide delay", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      render(<StudentProfile />);
+      await user.click(screen.getByRole("button", { name: "notificar Sobre" }));
+      expect(screen.getByText("aviso de Sobre")).toBeTruthy();
+
+      await user.click(document.body);
+
+      expect(screen.getByText("aviso de Sobre")).toBeTruthy();
+
+      await act(async () => {
+        vi.advanceTimersByTime(3500);
+      });
+
+      await waitFor(() => expect(screen.queryByText("aviso de Sobre")).toBeNull());
+    });
+
+    it("replaces the message with a newer notification after a click outside", async () => {
+      const user = userEvent.setup();
+      render(<StudentProfile />);
+      await user.click(screen.getByRole("button", { name: "notificar Sobre" }));
+      await user.click(document.body);
+      expect(screen.getByText("aviso de Sobre")).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: "notificar Contato" }));
+
+      expect(await screen.findByText("aviso de Contato")).toBeTruthy();
+      await waitFor(() => expect(screen.queryByText("aviso de Sobre")).toBeNull());
+    });
   });
 });

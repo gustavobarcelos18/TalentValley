@@ -21,7 +21,7 @@ const PORTFOLIO_LABEL = "Portfólio";
 const SAVE_LABEL = "Salvar";
 const EMPTY_MESSAGE = "Informe como recrutadores podem falar com você.";
 const PHONE_ERROR = "Informe um telefone brasileiro válido.";
-const EMAIL_ERROR = "Informe um e-mail profissional válido.";
+const PHONE_HINT = "Opcional. Informe um telefone brasileiro.";
 const EMAIL_HELPER_ERROR = "Informe um e-mail válido.";
 const URL_HELPER_ERROR = "Informe uma URL completa iniciada por http:// ou https://.";
 const GENERIC_SAVE_ERROR = "Não foi possível salvar o contato. Tente novamente.";
@@ -146,6 +146,24 @@ describe("ContatoSection display", () => {
     expect(screen.queryByRole("link", { name: /^Ligar para/ })).toBeNull();
   });
 
+  it("shows the empty state when every contact is only whitespace", () => {
+    renderSection({ telefone: "   ", emailProfissional: " ", linkedInUrl: "  ", gitHubUrl: "	", portfolioUrl: "   " });
+
+    expect(screen.getByText(EMPTY_MESSAGE)).toBeTruthy();
+    for (const label of ALL_LABELS) {
+      expect(screen.queryByText(label)).toBeNull();
+    }
+  });
+
+  it("omits the row of a whitespace-only contact while keeping the filled ones", () => {
+    renderSection({ telefone: "   ", portfolioUrl: "  " });
+
+    expect(screen.queryByText(PHONE_LABEL)).toBeNull();
+    expect(screen.queryByText(PORTFOLIO_LABEL)).toBeNull();
+    expect(screen.getByText(EMAIL_LABEL)).toBeTruthy();
+    expect(screen.queryByText(EMPTY_MESSAGE)).toBeNull();
+  });
+
   it("shows the empty state and opens the form from its action when nothing is filled", async () => {
     const user = userEvent.setup();
     renderEmpty();
@@ -268,20 +286,25 @@ describe("ContatoSection form", () => {
     ["too few digits", "1234"],
     ["repeated digits", "(11) 11111-1111"],
     ["a 00 area code", "(00) 91234-5678"],
-  ])("rejects an invalid phone (%s) without calling the API", async (_case, telefone) => {
+  ])("rejects an invalid phone (%s) on submit, flags the field and does not call the API", async (_case, telefone) => {
     const user = userEvent.setup();
     const props = renderSection();
     await openForm(user);
 
     setValue(PHONE_LABEL, telefone);
+
+    expect(screen.queryByText(PHONE_ERROR)).toBeNull();
+    expect(input(PHONE_LABEL).getAttribute("aria-invalid")).toBe("false");
     submit();
 
-    expect((await screen.findByRole("alert")).textContent).toBe(PHONE_ERROR);
+    expect(await screen.findByText(PHONE_ERROR)).toBeTruthy();
+    expect(input(PHONE_LABEL).getAttribute("aria-invalid")).toBe("true");
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(props.onChanged).not.toHaveBeenCalled();
   });
 
-  it("rejects an invalid e-mail, flags the field and does not call the API", async () => {
+  it("rejects an invalid e-mail with the live field error and no alert, without calling the API", async () => {
     const user = userEvent.setup();
     renderSection();
     await openForm(user);
@@ -292,8 +315,25 @@ describe("ContatoSection form", () => {
     expect(input(EMAIL_LABEL).getAttribute("aria-invalid")).toBe("true");
     submit();
 
-    expect((await screen.findByRole("alert")).textContent).toBe(EMAIL_ERROR);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(EMAIL_HELPER_ERROR)).toBeTruthy();
     expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("drops an earlier API error when the next attempt is stopped by a field error", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    mockUpdate.mockRejectedValue(new Error("Telefone já cadastrado."));
+    await openForm(user);
+    submit();
+    await screen.findByRole("alert");
+
+    setValue(EMAIL_LABEL, "maria@semponto");
+    submit();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(EMAIL_HELPER_ERROR)).toBeTruthy();
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("shows the neutral e-mail hint while the field is valid", async () => {
@@ -309,7 +349,7 @@ describe("ContatoSection form", () => {
     [LINKEDIN_LABEL],
     [GITHUB_LABEL],
     [PORTFOLIO_LABEL],
-  ])("rejects an invalid %s URL naming the field and does not call the API", async (label) => {
+  ])("rejects an invalid %s URL with the live field error and no alert, without calling the API", async (label) => {
     const user = userEvent.setup();
     renderSection();
     await openForm(user);
@@ -320,25 +360,38 @@ describe("ContatoSection form", () => {
     expect(input(label).getAttribute("aria-invalid")).toBe("true");
     submit();
 
-    expect((await screen.findByRole("alert")).textContent).toBe(
-      `${label} deve ser uma URL válida começando com http:// ou https://.`,
-    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(URL_HELPER_ERROR)).toBeTruthy();
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("clears the validation error on the next valid submit", async () => {
+  it("shows the neutral phone hint until the first submit attempt", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    await openForm(user);
+
+    expect(screen.getByText(PHONE_HINT)).toBeTruthy();
+    setValue(PHONE_LABEL, "abc");
+    expect(screen.getByText(PHONE_HINT)).toBeTruthy();
+  });
+
+  it("drops the phone error once the phone becomes valid and then saves", async () => {
     const user = userEvent.setup();
     const props = renderSection();
     await openForm(user);
     setValue(PHONE_LABEL, "abc");
     submit();
-    await screen.findByRole("alert");
+    await screen.findByText(PHONE_ERROR);
 
     setValue(PHONE_LABEL, "32988887777");
+
+    expect(screen.queryByText(PHONE_ERROR)).toBeNull();
+    expect(screen.getByText(PHONE_HINT)).toBeTruthy();
     submit();
 
     await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
     expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("shows the API error message and keeps the dialog open when saving fails", async () => {

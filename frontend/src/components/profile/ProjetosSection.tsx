@@ -64,12 +64,13 @@ function ProjectForm({ project, occupied, onClose, onSaved }: { project?: Projet
       setSaving(false);
     }
   };
+  const nameError = data.nome ? validateProjectName(data.nome) : null;
   const selected = catalog.filter((item) => data.competenciaIds.includes(item.id));
   const demoUrlInvalid = Boolean(data.demoUrl?.trim()) && Boolean(validateHttpUrl(data.demoUrl));
   const repositorioUrlInvalid = Boolean(data.repositorioUrl?.trim()) && Boolean(validateHttpUrl(data.repositorioUrl));
   return <FormDialog title={project ? "Editar projeto" : "Adicionar projeto"} onClose={onClose} onSubmit={submit} saving={saving} error={error}><Stack spacing={2}>
     {catalogError && <Alert severity="warning">Não foi possível carregar o catálogo de tecnologias.</Alert>}
-    <TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", e.target.value.slice(0, 200))} error={Boolean(data.nome && validateProjectName(data.nome))} helperText={validateProjectName(data.nome) ?? `${data.nome.length}/200`} slotProps={{ htmlInput: { maxLength: 200 } }} />
+    <TextField required label="Nome" value={data.nome} onChange={(e) => set("nome", e.target.value.slice(0, 200))} error={Boolean(nameError)} helperText={nameError ?? `${data.nome.length}/200`} slotProps={{ htmlInput: { maxLength: 200 } }} />
     <TextField select label="Posição" value={data.ordem} onChange={(e) => set("ordem", Number(e.target.value))}><MenuItem value={1}>Destaque 1</MenuItem><MenuItem value={2}>Destaque 2</MenuItem></TextField>
     <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
       <TextField required type="text" label="Início" value={data.dataInicio ?? ""} onChange={(e) => setDate("dataInicio", e.target.value)} placeholder="dd/mm/aaaa" slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }} />
