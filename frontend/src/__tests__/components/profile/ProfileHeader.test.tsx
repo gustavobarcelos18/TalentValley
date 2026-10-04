@@ -50,6 +50,8 @@ const REMOVE_FALLBACK = "Não foi possível remover a foto. Tente novamente.";
 
 const JPEG_BYTES = [0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0];
 const PNG_BYTES = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0];
+// "RIFF", a 4-byte size, then "WEBP".
+const WEBP_BYTES = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50];
 const GARBAGE_BYTES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 function makeFile(name: string, type: string, bytes: number[]): File {
@@ -197,7 +199,6 @@ describe("ProfileHeader", () => {
       expect(uploadMock).not.toHaveBeenCalled();
     });
 
-    // WebP: only rejection cases are covered here; there is intentionally no valid-WebP upload case.
     it.each([
       ["an unsupported extension", makeFile("foto.gif", "image/gif", GARBAGE_BYTES), "Use uma foto nos formatos JPEG, PNG ou WebP."],
       ["no extension", makeFile("foto", "image/png", PNG_BYTES), "Use uma foto nos formatos JPEG, PNG ou WebP."],
@@ -214,6 +215,16 @@ describe("ProfileHeader", () => {
       ["a png shorter than its signature", makeFile("foto.png", "image/png", [137, 80]), INVALID_SIGNATURE],
       ["a webp with a wrong signature", makeFile("foto.webp", "image/webp", GARBAGE_BYTES), INVALID_SIGNATURE],
       ["a webp shorter than its signature", makeFile("foto.webp", "image/webp", [0x52, 0x49, 0x46, 0x46]), INVALID_SIGNATURE],
+      [
+        "a riff file that is not a webp",
+        makeFile("foto.webp", "image/webp", [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45]),
+        INVALID_SIGNATURE,
+      ],
+      [
+        "a webp whose riff tag is wrong",
+        makeFile("foto.webp", "image/webp", [0x52, 0x49, 0x46, 0x58, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]),
+        INVALID_SIGNATURE,
+      ],
     ])("rejects %s without calling the API", async (_label, file, message) => {
       renderHeader();
 
@@ -239,6 +250,7 @@ describe("ProfileHeader", () => {
       ["jpg", "image/jpeg", JPEG_BYTES],
       ["jpeg", "image/jpeg", JPEG_BYTES],
       ["png", "image/png", PNG_BYTES],
+      ["webp", "image/webp", WEBP_BYTES],
     ])("uploads a valid .%s file and propagates the change", async (extension, type, bytes) => {
       uploadMock.mockResolvedValue(undefined);
       const props = renderHeader();
