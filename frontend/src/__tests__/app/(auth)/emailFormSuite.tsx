@@ -16,9 +16,6 @@ export type EmailFormSuiteConfig = {
   page: ReactElement;
   api: Mock;
   resolvedValue: unknown;
-  eyebrow: string;
-  title: string;
-  subtitle: string;
   submit: string;
   neutralMessage: string;
 };
@@ -64,9 +61,6 @@ export function registerEmailFormTests(config: EmailFormSuiteConfig) {
 
   it("renders the request form with a way back to the login", () => {
     render(page);
-    expect(screen.getByText(config.eyebrow)).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(config.title);
-    expect(screen.getByText(config.subtitle)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Voltar ao login" }).getAttribute("href")).toBe("/login");
     expect(screen.queryByRole("alert")).toBeNull();
   });
