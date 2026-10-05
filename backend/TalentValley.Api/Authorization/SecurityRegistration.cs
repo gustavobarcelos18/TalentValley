@@ -25,6 +25,11 @@ public static class SecurityRegistration
             Directory.CreateDirectory(fullKeysPath);
             dataProtection.PersistKeysToFileSystem(new DirectoryInfo(fullKeysPath));
         }
+        else if (environment.IsProduction())
+        {
+            // Without persisted keys every restart invalidates activation and password-reset links already sent.
+            throw new InvalidOperationException("DataProtection:KeysPath is required in Production so activation and reset links survive restarts.");
+        }
         services.AddIdentityCore<ApplicationUser>(options =>
         {
             options.User.RequireUniqueEmail = true;
