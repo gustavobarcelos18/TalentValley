@@ -209,10 +209,10 @@ describe("PublicHeader", () => {
       const user = userEvent.setup();
       renderHeader();
       await user.click(await screen.findByRole("button", { name: SWITCH_TO_LIGHT }));
-      await screen.findByRole("button", { name: SWITCH_TO_DARK });
+      expect(await screen.findByRole("button", { name: SWITCH_TO_DARK })).toBeTruthy();
 
       await user.click(screen.getByRole("button", { name: SWITCH_TO_DARK }));
-      await screen.findByRole("button", { name: SWITCH_TO_LIGHT });
+      expect(await screen.findByRole("button", { name: SWITCH_TO_LIGHT })).toBeTruthy();
     });
 
     it("offers dark mode when the system is light", async () => {
