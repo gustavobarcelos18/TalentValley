@@ -48,7 +48,7 @@ public sealed class StudentSelfDeletionTests : IDisposable
                 Assert.False(await storage.ExistsAsync(file.Category, file.Key));
             var entry = await db.Auditorias.SingleAsync(x => x.Acao == AcaoAuditoria.ALUNO_EXCLUIDO_PROPRIO);
             Assert.Null(entry.AdminUserId);
-            Assert.Equal(AuditoriaService.StudentSelfServiceActor, entry.AdminEmailSnapshot);
+            Assert.Equal(AuditoriaService.SelfServiceActor, entry.AdminEmailSnapshot);
             Assert.Equal(AppRoles.Student, entry.EntidadeTipo);
             Assert.Equal(id.ToString(), entry.EntidadeId);
             Assert.DoesNotContain("Ana", entry.Descricao);

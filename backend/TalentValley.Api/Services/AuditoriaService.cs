@@ -27,14 +27,12 @@ public sealed class AuditoriaService(AppDbContext database, IHttpContextAccessor
     }
 
     // Actions taken by the data subject (not an admin): no admin link, and no personal data in the actor snapshot.
-    public const string StudentSelfServiceActor = "Próprio aluno";
-    public const string RecruiterSelfServiceActor = "Próprio recrutador";
+    public const string SelfServiceActor = "Próprio aluno";
 
-    public void RecordSelfService(AcaoAuditoria action, string actor, string entityType, Guid entityId,
-        string description) =>
+    public void RecordSelfService(AcaoAuditoria action, string entityType, Guid entityId, string description) =>
         database.Auditorias.Add(new Auditoria
         {
-            Id = Guid.NewGuid(), AdminUserId = null, AdminEmailSnapshot = actor, Acao = action,
+            Id = Guid.NewGuid(), AdminUserId = null, AdminEmailSnapshot = SelfServiceActor, Acao = action,
             EntidadeTipo = entityType, EntidadeId = entityId.ToString(), Descricao = description,
             CriadoEm = DateTimeOffset.UtcNow
         });
