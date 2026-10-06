@@ -1,3 +1,6 @@
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -53,19 +56,9 @@ builder.Services.AddRateLimiter(options =>
         context.HttpContext.Response.Headers.RetryAfter = "60";
         return ValueTask.CompletedTask;
     };
-    options.AddPolicy(RateLimitPolicies.Anonymous, context =>
-    {
-        // TEMPORARY (B1 rollout): confirms which hop RemoteIpAddress resolves to behind Vercel -> Railway.
-        // Remove after the first Railway deployment has been verified.
-        context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("TalentValley.RateLimitDebug").LogInformation(
-            "Rate limit partition {Path}: RemoteIp={RemoteIp} XOriginalFor={XOriginalFor} XForwardedFor={XForwardedFor} XRealIp={XRealIp}",
-            context.Request.Path.Value, context.Connection.RemoteIpAddress?.ToString(),
-            context.Request.Headers["X-Original-For"].ToString(), context.Request.Headers["X-Forwarded-For"].ToString(),
-            context.Request.Headers["X-Real-IP"].ToString());
-        return RateLimitPartition.GetFixedWindowLimiter(
-            $"{context.Connection.RemoteIpAddress}|{context.Request.Path}",
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
-    });
+    options.AddPolicy(RateLimitPolicies.Anonymous, context => RateLimitPartition.GetFixedWindowLimiter(
+        $"{context.Connection.RemoteIpAddress}|{context.Request.Path}",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 var app = builder.Build();
@@ -138,6 +131,29 @@ else
 }
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
+var clientIpSecret = app.Configuration["Deployment:ClientIpProxy:Secret"];
+if (!string.IsNullOrWhiteSpace(clientIpSecret))
+{
+    // The Vercel proxy is the only hop that knows the visitor's IP. It sends it in X-Client-Ip together with this
+    // shared secret; without a matching secret the header is ignored, so direct hits on the API cannot spoof an IP.
+    const int minSecretLength = 32;
+    if (clientIpSecret.Length < minSecretLength)
+        throw new InvalidOperationException($"Deployment:ClientIpProxy:Secret must have at least {minSecretLength} characters.");
+    app.Logger.LogInformation("Client IP proxy secret configured; X-Client-Ip is honored only with a matching X-Proxy-Secret.");
+    var expectedSecret = Encoding.UTF8.GetBytes(clientIpSecret);
+    app.Use((context, next) =>
+    {
+        var providedSecret = Encoding.UTF8.GetBytes(context.Request.Headers["X-Proxy-Secret"].ToString());
+        if (CryptographicOperations.FixedTimeEquals(providedSecret, expectedSecret) &&
+            IPAddress.TryParse(context.Request.Headers["X-Client-Ip"].ToString(), out var clientIp))
+            context.Connection.RemoteIpAddress = clientIp;
+        return next();
+    });
+}
+else
+{
+    app.Logger.LogInformation("Client IP proxy secret not configured; X-Client-Ip is ignored and the rate limit is shared by every visitor behind the proxy.");
+}
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

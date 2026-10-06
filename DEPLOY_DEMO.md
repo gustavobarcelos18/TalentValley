@@ -16,6 +16,7 @@ Storage__RootPath=/data/storage
 DataProtection__KeysPath=/data/dataprotection
 Deployment__ApplyMigrationsOnStartup=true
 Deployment__ForwardedHeaders__Enabled=false
+Deployment__ClientIpProxy__Secret=<SECRET WITH AT LEAST 32 CHARACTERS, SAME VALUE AS CLIENT_IP_PROXY_SECRET IN VERCEL>
 Jwt__Issuer=TalentValley.Api
 Jwt__Audience=TalentValley.Frontend
 Jwt__SigningKey=<BASE64 SECRET WITH AT LEAST 32 RANDOM BYTES>
@@ -33,7 +34,9 @@ Brevo__SenderName=<SENDER DISPLAY NAME>
 
 Do not define `PORT`; Railway supplies it. Configure Railway health checking to `/health`.
 
-Forwarded headers (used for the per-IP rate limit) stay disabled until the trusted proxy ranges are known. To enable them, set `Deployment__ForwardedHeaders__Enabled=true`, `Deployment__ForwardedHeaders__IpRanges=<comma-separated CIDRs of the proxies that connect to the API>` and `Deployment__ForwardedHeaders__ForwardLimit=<number of trusted hops>`. Startup fails if `Enabled=true` with no valid range, and if the removed `Deployment__TrustForwardedHeaders` variable is still set.
+Per-visitor rate limit: the API only sees the address of the platform proxy, never the visitor's. The Vercel proxy therefore sends the visitor's IP in `X-Client-Ip`, together with a shared secret in `X-Proxy-Secret`. To enable it, generate a random secret (same commands as the signing key below, at least 32 characters) and set it with the same value in both places: `Deployment__ClientIpProxy__Secret` in Railway and `CLIENT_IP_PROXY_SECRET` in Vercel (server-side), then redeploy both. Without the secret in Railway the headers are ignored and the limit is shared by all visitors; startup fails if the secret is set with fewer than 32 characters. Never reuse the JWT signing key as this secret.
+
+Forwarded headers (an alternative based on proxy IP ranges, not used by the Vercel setup above) stay disabled until the trusted proxy ranges are known. To enable them, set `Deployment__ForwardedHeaders__Enabled=true`, `Deployment__ForwardedHeaders__IpRanges=<comma-separated CIDRs of the proxies that connect to the API>` and `Deployment__ForwardedHeaders__ForwardLimit=<number of trusted hops>`. Startup fails if `Enabled=true` with no valid range, and if the removed `Deployment__TrustForwardedHeaders` variable is still set.
 
 Generate the signing key locally and copy only its Base64 result into Railway:
 
@@ -53,10 +56,11 @@ The persistent volume holds `/data/talent-valley.db`, its adjacent SQLite WAL fi
 
 1. Import the same GitHub repository into Vercel.
 2. Set **Root Directory** to `frontend` and select **Next.js**.
-3. Add this server-side environment variable:
+3. Add these server-side environment variables:
 
 ```text
 BACKEND_API_URL=https://YOUR-RAILWAY-SERVICE.up.railway.app
+CLIENT_IP_PROXY_SECRET=<SECRET WITH AT LEAST 32 CHARACTERS, SAME VALUE AS Deployment__ClientIpProxy__Secret IN RAILWAY>
 ```
 
 4. Do **not** configure `NEXT_PUBLIC_API_BASE_URL` in Vercel.
