@@ -208,4 +208,18 @@ describe("ExclusaoSection", () => {
     expect(replaceMock).not.toHaveBeenCalled();
     expect(logoutMock).not.toHaveBeenCalled();
   });
+
+  it("uses the injected delete call and warning text instead of the student defaults", async () => {
+    const customDelete = vi.fn<(senhaAtual: string) => Promise<void>>().mockResolvedValue(undefined);
+    const user = setup();
+    render(<ExclusaoSection deleteAccount={customDelete} warning="Aviso do recrutador." />);
+
+    expect(screen.getByText("Aviso do recrutador.")).toBeTruthy();
+    expect(screen.queryByText(/formações e projetos/)).toBeNull();
+    await typeAndConfirm(user);
+    await screen.findByRole("status");
+
+    expect(customDelete).toHaveBeenCalledWith(PASSWORD);
+    expect(deleteOwnAccountMock).not.toHaveBeenCalled();
+  });
 });

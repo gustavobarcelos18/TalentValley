@@ -1,4 +1,4 @@
-import { apiGet, apiMutation } from "@/lib/api";
+import { apiGet, apiMutation, ensureCsrfToken } from "@/lib/api";
 import type { CatalogoCompetenciaResponse } from "@/types/student";
 import type {
   PaginatedResponse,
@@ -65,4 +65,9 @@ export function fetchTalentComparison(slugs: readonly [string, string]): Promise
   params.append("slugs", slugs[0]);
   params.append("slugs", slugs[1]);
   return apiGet<TalentComparison>(`/api/recrutador/comparar?${params}`);
+}
+
+export async function deleteOwnRecruiterAccount(senhaAtual: string): Promise<void> {
+  await ensureCsrfToken();
+  await apiMutation<void>("DELETE", "/api/recrutador/me", { senhaAtual });
 }

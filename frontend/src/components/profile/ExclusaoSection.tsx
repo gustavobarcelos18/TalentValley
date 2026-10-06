@@ -22,10 +22,19 @@ import { getApiErrorMessage } from "@/lib/api";
 import { deleteOwnAccount } from "@/lib/student";
 
 const REDIRECT_DELAY_MS = 2000;
+const STUDENT_WARNING =
+  "Esta ação é irreversível. Todos os seus dados, formações e projetos serão permanentemente deletados.";
 
 // LGPD self-deletion zone. The backend verifies the password (400 wrong, 423 locked)
-// and removes the account; the UI only collects the confirmation.
-export function ExclusaoSection() {
+// and removes the account; the UI only collects the confirmation. Defaults to the
+// student flow; other roles pass their own delete call and warning text.
+export function ExclusaoSection({
+  deleteAccount = deleteOwnAccount,
+  warning = STUDENT_WARNING,
+}: {
+  deleteAccount?: (senhaAtual: string) => Promise<void>;
+  warning?: string;
+}) {
   const router = useRouter();
   const { logout } = useAuth();
   const titleId = useId();
@@ -60,7 +69,7 @@ export function ExclusaoSection() {
     setBusy(true);
     setError(null);
     try {
-      await deleteOwnAccount(password);
+      await deleteAccount(password);
       setPassword("");
       setOpen(false);
       setDeleted(true);
@@ -94,8 +103,7 @@ export function ExclusaoSection() {
         ) : (
           <>
             <Typography variant="body2" color="text.secondary">
-              Esta ação é irreversível. Todos os seus dados, formações e projetos serão
-              permanentemente deletados.
+              {warning}
             </Typography>
             <Box>
               <Button color="error" variant="outlined" onClick={() => setOpen(true)}>

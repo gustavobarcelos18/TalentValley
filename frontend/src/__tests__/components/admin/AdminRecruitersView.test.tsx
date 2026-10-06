@@ -21,6 +21,7 @@ vi.mock("@/lib/admin", () => ({
     recruiter: vi.fn(),
     createRecruiter: vi.fn(),
     recruiterAction: vi.fn(),
+    deleteRecruiter: vi.fn(),
     resendActivation: vi.fn(),
   },
 }));
@@ -29,6 +30,7 @@ const recruitersMock = vi.mocked(adminApi.recruiters);
 const recruiterMock = vi.mocked(adminApi.recruiter);
 const createMock = vi.mocked(adminApi.createRecruiter);
 const actionMock = vi.mocked(adminApi.recruiterAction);
+const deleteMock = vi.mocked(adminApi.deleteRecruiter);
 const resendMock = vi.mocked(adminApi.resendActivation);
 
 type User = ReturnType<typeof userEvent.setup>;
@@ -44,6 +46,9 @@ const ACTION_NOTICE = "Situação do recrutador atualizada.";
 const CREATED_NOTICE = "Acesso de recrutador criado e email de ativação enviado.";
 const NOT_SENT_NOTICE = "Conta criada, mas não foi possível enviar o email de ativação.";
 const BLOCK_TITLE = "Bloquear recrutador?";
+const DELETE_TITLE = "Excluir recrutador permanentemente?";
+const DELETE_NOTICE = "Recrutador excluído permanentemente.";
+const DELETE_FALLBACK = "Não foi possível excluir o recrutador.";
 const SEARCH_LABEL = "Buscar nome ou empresa";
 
 const CARLA = makeAdminRecruiter();
@@ -80,7 +85,7 @@ async function renderList(items = [CARLA, DIEGO]) {
   return view;
 }
 
-function rowButton(name: "Detalhes" | "Bloquear" | "Reativar", index = 0) {
+function rowButton(name: "Detalhes" | "Bloquear" | "Reativar" | "Excluir", index = 0) {
   return screen.getAllByRole("button", { name })[index];
 }
 
@@ -136,6 +141,7 @@ describe("AdminRecruitersView list", () => {
     expect(screen.getAllByRole("button", { name: "Detalhes" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Bloquear" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Reativar" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Excluir" })).toHaveLength(1);
     expect(recruitersMock).toHaveBeenCalledWith(1, "", "");
     expect(screen.queryByRole("navigation")).toBeNull();
   });
@@ -471,6 +477,105 @@ describe("AdminRecruitersView block and reactivate", () => {
     await user.keyboard("{Escape}");
 
     await waitFor(() => expect(screen.queryByText(ACTION_NOTICE)).toBeNull());
+  });
+});
+
+describe("AdminRecruitersView permanent deletion", () => {
+  async function openDeleteDialog(user: User) {
+    await user.click(rowButton("Excluir"));
+    return screen.findByRole("dialog", { name: DELETE_TITLE });
+  }
+
+  it("only offers deletion for blocked recruiters", async () => {
+    await renderList([CARLA]);
+
+    expect(screen.queryByRole("button", { name: "Excluir" })).toBeNull();
+  });
+
+  it("deletes a blocked recruiter after confirmation and reloads the list", async () => {
+    const user = userEvent.setup();
+    await renderList();
+    recruitersMock.mockResolvedValue(makePaginated([CARLA]));
+    deleteMock.mockResolvedValue(undefined);
+
+    const dialog = await openDeleteDialog(user);
+    expect(within(dialog).getByText("A exclusão de Diego Alves é permanente e não poderá ser desfeita.")).toBeTruthy();
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+
+    expect(await screen.findByText(DELETE_NOTICE)).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText("Diego Alves")).toBeNull());
+    expect(deleteMock).toHaveBeenCalledWith("rec-2");
+    expect(recruitersMock).toHaveBeenCalledTimes(2);
+    expect(recruitersMock).toHaveBeenLastCalledWith(1, "", "");
+  });
+
+  it("goes back one page when the only recruiter of a later page is deleted", async () => {
+    const user = userEvent.setup();
+    recruitersMock.mockResolvedValue(makePaginated([CARLA], 1, 2));
+    render(<AdminRecruitersView />);
+    await screen.findByText("Carla Mendes");
+    recruitersMock.mockResolvedValue(makePaginated([DIEGO], 2, 2));
+    await user.click(within(screen.getByRole("navigation")).getByRole("button", { name: /page 2/i }));
+    await screen.findByText("Diego Alves");
+    recruitersMock.mockResolvedValue(makePaginated([CARLA], 1, 1));
+    deleteMock.mockResolvedValue(undefined);
+
+    const dialog = await openDeleteDialog(user);
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+
+    expect(await screen.findByText("Carla Mendes")).toBeTruthy();
+    expect(recruitersMock).toHaveBeenLastCalledWith(1, "", "");
+    expect(deleteMock).toHaveBeenCalledWith("rec-2");
+  });
+
+  it("cancels without deleting", async () => {
+    const user = userEvent.setup();
+    await renderList();
+
+    const dialog = await openDeleteDialog(user);
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+    await waitDialogClosed(DELETE_TITLE);
+    expect(deleteMock).not.toHaveBeenCalled();
+    expect(screen.getByText("Diego Alves")).toBeTruthy();
+  });
+
+  it("shows the API error inside the dialog and keeps the recruiter", async () => {
+    const user = userEvent.setup();
+    await renderList();
+    deleteMock.mockRejectedValue(new ApiError(409, "Recrutador precisa estar bloqueado"));
+
+    const dialog = await openDeleteDialog(user);
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+
+    expect((await within(dialog).findByRole("alert")).textContent).toContain("Recrutador precisa estar bloqueado");
+    expect(screen.queryByText(DELETE_NOTICE)).toBeNull();
+    expect(recruitersMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the fallback message when the deletion fails with an unknown error", async () => {
+    const user = userEvent.setup();
+    await renderList();
+    deleteMock.mockRejectedValue("boom");
+
+    const dialog = await openDeleteDialog(user);
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+
+    expect((await within(dialog).findByRole("alert")).textContent).toContain(DELETE_FALLBACK);
+  });
+
+  it("ignores a confirmation fired after the dialog was cancelled", async () => {
+    const user = userEvent.setup();
+    await renderList();
+    const dialog = await openDeleteDialog(user);
+    const confirmButton = within(dialog).getByRole("button", { name: "Confirmar" });
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(confirmButton);
+    await act(async () => undefined);
+
+    await waitDialogClosed(DELETE_TITLE);
+    expect(deleteMock).not.toHaveBeenCalled();
   });
 });
 

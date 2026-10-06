@@ -58,6 +58,7 @@ describe("adminApi mutations", () => {
     ["deleteStudent", () => adminApi.deleteStudent(ID), "DELETE", `/api/admin/alunos/${ID}`, undefined],
     ["createRecruiter", () => adminApi.createRecruiter({ nome: "Bob" }), "POST", "/api/admin/recrutadores", { nome: "Bob" }],
     ["recruiterAction", () => adminApi.recruiterAction(ID, "reativar"), "POST", `/api/admin/recrutadores/${ID}/reativar`, undefined],
+    ["deleteRecruiter", () => adminApi.deleteRecruiter(ID), "DELETE", `/api/admin/recrutadores/${ID}`, undefined],
     ["resendActivation", () => adminApi.resendActivation(ID), "POST", `/api/admin/usuarios/${ID}/reenviar-ativacao`, undefined],
     ["validationAction", () => adminApi.validationAction(ID, "remover-validacao"), "POST", `/api/admin/validacoes-rpv/${ID}/remover-validacao`, undefined],
   ])("%s", (_name, call, method, path, body) => {

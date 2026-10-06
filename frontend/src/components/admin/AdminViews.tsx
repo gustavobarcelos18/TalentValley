@@ -951,6 +951,7 @@ export function AdminRecruitersView() {
     [detailError, setDetailError] = useState<string | null>(null),
     [create, setCreate] = useState(false),
     [target, setTarget] = useState<AdminRecruiter | null>(null),
+    [deleteTarget, setDeleteTarget] = useState<AdminRecruiter | null>(null),
     [busy, setBusy] = useState(false),
     [searchError, setSearchError] = useState<string | null>(null),
     [confirmError, setConfirmError] = useState<string | null>(null),
@@ -1005,6 +1006,27 @@ export function AdminRecruitersView() {
     } catch (e) {
       setConfirmError(
         getApiErrorMessage(e, "Não foi possível concluir a ação."),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const removeRecruiter = async () => {
+    if (!deleteTarget || busy) return;
+    setBusy(true);
+    setConfirmError(null);
+    try {
+      await adminApi.deleteRecruiter(deleteTarget.id);
+      setNotice("Recrutador excluído permanentemente.");
+      setDeleteTarget(null);
+      if (state.data && state.data.items.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        state.reload();
+      }
+    } catch (e) {
+      setConfirmError(
+        getApiErrorMessage(e, "Não foi possível excluir o recrutador."),
       );
     } finally {
       setBusy(false);
@@ -1109,10 +1131,25 @@ export function AdminRecruitersView() {
                     <Button
                       size="small"
                       color={x.status === "ATIVO" ? "warning" : "success"}
-                      onClick={() => setTarget(x)}
+                      onClick={() => {
+                        setConfirmError(null);
+                        setTarget(x);
+                      }}
                     >
                       {x.status === "ATIVO" ? "Bloquear" : "Reativar"}
                     </Button>
+                    {x.status !== "ATIVO" && (
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => {
+                          setConfirmError(null);
+                          setDeleteTarget(x);
+                        }}
+                      >
+                        Excluir
+                      </Button>
+                    )}
                   </Stack>
                 </Stack>
               </Paper>
@@ -1162,6 +1199,19 @@ export function AdminRecruitersView() {
         }}
         error={confirmError}
         confirm={() => void action()}
+      />
+      <Confirm
+        open={deleteTarget !== null}
+        title="Excluir recrutador permanentemente?"
+        text={`A exclusão de ${deleteTarget?.nomeCompleto} é permanente e não poderá ser desfeita.`}
+        busy={busy}
+        onClose={() => {
+          setConfirmError(null);
+          setDeleteTarget(null);
+        }}
+        error={confirmError}
+        confirm={() => void removeRecruiter()}
+        danger
       />
       <Snackbar
         open={!!notice}

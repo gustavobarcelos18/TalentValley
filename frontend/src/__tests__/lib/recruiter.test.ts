@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addFavorite,
+  deleteOwnRecruiterAccount,
   fetchFavorites,
   fetchRecruiterCompetencies,
   fetchRecruiterDashboard,
@@ -10,7 +11,7 @@ import {
   removeFavorite,
   talentSearchParams,
 } from "@/lib/recruiter";
-import { apiGet, apiMutation } from "@/lib/api";
+import { apiGet, apiMutation, ensureCsrfToken } from "@/lib/api";
 import type { TalentSearchFilters } from "@/types/recruiter";
 
 vi.mock("@/lib/api");
@@ -100,5 +101,18 @@ describe("recruiter requests", () => {
 
     expect(apiMutation).toHaveBeenNthCalledWith(1, "POST", `${FAVORITES_PATH}/ana%20silva`);
     expect(apiMutation).toHaveBeenNthCalledWith(2, "DELETE", `${FAVORITES_PATH}/ana%20silva`);
+  });
+});
+
+describe("deleteOwnRecruiterAccount", () => {
+  it("ensures the CSRF token before sending the current password", async () => {
+    const calls: string[] = [];
+    vi.mocked(ensureCsrfToken).mockImplementation(async () => { calls.push("csrf"); });
+    vi.mocked(apiMutation).mockImplementation(async () => { calls.push("delete"); return undefined; });
+
+    await deleteOwnRecruiterAccount("segredo");
+
+    expect(calls).toEqual(["csrf", "delete"]);
+    expect(apiMutation).toHaveBeenCalledWith("DELETE", "/api/recrutador/me", { senhaAtual: "segredo" });
   });
 });

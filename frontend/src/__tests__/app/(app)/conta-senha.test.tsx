@@ -6,11 +6,18 @@ import { ANY_ROLE, expectViewInGuardedShell } from "@/__tests__/app/(app)/guarde
 vi.mock("@/components/auth/ProtectedRoute", async () => ({ ProtectedRoute: (await import("@/__tests__/app/(app)/guardedPage")).ProtectedRouteStub }));
 vi.mock("@/components/layout/AppShell", async () => ({ AppShell: (await import("@/__tests__/app/(app)/guardedPage")).AppShellStub }));
 vi.mock("@/components/account/ChangePasswordForm", () => ({ ChangePasswordForm: () => <p>change password form</p> }));
+vi.mock("@/components/account/RecruiterAccountDeletion", () => ({ RecruiterAccountDeletion: () => <p>recruiter account deletion</p> }));
 
 describe("change password page", () => {
   it("shows the password form inside the app shell, restricted to any signed-in user", () => {
     render(<Page />);
 
     expectViewInGuardedShell("change password form", ANY_ROLE);
+  });
+
+  it("renders the recruiter deletion section inside the guarded shell", () => {
+    render(<Page />);
+
+    expectViewInGuardedShell("recruiter account deletion", ANY_ROLE);
   });
 });
