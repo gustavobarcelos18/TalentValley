@@ -7,15 +7,7 @@ using TalentValley.Api.DTOs;
 
 namespace TalentValley.Api.Services;
 
-public enum AdminRecrutadorDeleteResult
-{
-    Deleted,
-    NotFound,
-    MustBeBlocked,
-}
-
-public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountService accounts, AuditoriaService audit,
-    RecrutadorDeletionService deletion)
+public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountService accounts, AuditoriaService audit)
 {
     public async Task<RecrutadorCreatedResponse> CreateAsync(CreateRecrutadorRequest request)
     {
@@ -79,16 +71,5 @@ public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountSe
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;
-    }
-
-    public async Task<AdminRecrutadorDeleteResult> DeleteAsync(Guid id)
-    {
-        await using var transaction = await database.Database.BeginTransactionAsync();
-        var recruiter = await deletion.LoadAsync(id);
-        if (recruiter is null) return AdminRecrutadorDeleteResult.NotFound;
-        if (recruiter.Status != StatusRecrutador.BLOQUEADO) return AdminRecrutadorDeleteResult.MustBeBlocked;
-        await deletion.RemoveAsync(recruiter, selfDeletion: false);
-        await transaction.CommitAsync();
-        return AdminRecrutadorDeleteResult.Deleted;
     }
 }

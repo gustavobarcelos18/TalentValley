@@ -12,30 +12,9 @@ namespace TalentValley.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class RecrutadorController(
     TalentComparisonService comparisons,
-    RecruiterDashboardService dashboard,
-    RecrutadorDeletionService deletion,
-    IHostEnvironment environment) : ControllerBase
+    RecruiterDashboardService dashboard) : ControllerBase
 {
     private Guid CurrentUserId => Guid.Parse(User.FindFirst("sub")!.Value);
-
-    // LGPD self-deletion. Class-level policy requires an active recruiter; the CSRF middleware covers DELETE.
-    [HttpDelete("me")]
-    public async Task<IActionResult> DeleteMyAccount(DeleteOwnProfileRequest request, CancellationToken cancellationToken)
-    {
-        switch (await deletion.DeleteOwnAsync(CurrentUserId, request.SenhaAtual, cancellationToken))
-        {
-            case RecrutadorSelfDeleteResult.Deleted:
-                Response.Cookies.Delete(AuthCookie.Name, AuthCookie.Options(environment));
-                return NoContent();
-            case RecrutadorSelfDeleteResult.InvalidPassword:
-                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Senha incorreta.");
-            case RecrutadorSelfDeleteResult.LockedOut:
-                return Problem(statusCode: StatusCodes.Status423Locked,
-                    title: "Conta temporariamente bloqueada por tentativas inválidas.");
-            default:
-                return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.");
-        }
-    }
 
     [HttpGet("comparar")]
     public async Task<ActionResult<TalentComparisonResponse>> Compare(

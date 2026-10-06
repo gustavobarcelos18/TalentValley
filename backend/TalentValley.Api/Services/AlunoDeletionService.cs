@@ -28,8 +28,8 @@ public sealed class AlunoDeletionService(AppDbContext database, UserManager<Appl
             .Select(x => new StoredFile(FileCategory.Certificate, x.CertificadoStorageKey!)));
 
         if (selfDeletion)
-            audit.RecordSelfService(AcaoAuditoria.ALUNO_EXCLUIDO_PROPRIO, AuditoriaService.StudentSelfServiceActor,
-                AppRoles.Student, aluno.UserId, "Aluno excluiu a própria conta.");
+            audit.RecordSelfService(AcaoAuditoria.ALUNO_EXCLUIDO_PROPRIO, AppRoles.Student, aluno.UserId,
+                "Aluno excluiu a própria conta.");
         else
             await audit.RecordAsync(AcaoAuditoria.ALUNO_EXCLUIDO, AppRoles.Student, aluno.UserId,
                 $"Aluno {user.NomeCompleto} excluído.");

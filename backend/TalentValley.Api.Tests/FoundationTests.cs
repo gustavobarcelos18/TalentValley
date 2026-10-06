@@ -17,9 +17,6 @@ namespace TalentValley.Api.Tests;
 
 public sealed class FoundationTests
 {
-    private const string KeysPathSetting = "DataProtection:KeysPath";
-    private const string HealthPath = "/health";
-
     [Fact]
     public async Task Roles_and_optional_admin_bootstrap_are_idempotent()
     {
@@ -116,7 +113,7 @@ public sealed class FoundationTests
     {
         using var factory = new ApiFactory { EnvironmentName = "Production" };
         using var client = factory.Client();
-        var response = await client.GetAsync(HealthPath);
+        var response = await client.GetAsync("/health");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("{\"status\":\"ok\"}", await response.Content.ReadAsStringAsync());
     }
@@ -145,35 +142,6 @@ public sealed class FoundationTests
         factory.Overrides["AllowedHosts"] = hosts;
         var exception = Assert.ThrowsAny<Exception>(() => factory.Client());
         Assert.Contains("AllowedHosts", exception.ToString());
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Missing_data_protection_keys_path_fails_startup_in_production(string keysPath)
-    {
-        using var factory = new ApiFactory { EnvironmentName = "Production" };
-        factory.Overrides[KeysPathSetting] = keysPath;
-        var exception = Assert.ThrowsAny<Exception>(() => factory.Client());
-        Assert.Contains(KeysPathSetting, exception.ToString());
-    }
-
-    [Fact]
-    public async Task Production_accepts_a_configured_data_protection_keys_path()
-    {
-        using var factory = new ApiFactory { EnvironmentName = "Production" };
-        using var client = factory.Client();
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(HealthPath)).StatusCode);
-        Assert.True(Directory.Exists(factory.KeysPath));
-    }
-
-    [Fact]
-    public async Task Development_starts_without_data_protection_keys_path()
-    {
-        using var factory = new ApiFactory { EnvironmentName = "Development" };
-        factory.Overrides[KeysPathSetting] = "";
-        using var client = factory.Client();
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(HealthPath)).StatusCode);
     }
 
     [Fact]

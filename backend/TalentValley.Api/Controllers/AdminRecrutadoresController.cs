@@ -39,15 +39,5 @@ public sealed class AdminRecrutadoresController(AdminRecrutadorService recruiter
     [HttpPost("{id:guid}/reativar")]
     public async Task<IActionResult> Reactivate(Guid id) => await recruiters.SetActiveAsync(id, true) ? NoContent() : Missing();
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id) => await recruiters.DeleteAsync(id) switch
-    {
-        AdminRecrutadorDeleteResult.Deleted => NoContent(),
-        AdminRecrutadorDeleteResult.NotFound => Missing(),
-        AdminRecrutadorDeleteResult.MustBeBlocked => Problem(statusCode: StatusCodes.Status409Conflict,
-            title: "Bloqueie o recrutador antes de excluí-lo permanentemente."),
-        _ => throw new ArgumentOutOfRangeException(nameof(id)),
-    };
-
     private ObjectResult Missing() => Problem(statusCode: StatusCodes.Status404NotFound, title: "Recrutador não encontrado.");
 }
