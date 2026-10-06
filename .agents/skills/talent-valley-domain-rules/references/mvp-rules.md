@@ -17,6 +17,10 @@ Recruiter states:
 - `ATIVO`
 - `BLOQUEADO`
 
+Recruiter:
+- may delete own account (LGPD) after confirming the current password; only while `ATIVO`;
+- deletion removes account, profile, favorites and registration requests with the same email.
+
 Student:
 - owns and edits only own profile;
 - cannot make profile private;
@@ -28,6 +32,7 @@ Admin:
 - may block/reactivate/delete student;
 - must not edit student professional profile;
 - may create/block/reactivate recruiter;
+- may delete a recruiter only after blocking it (active recruiter returns 409);
 - validates RPV education.
 
 ## Student profile
@@ -240,6 +245,7 @@ Audit important admin actions:
 - recruiter created;
 - recruiter blocked;
 - recruiter reactivated;
+- recruiter deleted (by admin, or by the recruiter as a self-service entry);
 - RPV approved;
 - RPV rejected;
 - RPV verification removed.
