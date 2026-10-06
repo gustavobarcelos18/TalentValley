@@ -82,7 +82,9 @@ export function AppShell({ children }: AppShellProps) {
   async function handleLogout() {
     setMenuOpen(false);
     setAccountAnchor(null);
-    await logout();
+    // The provider already resets the client auth state even when the request fails,
+    // so the user always leaves for the login page.
+    await logout().catch(() => undefined);
     router.replace("/login");
   }
 
@@ -185,7 +187,7 @@ export function AppShell({ children }: AppShellProps) {
               <Stack
                 direction="row"
                 spacing={1}
-                sx={{alignItems: "center",  display: { xs: "none", lg: "flex" } }}
+                sx={{ alignItems: "center", display: { xs: "none", lg: "flex" } }}
               >
                 {navItems.map((item) => (
                   <ListItemButton
@@ -225,7 +227,7 @@ export function AppShell({ children }: AppShellProps) {
                       size="small"
                       color="primary"
                       variant="outlined"
-                      sx={{alignItems: "center",  fontWeight: 600 }}
+                      sx={{ fontWeight: 600 }}
                     />
                     <Button
                       id="account-menu-button"
@@ -306,7 +308,7 @@ export function AppShell({ children }: AppShellProps) {
             <Stack direction="row" spacing={1.5}>
               <UserAvatar key={`${user.id}-${reloadKey}`} name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={40} />
               <Stack sx={{ minWidth: 0 }}>
-                <Typography variant="body2" sx={{alignItems: "center",  fontWeight: 600 }} noWrap>
+                <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                   {user.nome}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

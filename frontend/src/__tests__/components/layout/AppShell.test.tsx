@@ -395,6 +395,18 @@ describe("AppShell", () => {
       finishLogout();
       await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith(LOGIN));
     });
+
+    it("still redirects to the login page when the logout request fails", async () => {
+      mocks.auth.logout = vi.fn().mockRejectedValue(new Error("network"));
+      renderShell();
+      const { user, menu } = await openAccountMenu();
+
+      await user.click(within(menu).getByRole("menuitem", { name: "Sair" }));
+
+      await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith(LOGIN));
+      expect(mocks.auth.logout).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    });
   });
 
   describe("mobile drawer", () => {
@@ -501,6 +513,18 @@ describe("AppShell", () => {
     });
 
     it("logs out, closes the drawer and redirects to the login page", async () => {
+      renderShell();
+      const user = await openDrawer();
+
+      await user.click(screen.getByRole("button", { name: "Sair" }));
+
+      await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith(LOGIN));
+      expect(mocks.auth.logout).toHaveBeenCalledTimes(1);
+      await waitForDrawerToClose();
+    });
+
+    it("still redirects to the login page when the logout request fails", async () => {
+      mocks.auth.logout = vi.fn().mockRejectedValue(new Error("network"));
       renderShell();
       const user = await openDrawer();
 
