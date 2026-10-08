@@ -152,8 +152,68 @@ public sealed class AdminDeletionTests : IDisposable
             (await admin.DeleteAsync($"/api/admin/alunos/{Guid.NewGuid()}")).StatusCode);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Recruiter_deletion_removes_owned_data_preserves_audit_and_rolls_back_if_Identity_delete_fails(
+        bool failIdentity)
+    {
+        var adminId = await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        var studentId = await factory.CreateUserAsync("student@example.test");
+        var id = await factory.CreateUserAsync("recruiter@example.test", AppRoles.Recruiter);
+        using var admin = factory.Client();
+        await ApiFactory.LoginAsync(admin, "admin@example.test");
+        await ApiFactory.SetCsrfAsync(admin);
+        using var recruiter = factory.Client();
+        await ApiFactory.LoginAsync(recruiter, "recruiter@example.test");
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            db.Favoritos.Add(new Favorito { AlunoId = studentId, RecrutadorId = id, CriadoEm = DateTimeOffset.UtcNow });
+            db.SolicitacoesCadastro.Add(new SolicitacaoCadastro
+            {
+                Id = Guid.NewGuid(), Tipo = TipoSolicitacaoCadastro.RECRUTADOR, NomeCompleto = "Recrutador",
+                Email = "recruiter@example.test", EmailNormalizado = "RECRUITER@EXAMPLE.TEST"
+            });
+            await db.SaveChangesAsync();
+            if (failIdentity)
+                await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER fail_delete BEFORE DELETE ON AspNetUsers BEGIN SELECT RAISE(ABORT, 'test failure'); END;");
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await admin.PostAsync($"/api/admin/recrutadores/{id}/bloquear", null)).StatusCode);
+        Assert.Equal(failIdentity ? HttpStatusCode.InternalServerError : HttpStatusCode.NoContent,
+            (await admin.DeleteAsync($"/api/admin/recrutadores/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await recruiter.GetAsync("/api/auth/me")).StatusCode);
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            Assert.Equal(failIdentity, await db.Users.AnyAsync(x => x.Id == id));
+            Assert.Equal(failIdentity, await db.UserRoles.AnyAsync(x => x.UserId == id));
+            Assert.Equal(failIdentity, await db.Recrutadores.AnyAsync(x => x.UserId == id));
+            Assert.Equal(failIdentity, await db.Favoritos.AnyAsync());
+            Assert.Equal(failIdentity, await db.SolicitacoesCadastro.AnyAsync());
+            Assert.True(await db.Users.AnyAsync(x => x.Id == studentId));
+            Assert.True(await db.Alunos.AnyAsync(x => x.UserId == studentId));
+            var audit = await db.Auditorias.OrderBy(x => x.CriadoEm).ToListAsync();
+            Assert.Equal(failIdentity ? 1 : 2, audit.Count);
+            Assert.All(audit, entry => Assert.Equal(id.ToString(), entry.EntidadeId));
+            Assert.Equal(adminId, audit.Single(x => x.Acao == AcaoAuditoria.RECRUTADOR_BLOQUEADO).AdminUserId);
+            if (!failIdentity)
+            {
+                var deleted = audit.Single(x => x.Acao == AcaoAuditoria.RECRUTADOR_EXCLUIDO);
+                Assert.Equal(adminId, deleted.AdminUserId);
+                Assert.Equal(AppRoles.Recruiter, deleted.EntidadeTipo);
+                Assert.Equal("Recrutador Maria Álvares excluído.", deleted.Descricao);
+            }
+        });
+        if (!failIdentity)
+            Assert.Equal(HttpStatusCode.NotFound, (await admin.DeleteAsync($"/api/admin/recrutadores/{id}")).StatusCode);
+    }
+
     [Fact]
-    public async Task Recruiter_delete_endpoint_is_not_exposed()
+    public async Task Deleting_active_recruiter_returns_conflict_and_preserves_account()
     {
         await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
         var id = await factory.CreateUserAsync("recruiter@example.test", AppRoles.Recruiter);
@@ -162,13 +222,45 @@ public sealed class AdminDeletionTests : IDisposable
         await ApiFactory.SetCsrfAsync(admin);
 
         var response = await admin.DeleteAsync($"/api/admin/recrutadores/{id}");
-        Assert.True(response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed,
-            $"Expected recruiter deletion to be unavailable, got {(int)response.StatusCode}.");
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("Bloqueie o recrutador", await response.Content.ReadAsStringAsync());
+
         await factory.InScopeAsync(async provider =>
         {
             var db = provider.GetRequiredService<AppDbContext>();
-            Assert.True(await db.Recrutadores.AnyAsync(x => x.UserId == id));
+            Assert.True(await db.Users.AnyAsync(x => x.Id == id));
+            Assert.Equal(StatusRecrutador.ATIVO, (await db.Recrutadores.SingleAsync(x => x.UserId == id)).Status);
+            Assert.Empty(await db.Auditorias.ToListAsync());
         });
+    }
+
+    [Fact]
+    public async Task Deleting_missing_recruiter_returns_not_found()
+    {
+        await factory.CreateUserAsync("admin@example.test", AppRoles.Admin);
+        using var admin = factory.Client();
+        await ApiFactory.LoginAsync(admin, "admin@example.test");
+        await ApiFactory.SetCsrfAsync(admin);
+
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await admin.DeleteAsync($"/api/admin/recrutadores/{Guid.NewGuid()}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Only_admin_can_delete_recruiters()
+    {
+        var id = await factory.CreateUserAsync("recruiter@example.test", AppRoles.Recruiter);
+        await factory.CreateUserAsync("student@example.test");
+        using var student = factory.Client();
+        await ApiFactory.LoginAsync(student, "student@example.test");
+        await ApiFactory.SetCsrfAsync(student);
+        using var anonymous = factory.Client();
+        await ApiFactory.SetCsrfAsync(anonymous);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await student.DeleteAsync($"/api/admin/recrutadores/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.DeleteAsync($"/api/admin/recrutadores/{id}")).StatusCode);
+        await factory.InScopeAsync(async provider =>
+            Assert.True(await provider.GetRequiredService<AppDbContext>().Recrutadores.AnyAsync(x => x.UserId == id)));
     }
 
     [Theory]
