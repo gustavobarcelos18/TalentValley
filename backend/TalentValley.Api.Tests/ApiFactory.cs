@@ -27,6 +27,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     private readonly string directory = Path.Combine(Path.GetTempPath(), "TalentValley.Tests", Guid.NewGuid().ToString("N"));
     public string SigningKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     public string StoragePath => Path.Combine(directory, "storage");
+    public string KeysPath => Path.Combine(directory, "dataprotection");
     public RecordingEmailSender Emails { get; } = new();
     public Dictionary<string, string?> Overrides { get; } = new();
     public string EnvironmentName { get; init; } = "Development";
@@ -48,7 +49,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         // DatabaseRegistration reads configuration before the deferred web-host callbacks run.
         builder.ConfigureHostConfiguration(configuration =>
         {
-            var settings = new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = ConnectionString };
+            var settings = new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:DefaultConnection"] = ConnectionString,
+                ["DataProtection:KeysPath"] = KeysPath
+            };
             foreach (var setting in Overrides) settings[setting.Key] = setting.Value;
             configuration.AddInMemoryCollection(settings);
         });

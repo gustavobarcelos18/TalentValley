@@ -15,6 +15,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditoriaService>();
 builder.Services.AddScoped<AdminAccountService>();
 builder.Services.AddScoped<AlunoDeletionService>();
+builder.Services.AddScoped<RecrutadorDeletionService>();
 builder.Services.AddScoped<AdminAlunoService>();
 builder.Services.AddScoped<AdminRecrutadorService>();
 builder.Services.AddScoped<AdminRpvValidationService>();
