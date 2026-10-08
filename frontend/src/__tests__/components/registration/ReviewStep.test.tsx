@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { stubMotionMedia } from "@/__tests__/components/auth/motion/motionMedia";
 import { ReviewStep } from "@/components/registration/ReviewStep";
 import type { CommonForm } from "@/components/registration/registrationForm";
-import { CONSENT_ERROR } from "./wizardTestHelpers";
+import { LGPD_CONSENT_ERROR, CONSENT_ERROR, lgpdEssentialCheckbox, marketingCheckbox, termsCheckbox } from "./wizardTestHelpers";
 
 vi.setConfig({ testTimeout: 15_000 });
 
@@ -38,7 +38,13 @@ const details = {
 type StepProps = Partial<ComponentProps<typeof ReviewStep>>;
 
 function createHandlers() {
-  return { onConsentChange: vi.fn(), onEditStep: vi.fn(), registerFieldRef: vi.fn(() => vi.fn()) };
+  return {
+    onConsentTermosChange: vi.fn(),
+    onConsentLgpdEssencialChange: vi.fn(),
+    onConsentComunicacoesChange: vi.fn(),
+    onEditStep: vi.fn(),
+    registerFieldRef: vi.fn(() => vi.fn()),
+  };
 }
 
 function stepElement(props: StepProps, handlers: ReturnType<typeof createHandlers>) {
@@ -46,8 +52,11 @@ function stepElement(props: StepProps, handlers: ReturnType<typeof createHandler
     <ReviewStep
       personal={personal}
       details={details}
-      consent={false}
-      consentError={null}
+      consentTermos={false}
+      consentTermosError={null}
+      consentLgpdEssencial={false}
+      consentLgpdError={null}
+      consentComunicacoes={false}
       disabled={false}
       collapsed={false}
       {...handlers}
@@ -115,34 +124,62 @@ describe("ReviewStep", () => {
     expect(onEditStep).toHaveBeenCalledTimes(2);
   });
 
-  it("disables the edit buttons and the consent while disabled", () => {
+  it("disables the edit buttons and the consents while disabled", () => {
     renderStep({ disabled: true });
 
     expect((screen.getByRole("button", { name: EDIT_PERSONAL }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: EDIT_DETAILS }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
+    expect((termsCheckbox() as HTMLInputElement).disabled).toBe(true);
+    expect((lgpdEssentialCheckbox() as HTMLInputElement).disabled).toBe(true);
+    expect((marketingCheckbox() as HTMLInputElement).disabled).toBe(true);
   });
 
-  it("reflects the consent and reports changes to it", async () => {
+  it("reports each consent change to its own handler", async () => {
     const user = userEvent.setup({ delay: null });
-    const { onConsentChange } = renderStep({ consent: false });
+    const { onConsentTermosChange, onConsentLgpdEssencialChange, onConsentComunicacoesChange } = renderStep();
 
-    await user.click(screen.getByRole("checkbox"));
+    await user.click(termsCheckbox());
+    expect(onConsentTermosChange).toHaveBeenCalledExactlyOnceWith(true);
 
-    expect(onConsentChange).toHaveBeenCalledExactlyOnceWith(true);
+    await user.click(lgpdEssentialCheckbox());
+    expect(onConsentLgpdEssencialChange).toHaveBeenCalledExactlyOnceWith(true);
+
+    await user.click(marketingCheckbox());
+    expect(onConsentComunicacoesChange).toHaveBeenCalledExactlyOnceWith(true);
   });
 
-  it("shows the checked consent and its error", () => {
-    renderStep({ consent: true, consentError: CONSENT_ERROR });
+  it("keeps the three consents independent, so checking one does not affect the others", async () => {
+    const user = userEvent.setup({ delay: null });
+    const { onConsentTermosChange, onConsentLgpdEssencialChange, onConsentComunicacoesChange } = renderStep();
 
-    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+    await user.click(termsCheckbox());
+
+    expect(onConsentTermosChange).toHaveBeenCalledExactlyOnceWith(true);
+    expect(onConsentLgpdEssencialChange).not.toHaveBeenCalled();
+    expect(onConsentComunicacoesChange).not.toHaveBeenCalled();
+  });
+
+  it("reflects each checked consent and its error", () => {
+    renderStep({
+      consentTermos: true,
+      consentTermosError: CONSENT_ERROR,
+      consentLgpdEssencial: true,
+      consentLgpdError: LGPD_CONSENT_ERROR,
+      consentComunicacoes: true,
+    });
+
+    expect((termsCheckbox() as HTMLInputElement).checked).toBe(true);
+    expect((lgpdEssentialCheckbox() as HTMLInputElement).checked).toBe(true);
+    expect((marketingCheckbox() as HTMLInputElement).checked).toBe(true);
     expect(screen.getByText(CONSENT_ERROR)).toBeTruthy();
+    expect(screen.getByText(LGPD_CONSENT_ERROR)).toBeTruthy();
   });
 
-  it("registers the consent input under consentTermos", () => {
+  it("registers each mandatory consent input under its own key", () => {
     const { registerFieldRef } = renderStep();
 
     expect(registerFieldRef).toHaveBeenCalledWith("consentTermos");
+    expect(registerFieldRef).toHaveBeenCalledWith("consentLgpdEssencial");
   });
 
   it("keeps the summary reachable while it is not folded", () => {
@@ -153,12 +190,14 @@ describe("ReviewStep", () => {
     expect(personalCard().style.transform).toBe(UNFOLDED_CARD);
   });
 
-  it("folds the summary away from the tab order and the accessibility tree, keeping the consent", () => {
+  it("folds the summary away from the tab order and the accessibility tree, keeping the consents", () => {
     renderStep({ collapsed: true });
 
     expect(foldContainer().hasAttribute("inert")).toBe(true);
     expect(foldContainer().style.height).toBe("0px");
-    expect(screen.getByRole("checkbox")).toBeTruthy();
+    expect(termsCheckbox()).toBeTruthy();
+    expect(lgpdEssentialCheckbox()).toBeTruthy();
+    expect(marketingCheckbox()).toBeTruthy();
   });
 
   it.each(["pointer", "touch"] as const)("lifts and shrinks the folded cards when the motion policy is %s", (policy) => {

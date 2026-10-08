@@ -20,6 +20,7 @@ export function ConsentField({
   return (
     <FormControl error={Boolean(error)}>
       <FormControlLabel
+        sx={{ ml: 0, mr: 0 }}
         control={
           <Checkbox
             checked={checked}

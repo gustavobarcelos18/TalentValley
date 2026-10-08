@@ -31,6 +31,7 @@ export const PERSONAL_HEADING = /Dados pessoais/;
 export const REVIEW_HEADING = /Revisão e termos/;
 export const EDIT_PERSONAL = "Editar dados pessoais";
 export const CONSENT_ERROR = "Você deve aceitar os termos para continuar.";
+export const LGPD_CONSENT_ERROR = "Você deve autorizar o tratamento dos dados essenciais para continuar.";
 export const SUBMIT_LABEL = "Enviar solicitação";
 export const SUCCESS_TITLE = "Solicitação recebida";
 export const SUBMIT_FALLBACK = "Não foi possível enviar a solicitação. Revise os dados e tente novamente.";
@@ -92,6 +93,31 @@ export async function goToDetails(user: UserEvent, detailsHeading: RegExp) {
   await stepHeading(detailsHeading);
 }
 
+// Each consent checkbox is matched by a unique fragment of its label, so the
+// three stay independent in the tests just like they are in the UI.
+export function termsCheckbox() {
+  return screen.getByRole("checkbox", { name: /concordo com os/i });
+}
+
+export function lgpdEssentialCheckbox() {
+  return screen.getByRole("checkbox", { name: /dados pessoais essenciais/i });
+}
+
+export function marketingCheckbox() {
+  return screen.getByRole("checkbox", { name: /receber comunicações/i });
+}
+
 export async function acceptTerms(user: UserEvent) {
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(termsCheckbox());
+}
+
+export async function acceptLgpdEssential(user: UserEvent) {
+  await user.click(lgpdEssentialCheckbox());
+}
+
+// Both mandatory consents (terms + LGPD essential) must be checked for the
+// submit button to enable, so every flow that submits goes through this helper.
+export async function acceptRequiredConsents(user: UserEvent) {
+  await acceptTerms(user);
+  await acceptLgpdEssential(user);
 }

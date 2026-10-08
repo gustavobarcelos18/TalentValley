@@ -13,7 +13,7 @@ import {
   REVIEW_HEADING,
   SUBMIT_LABEL,
   SUCCESS_TITLE,
-  acceptTerms,
+  acceptRequiredConsents,
   alertText,
   button,
   fill,
@@ -135,7 +135,7 @@ describe("RecruiterRegistrationWizard", () => {
     const user = userEvent.setup({ delay: null });
     render(<RecruiterRegistrationWizard />);
     await goToReview(user, SITE);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
 
     await user.click(button(SUBMIT_LABEL));
 
@@ -160,7 +160,7 @@ describe("RecruiterRegistrationWizard", () => {
     const user = userEvent.setup({ delay: null });
     render(<RecruiterRegistrationWizard />);
     await goToReview(user);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
 
     await user.click(button(SUBMIT_LABEL));
 

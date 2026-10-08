@@ -8,7 +8,6 @@ import { ApiError } from "@/lib/api";
 import {
   BACK,
   CEP_FIELD,
-  CONSENT_ERROR,
   CONTINUE,
   EDIT_PERSONAL,
   EMAIL_FIELD,
@@ -22,15 +21,18 @@ import {
   SUBMIT_FORBIDDEN,
   SUBMIT_LABEL,
   SUCCESS_TITLE,
-  acceptTerms,
+  acceptRequiredConsents,
   alertText,
   button,
   fill,
   fillContact,
   goToDetails,
+  lgpdEssentialCheckbox,
+  marketingCheckbox,
   seedMunicipios,
   stepHeading,
   summaryValue,
+  termsCheckbox,
   textField,
 } from "./wizardTestHelpers";
 
@@ -68,7 +70,7 @@ export function registerWizardTests(config: WizardSuiteConfig) {
 
   async function submitFromReview(user: UserEvent) {
     await goToReview(user);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
     await user.click(button(SUBMIT_LABEL));
   }
 
@@ -153,22 +155,27 @@ export function registerWizardTests(config: WizardSuiteConfig) {
     expect(textField(keptField.label).value).toBe(keptField.value);
   });
 
-  it("requires the terms consent and drops the error once it is accepted", async () => {
+  it("keeps Enviar disabled until both required consents are checked, and the optional one never gates it", async () => {
     const user = userEvent.setup({ delay: null });
     render(<Wizard />);
     await goToReview(user);
 
-    await user.click(button(SUBMIT_LABEL));
+    expect(button(SUBMIT_LABEL).disabled).toBe(true);
 
-    expect(alertText()).toBe(CONSENT_ERROR);
-    expect(document.activeElement).toBe(screen.getByRole("checkbox"));
-    expect(screen.getAllByText(CONSENT_ERROR)).toHaveLength(2);
-    expect(api).not.toHaveBeenCalled();
+    await user.click(termsCheckbox());
+    expect(button(SUBMIT_LABEL).disabled).toBe(true);
 
-    await acceptTerms(user);
+    await user.click(lgpdEssentialCheckbox());
+    expect(button(SUBMIT_LABEL).disabled).toBe(false);
 
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByText(CONSENT_ERROR)).toBeNull();
+    // The optional marketing consent never gates the button.
+    await user.click(marketingCheckbox());
+    expect((marketingCheckbox() as HTMLInputElement).checked).toBe(true);
+    expect(button(SUBMIT_LABEL).disabled).toBe(false);
+
+    // Unchecking a required consent disables Enviar again.
+    await user.click(termsCheckbox());
+    expect(button(SUBMIT_LABEL).disabled).toBe(true);
   });
 
   it("locks the form while the request is pending", async () => {
@@ -183,7 +190,7 @@ export function registerWizardTests(config: WizardSuiteConfig) {
     expect(button(SUBMITTING).disabled).toBe(true);
     expect(button(BACK).disabled).toBe(true);
     expect(button(EDIT_PERSONAL).disabled).toBe(true);
-    expect(screen.getByRole("checkbox").hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("checkbox", { name: /dados pessoais essenciais/i }).hasAttribute("disabled")).toBe(true);
 
     await act(async () => finishRequest());
 
@@ -226,7 +233,7 @@ export function registerWizardTests(config: WizardSuiteConfig) {
     const user = userEvent.setup({ delay: null });
     render(<Wizard />);
     await goToReview(user);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
     municipioCache.set(PERSONAL.uf, [{ id: 1, nome: "Ubá" }]);
 
     await user.click(button(SUBMIT_LABEL));
@@ -263,7 +270,7 @@ export function registerWizardTests(config: WizardSuiteConfig) {
     await user.click(button(CONTINUE));
     await stepHeading(REVIEW_HEADING);
     expect(summaryValue(CEP_FIELD)).toBe(CEP_VALUE);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
     await user.click(button(SUBMIT_LABEL));
 
     await screen.findByRole("heading", { name: SUCCESS_TITLE });
@@ -277,7 +284,7 @@ export function registerWizardTests(config: WizardSuiteConfig) {
     motion.policy = "pointer";
     render(<Wizard />);
     await goToReview(user);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
 
     vi.useFakeTimers();
     fireEvent.click(button(SUBMIT_LABEL));

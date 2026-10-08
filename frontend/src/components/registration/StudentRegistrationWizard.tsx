@@ -31,7 +31,7 @@ import {
   commonBlank,
   commonErrors,
   firstError,
-  validateConsent,
+  validateConsents,
   type CommonForm,
   type FieldErrors,
 } from "./registrationForm";
@@ -58,7 +58,7 @@ const STEPS = [
 const STEP_FIELD_ORDER: string[][] = [
   ["nomeCompleto", "email", "telefone", "cep", "uf", "cidade"],
   ["instituicaoEnsino", "curso", "tipoFormacao", "anoConclusaoPrevisto", "relacaoRioPombaValley"],
-  ["consentTermos"],
+  ["consentTermos", "consentLgpdEssencial"],
 ];
 
 function educationErrors(school: StudentEducationForm): FieldErrors {
@@ -84,7 +84,9 @@ export function StudentRegistrationWizard() {
   const wizard = useWizard(STEPS.length);
   const [common, setCommon] = useState<CommonForm>(commonBlank);
   const [school, setSchool] = useState<StudentEducationForm>(studentEducationBlank);
-  const [consent, setConsent] = useState(false);
+  const [consentTermos, setConsentTermos] = useState(false);
+  const [consentLgpdEssencial, setConsentLgpdEssencial] = useState(false);
+  const [consentComunicacoes, setConsentComunicacoes] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -122,7 +124,7 @@ export function StudentRegistrationWizard() {
   const stepErrors = (step: number): FieldErrors => {
     if (step === 0) return commonErrors(common);
     if (step === 1) return educationErrors(school);
-    return { consentTermos: validateConsent(consent) };
+    return validateConsents(consentTermos, consentLgpdEssencial);
   };
 
   const blurCommon = (key: keyof CommonForm) =>
@@ -278,15 +280,24 @@ export function StudentRegistrationWizard() {
                 { label: "Relação com o Rio Pomba Valley", value: school.relacaoRioPombaValley },
               ],
             }}
-            consent={consent}
-            consentError={errors.consentTermos}
+            consentTermos={consentTermos}
+            consentTermosError={errors.consentTermos}
+            consentLgpdEssencial={consentLgpdEssencial}
+            consentLgpdError={errors.consentLgpdEssencial}
+            consentComunicacoes={consentComunicacoes}
             disabled={busy}
             collapsed={busy}
-            onConsentChange={(checked) => {
-              setConsent(checked);
+            onConsentTermosChange={(checked) => {
+              setConsentTermos(checked);
               setErrors((currentErrors) => ({ ...currentErrors, consentTermos: null }));
               clearError();
             }}
+            onConsentLgpdEssencialChange={(checked) => {
+              setConsentLgpdEssencial(checked);
+              setErrors((currentErrors) => ({ ...currentErrors, consentLgpdEssencial: null }));
+              clearError();
+            }}
+            onConsentComunicacoesChange={setConsentComunicacoes}
             onEditStep={editStep}
             registerFieldRef={registerFieldRef}
           />
@@ -313,7 +324,12 @@ export function StudentRegistrationWizard() {
           </Button>
         )}
         <div className="min-w-0 flex-1">
-          <AuthSubmitButton loading={busy} success={finished} loadingLabel="Enviando solicitação...">
+          <AuthSubmitButton
+            loading={busy}
+            success={finished}
+            loadingLabel="Enviando solicitação..."
+            disabled={wizard.isLast && !(consentTermos && consentLgpdEssencial)}
+          >
             {wizard.isLast ? "Enviar solicitação" : "Continuar"}
           </AuthSubmitButton>
         </div>

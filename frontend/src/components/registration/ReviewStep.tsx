@@ -1,11 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Box, Button, Paper, Typography } from "@mui/material";
+import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { motion } from "framer-motion";
 import { duration, ease } from "@/components/auth/motion/tokens";
 import { useMotionPolicy } from "@/components/auth/motion/useMotionPolicy";
 import { ConsentField } from "./ConsentField";
+import { LgpdConsent } from "./LgpdConsent";
 import type { CommonForm, FocusableControl } from "./registrationForm";
 
 const EMPTY = "Não informado";
@@ -65,12 +66,20 @@ export interface ReviewDetails {
 interface ReviewStepProps {
   personal: CommonForm;
   details: ReviewDetails;
-  consent: boolean;
-  consentError: string | null | undefined;
+  /** Termos de Uso e Política de Privacidade (obrigatório). */
+  consentTermos: boolean;
+  consentTermosError: string | null | undefined;
+  /** Coleta e tratamento de dados pessoais essenciais / LGPD (obrigatório). */
+  consentLgpdEssencial: boolean;
+  consentLgpdError: string | null | undefined;
+  /** Comunicações e avisos do Talent Valley (opcional). */
+  consentComunicacoes: boolean;
   disabled: boolean;
   /** The summary folds away while the request is being sent, and unfolds again if it fails. */
   collapsed: boolean;
-  onConsentChange: (checked: boolean) => void;
+  onConsentTermosChange: (checked: boolean) => void;
+  onConsentLgpdEssencialChange: (checked: boolean) => void;
+  onConsentComunicacoesChange: (checked: boolean) => void;
   onEditStep: (step: number) => void;
   registerFieldRef: (key: string) => (node: FocusableControl) => void;
 }
@@ -82,15 +91,20 @@ const FOLD_STAGGER = 0.06;
 export const REVIEW_FOLD_MS = Math.round((duration.base + FOLD_STAGGER) * 1000);
 
 // Step "Revisão e termos" of the signup wizards: read-only summary with a way
-// back to each step, plus the terms consent that gates the submission.
+// back to each step, plus the three independent consents that gate the submission.
 export function ReviewStep({
   personal,
   details,
-  consent,
-  consentError,
+  consentTermos,
+  consentTermosError,
+  consentLgpdEssencial,
+  consentLgpdError,
+  consentComunicacoes,
   disabled,
   collapsed,
-  onConsentChange,
+  onConsentTermosChange,
+  onConsentLgpdEssencialChange,
+  onConsentComunicacoesChange,
   onEditStep,
   registerFieldRef,
 }: ReviewStepProps) {
@@ -107,7 +121,6 @@ export function ReviewStep({
     initial: false as const,
     transition: timing(index * FOLD_STAGGER),
   });
-
   return (
     <div className="sm:col-span-2">
       {/* Gap between the cards and the consent lives in the margin, so it folds away with them. */}
@@ -150,13 +163,26 @@ export function ReviewStep({
         </div>
       </motion.div>
 
-      <ConsentField
-        checked={consent}
-        error={consentError}
-        disabled={disabled}
-        onChange={onConsentChange}
-        inputRef={registerFieldRef("consentTermos")}
-      />
+      {/* One container holds all three checkboxes, so they stay aligned to the left in the same vertical line. */}
+      <Stack direction="column" spacing={1.5} sx={{ mt: collapsed ? 0 : 2 }}>
+        <ConsentField
+          checked={consentTermos}
+          error={consentTermosError}
+          disabled={disabled}
+          onChange={onConsentTermosChange}
+          inputRef={registerFieldRef("consentTermos")}
+        />
+        <LgpdConsent
+          essential={consentLgpdEssencial}
+          essentialError={consentLgpdError}
+          marketing={consentComunicacoes}
+          disabled={disabled}
+          onEssentialChange={onConsentLgpdEssencialChange}
+          onMarketingChange={onConsentComunicacoesChange}
+          essentialInputRef={registerFieldRef("consentLgpdEssencial")}
+        />
+      </Stack>
     </div>
   );
 }
+

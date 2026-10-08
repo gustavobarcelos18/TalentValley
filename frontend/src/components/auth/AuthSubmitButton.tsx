@@ -17,6 +17,8 @@ interface AuthSubmitButtonProps {
   success?: boolean;
   /** Rate-limit wait: the button shows the countdown and comes back with a pulse. */
   retry?: RetryCountdown;
+  /** Forces the button disabled (e.g. the wizards disable "Enviar" until the required consents are checked). */
+  disabled?: boolean;
 }
 
 function formatCountdown(seconds: number): string {
@@ -49,10 +51,10 @@ function CountdownRing({ remaining, total }: { remaining: number; total: number 
 
 // Primary action of an entry form: leans toward the cursor, shimmers on hover, and swaps its label for
 // a spinner (sending), a drawn check (done) or a countdown ring (rate limited).
-export function AuthSubmitButton({ children, loadingLabel, loading = false, success = false, retry }: AuthSubmitButtonProps) {
+export function AuthSubmitButton({ children, loadingLabel, loading = false, success = false, retry, disabled = false }: AuthSubmitButtonProps) {
   const waiting = retry !== undefined && retry.remaining > 0;
   // While the check shows, `loading` is still true; the button must keep its normal colors then.
-  const disabled = (loading && !success) || waiting;
+  const isDisabled = disabled || (loading && !success) || waiting;
 
   let content: ReactNode = children;
   if (success) {
@@ -79,13 +81,13 @@ export function AuthSubmitButton({ children, loadingLabel, loading = false, succ
   }
 
   return (
-    <MagneticButton disabled={disabled || success}>
+    <MagneticButton disabled={isDisabled || success}>
       <Button
         type={success ? "button" : "submit"}
         variant="contained"
         size="large"
         fullWidth
-        disabled={disabled}
+        disabled={isDisabled}
         sx={{ position: "relative", ...shimmerSx }}
       >
         {content}

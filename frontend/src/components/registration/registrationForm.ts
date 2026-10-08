@@ -34,8 +34,20 @@ export type FocusableControl = { focus: () => void } | null;
 
 export const CONSENT_ERROR = "Você deve aceitar os termos para continuar.";
 
+export const LGPD_CONSENT_ERROR = "Você deve autorizar o tratamento dos dados essenciais para continuar.";
+
 export function validateConsent(accepted: boolean): string | null {
   return accepted ? null : CONSENT_ERROR;
+}
+
+// Both mandatory consents gate the submission: the terms/privacy acceptance and
+// the LGPD essential data treatment. Each one is reported under its own key so
+// the review step can focus and show the right error.
+export function validateConsents(termsAccepted: boolean, essentialAccepted: boolean): FieldErrors {
+  return {
+    consentTermos: validateConsent(termsAccepted),
+    consentLgpdEssencial: essentialAccepted ? null : LGPD_CONSENT_ERROR,
+  };
 }
 
 // The submitted city must belong to the selected UF. This only enforces the

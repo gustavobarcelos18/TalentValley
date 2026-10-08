@@ -12,7 +12,7 @@ import {
   REVIEW_HEADING,
   SUBMIT_LABEL,
   SUCCESS_TITLE,
-  acceptTerms,
+  acceptRequiredConsents,
   alertText,
   button,
   fill,
@@ -157,7 +157,7 @@ describe("StudentRegistrationWizard", () => {
     const user = userEvent.setup({ delay: null });
     render(<StudentRegistrationWizard />);
     await goToReview(user, { year: nextYear, relation: RELATION });
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
 
     await user.click(button(SUBMIT_LABEL));
 
@@ -184,7 +184,7 @@ describe("StudentRegistrationWizard", () => {
     const user = userEvent.setup({ delay: null });
     render(<StudentRegistrationWizard />);
     await goToReview(user);
-    await acceptTerms(user);
+    await acceptRequiredConsents(user);
 
     await user.click(button(SUBMIT_LABEL));
 
