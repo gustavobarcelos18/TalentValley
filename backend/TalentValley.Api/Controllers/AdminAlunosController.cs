@@ -55,7 +55,16 @@ public sealed class AdminAlunosController(AdminAlunoService alunos) : Controller
     public async Task<IActionResult> Reactivate(Guid id) => await alunos.SetActiveAsync(id, true) ? NoContent() : Missing();
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id) => await alunos.DeleteAsync(id) ? NoContent() : Missing();
+    public async Task<IActionResult> Delete(Guid id) => await alunos.DeleteAsync(id) switch
+    {
+        AdminAlunoDeleteResult.Deleted => NoContent(),
+        AdminAlunoDeleteResult.NotFound => Missing(),
+        AdminAlunoDeleteResult.MustBeBlocked => MustBeBlockedFirst(),
+        _ => throw new ArgumentOutOfRangeException(nameof(id)),
+    };
 
     private ObjectResult Missing() => Problem(statusCode: StatusCodes.Status404NotFound, title: "Aluno não encontrado.");
+
+    private ObjectResult MustBeBlockedFirst() => Problem(statusCode: StatusCodes.Status409Conflict,
+        title: "Bloqueie o aluno antes de excluí-lo permanentemente.");
 }

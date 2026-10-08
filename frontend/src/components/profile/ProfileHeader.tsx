@@ -25,6 +25,7 @@ import {
   deleteStudentPhoto,
   uploadStudentPhoto,
 } from "@/lib/student";
+import { notifyPhotoChange } from "@/lib/photoSync";
 import type { SectionProps } from "./sectionProps";
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -33,6 +34,10 @@ const PHOTO_ACCEPTED_TYPES = new Set([
   "image/png",
   "image/webp",
 ]);
+
+function asciiText(bytes: Uint8Array, start: number, end: number): string {
+  return String.fromCharCode(...bytes.subarray(start, end));
+}
 
 async function validatePhoto(file: File): Promise<string | null> {
   const extension = file.name.toLowerCase().split(".").pop();
@@ -56,7 +61,7 @@ async function validatePhoto(file: File): Promise<string | null> {
     ? header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
     : expectedType === "image/png"
       ? header.length >= 8 && header.subarray(0, 8).join(",") === "137,80,78,71,13,10,26,10"
-      : header.length >= 12 && header.subarray(0, 4).join("") === "RIFF" && header.subarray(8, 12).join("") === "WEBP";
+      : header.length >= 12 && asciiText(header, 0, 4) === "RIFF" && asciiText(header, 8, 12) === "WEBP";
   if (!validSignature) {
     return "O arquivo selecionado não é uma imagem JPEG, PNG ou WebP válida.";
   }
@@ -103,6 +108,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
       .then(() => {
         onChanged();
         reload();
+        notifyPhotoChange();
         notify("Foto atualizada.");
       })
       .catch((err) => {
@@ -120,6 +126,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
       .then(() => {
         onChanged();
         reload();
+        notifyPhotoChange();
         notify("Foto removida.");
       })
       .catch((err) => {

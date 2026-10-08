@@ -26,6 +26,7 @@ public sealed class SolicitacaoCadastroConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.Cargo).HasMaxLength(120);
         builder.Property(x => x.SiteEmpresa).HasMaxLength(2048);
         builder.Property(x => x.MotivoRejeicao).HasMaxLength(500);
+        builder.Property(x => x.VersaoTermos).HasMaxLength(20);
         builder.HasOne(x => x.AdminUser).WithMany().HasForeignKey(x => x.AdminUserId)
             .OnDelete(DeleteBehavior.SetNull);
 

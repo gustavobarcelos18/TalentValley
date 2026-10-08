@@ -33,6 +33,7 @@ public sealed class AntiforgeryTests : IDisposable
     [InlineData("activate-account")]
     [InlineData("forgot-password")]
     [InlineData("reset-password")]
+    [InlineData("resend-activation")]
     public async Task Anonymous_auth_mutations_require_antiforgery(string endpoint)
     {
         using var client = factory.Client();

@@ -248,3 +248,7 @@ Audit is chronological/read-only in MVP.
 No audit filters required.
 
 Audit survives deletion of the target entity.
+
+## Data retention
+
+Rejected registration requests are deleted after 30 days, on the next admin list view.

@@ -48,7 +48,7 @@ public sealed class RecrutadorListQuery
 }
 
 public sealed record PaginatedResponse<T>(IReadOnlyCollection<T> Items, int Page, int PageSize, int TotalItems, int TotalPages);
-public sealed record AlunoCreatedResponse(Guid Id, string NomeCompleto, string Email, bool Ativo);
+public sealed record AlunoCreatedResponse(Guid Id, string NomeCompleto, string Email, bool Ativo, bool ActivationSent);
 public sealed record AlunoListItem(Guid Id, string Slug, string NomeCompleto, string? FotoUrl,
     string? Cidade, string? Uf, bool Ativo, DateTimeOffset AtualizadoEm);
 public sealed record AdminAlunoDetailResponse(
@@ -63,7 +63,7 @@ public sealed record AdminFormacaoResponse(Guid Id, TipoFormacao Tipo, string No
     bool EhRioPombaValley, StatusValidacaoRpv? StatusValidacaoRpv, bool PossuiCertificado, string? CertificadoUrl,
     DateTimeOffset CriadoEm, DateTimeOffset AtualizadoEm);
 public sealed record AdminCurriculoResponse(bool PossuiCurriculo, string? Url);
-public sealed record RecrutadorCreatedResponse(Guid Id, string NomeCompleto, string Email, StatusRecrutador Status);
+public sealed record RecrutadorCreatedResponse(Guid Id, string NomeCompleto, string Email, StatusRecrutador Status, bool ActivationSent);
 public sealed record RecrutadorListItem(Guid Id, string NomeCompleto, string Empresa, string Cargo,
     string Cidade, string Uf, StatusRecrutador Status, DateTimeOffset? UltimoAcessoEm);
 public sealed record RecrutadorDetailResponse(Guid Id, string NomeCompleto, string Email, string Empresa,

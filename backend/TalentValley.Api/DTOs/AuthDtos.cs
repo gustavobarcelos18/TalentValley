@@ -18,4 +18,9 @@ public sealed record ActivateAccountRequest(
     [Required, StringLength(4096)] string Token,
     [Required, StringLength(1024)] string Senha);
 
+public sealed record ResendActivationRequest([Required, EmailAddress, SafeEmail, StringLength(256), NoEmoji, NoControlCharacters] string Email);
+public sealed record ChangePasswordRequest(
+    [Required, StringLength(1024)] string SenhaAtual,
+    [Required, StringLength(1024)] string NovaSenha);
+
 public sealed record CsrfResponse(string Token);

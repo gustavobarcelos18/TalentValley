@@ -9,6 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import { ApiError, refreshCsrfToken, setUnauthorizedHandler } from "@/lib/api";
 import { fetchCurrentUser, logout as apiLogout } from "@/lib/auth";
 import type { UsuarioAutenticado } from "@/types/auth";
 
@@ -34,14 +36,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
+  const router = useRouter();
   const initialCheckDone = useRef(false);
+  const userRef = useRef<UsuarioAutenticado | null>(null);
+
+  useEffect(() => {
+    userRef.current = state.user;
+  }, [state.user]);
+
+  // A 401 for a signed-in user means the session is gone (expired, or ended
+  // by a password change elsewhere). End the local login once and send the
+  // user to the login screen with a notice. Anonymous 401s (wrong credentials,
+  // the first /me check) are not session expiry and are left to each screen.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      if (!userRef.current) return;
+      userRef.current = null;
+      setState({ user: null, loading: false, error: null });
+      void refreshCsrfToken();
+      router.replace("/login?sessao=expirada");
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [router]);
 
   const refreshUser = useCallback(async () => {
     try {
       const user = await fetchCurrentUser();
       setState({ user, loading: false, error: null });
-    } catch {
-      setState({ user: null, loading: false, error: null });
+    } catch (error) {
+      // 401/403 mean the current session is not usable: treat it as normal
+      // anonymous behavior. Any other failure (network, 5xx, ...) is an
+      // operational error and must never be mistaken for a logout.
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        setState({ user: null, loading: false, error: null });
+      } else {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "Não foi possível verificar sua sessão. Tente novamente.",
+        }));
+      }
     }
   }, []);
 

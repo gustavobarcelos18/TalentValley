@@ -5,11 +5,12 @@ import { gsap } from "gsap";
 import { motionQueries, useLandingMotionPolicy } from "./LandingMotion";
 import "./scrollTriggerSetup";
 
+/** `ref` is the landing root; the hero is looked up inside it because the landing content is server-rendered. */
 export function useHeroDepth(ref: RefObject<HTMLElement | null>) {
   const policy = useLandingMotionPolicy();
 
   useEffect(() => {
-    const hero = ref.current;
+    const hero = ref.current?.querySelector<HTMLElement>(".hero");
     if (!hero || policy === "pending" || policy === "reduced") return;
     // matchMedia owns a scoped GSAP context and reverts every tween/trigger.
     const media = gsap.matchMedia();

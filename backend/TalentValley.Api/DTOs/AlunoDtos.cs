@@ -3,6 +3,9 @@ using TalentValley.Api.Domain.Enums;
 
 namespace TalentValley.Api.DTOs;
 
+// DELETE /api/alunos/me request (LGPD self-deletion confirmation)
+public sealed record DeleteOwnProfileRequest([Required, StringLength(1024)] string SenhaAtual);
+
 // GET /api/alunos/me response
 public sealed record MeResponse(
     Guid Id,

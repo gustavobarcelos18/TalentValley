@@ -11,6 +11,7 @@ bin/
 obj/
 .build-check/
 .test-check/
+TestResults/
 
 # Local configuration and secrets
 .env*
@@ -24,9 +25,10 @@ obj/
 .DS_Store
 
 # Local backend data
-backend/TalentValley.Api/storage/*
-!backend/TalentValley.Api/Storage/.gitkeep
-!backend/TalentValley.Api/Storage/**/*.cs
+backend/TalentValley.Api/App_Data/
 backend/TalentValley.Api/Database/*.db
 backend/TalentValley.Api/Database/*.db-shm
 backend/TalentValley.Api/Database/*.db-wal
+
+# Local project brain (plans, reports, solved problems)
+.agents/brain/

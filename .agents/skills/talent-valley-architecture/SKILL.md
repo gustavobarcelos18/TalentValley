@@ -25,3 +25,7 @@ When architecture changes are requested:
 - explain any new dependency;
 - identify migration or security impact;
 - preserve backward-compatible behavior where practical.
+
+## Implementation plans
+
+Any implementation plan must be split into phases, each stating where changes happen and what will be done. Follow `talent-valley-phased-delivery` for the plan format, branch-per-phase, and approval/commit/push rules.

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -72,15 +73,27 @@ public static class SecurityRegistration
                         else context.NoResult(); // Do not fall back to Authorization headers.
                         return Task.CompletedTask;
                     },
-                    OnTokenValidated = context =>
+                    OnTokenValidated = async context =>
                     {
                         var subject = context.Principal?.FindFirst("sub")?.Value;
                         if (!Guid.TryParse(subject, out _) || context.Principal?.FindFirst("role") is null)
+                        {
                             context.Fail("Invalid identity claims.");
-                        else
-                            // Antiforgery binds tokens to the stable subject, never to a display name.
-                            ((ClaimsIdentity)context.Principal!.Identity!).AddClaim(new Claim(ClaimTypes.NameIdentifier, subject));
-                        return Task.CompletedTask;
+                            return;
+                        }
+                        // Password reset (and admin block/reactivation) rotates the Identity security stamp,
+                        // so tokens issued before that change stop authenticating (401) immediately.
+                        var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+                        var user = await users.FindByIdAsync(subject);
+                        var claimed = context.Principal.FindFirst(JwtTokenService.SecurityStampClaim)?.Value;
+                        if (user is null || claimed is null ||
+                            claimed != JwtTokenService.HashSecurityStamp(await users.GetSecurityStampAsync(user)))
+                        {
+                            context.Fail("Session is no longer valid.");
+                            return;
+                        }
+                        // Antiforgery binds tokens to the stable subject, never to a display name.
+                        ((ClaimsIdentity)context.Principal.Identity!).AddClaim(new Claim(ClaimTypes.NameIdentifier, subject));
                     }
                 };
             });
@@ -122,6 +135,10 @@ public static class SecurityRegistration
                 uri.AbsolutePath == "/" && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) && string.IsNullOrEmpty(uri.UserInfo),
                 "Frontend:BaseUrl must be a frontend origin (HTTPS outside Development).")
             .ValidateOnStart();
+        services.AddOptions<HostFilteringOptions>()
+            .Validate(o => environment.IsDevelopment() || HasSpecificAllowedHosts(o.AllowedHosts),
+                "AllowedHosts must list the deployed API host(s) outside Development; empty, \"*\" and \"localhost\" are not allowed.")
+            .ValidateOnStart();
         services.AddAntiforgery(options =>
         {
             options.HeaderName = "X-XSRF-TOKEN";
@@ -136,7 +153,14 @@ public static class SecurityRegistration
             if (environment.IsDevelopment())
                 policy.WithOrigins(configuration["Frontend:BaseUrl"]!.TrimEnd('/'))
                     .WithMethods("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                    .WithHeaders("Content-Type", "X-XSRF-TOKEN").AllowCredentials();
+                    .WithHeaders("Content-Type", "X-XSRF-TOKEN").WithExposedHeaders("Retry-After").AllowCredentials();
         }));
+    }
+
+    private static bool HasSpecificAllowedHosts(IList<string>? hosts)
+    {
+        var entries = (hosts ?? []).Select(h => h.Trim()).Where(h => h.Length > 0).ToList();
+        return entries.Count > 0 && !entries.Contains("*") &&
+            !entries.All(h => string.Equals(h, "localhost", StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -72,7 +72,7 @@ Admins have a paginated pending queue at `GET /api/admin/validacoes-rpv`, format
 
 Uploaded files are private and are delivered only through active-student authorized API endpoints. Photos accept validated JPEG, PNG, or WebP files up to 5 MB; curricula and certificates accept validated PDFs up to 10 MB. Validation checks size, extension, declared MIME type, and file signature. Curriculum and certificate responses consistently download with safe filenames (`curriculo.pdf` and `certificado.pdf`); photos are inline. Files are never exposed through static-file middleware, and storage keys and physical paths never appear in API responses.
 
-`IFileStorage` keeps application workflows independent of the initial `LocalFileStorage` provider. By default, Development resolves `Storage:RootPath=storage` beneath the API content root and uses the controlled `fotos`, `curriculos`, and `certificados` subdirectories. Deployments must configure `Storage:RootPath` to a persistent mounted volume; container-local ephemeral storage will lose uploads. Uploaded contents are ignored by Git.
+`IFileStorage` keeps application workflows independent of the initial `LocalFileStorage` provider. By default, Development resolves `Storage:RootPath=App_Data/storage` beneath the API content root and uses the controlled `fotos`, `curriculos`, and `certificados` subdirectories. Deployments must configure `Storage:RootPath` to a persistent mounted volume; container-local ephemeral storage will lose uploads. Uploaded contents are ignored by Git.
 
 Replacement writes a new opaque GUID key, commits the database reference, and only then removes the old file. Deletes clear the database reference first. Changing an RPV formation certificate resets its validation to `PENDENTE` and clears `ValidadoEm`; non-RPV formations keep a null validation state. Successful student deletion cleans all associated physical files after its database/Identity transaction commits.
 
@@ -101,7 +101,23 @@ At most one formation is principal; selecting a new principal atomically unsets 
 
 Projects are limited to two (third create returns 409), with unique orders 1/2. Creating into an occupied order moves the existing project to the free order; updating into an occupied order swaps both projects transactionally. Because SQLite enforces both unique order and the 1/2 check immediately, a swap removes/reinserts the other project and its technologies inside the transaction, preserving IDs, creation timestamps, and content. Deletion compacts the survivor to order 1. Write transactions serialize count/order decisions. Technologies fully replace catalog references, reject unknown/duplicate IDs, and never change general student competencies.
 
-Recruiter frontend screens and the admin dashboard remain future phases.
+## Host validation
+
+The API restricts incoming requests by `Host` header via ASP.NET Core's host-filtering middleware. Development accepts `localhost`. Production **must** configure the real domain through the `AllowedHosts` environment variable to prevent request smuggling and host-header injection.
+
+Example for a Vercel or Railway deployment with domain `talent.example`:
+
+```powershell
+# via environment variable
+$env:AllowedHosts = "talent.example"
+dotnet run
+```
+
+In containerized deployments, set it through your orchestration system (Docker ENV, Kubernetes env, etc.):
+
+```dockerfile
+ENV AllowedHosts=talent.example
+```
 
 ## Authentication configuration
 
@@ -117,7 +133,15 @@ dotnet user-secrets set 'Jwt:SigningKey' $jwtKey --project backend/TalentValley.
 Remove-Variable jwtKey, jwtBytes, jwtRandom
 ```
 
-`Jwt:SigningKey` must be Base64 encoding at least 32 cryptographically random bytes. Missing, short, or repetitive keys fail startup in every environment. Development configuration supplies `Jwt:Issuer=TalentValley.Api`, `Jwt:Audience=TalentValley.Frontend`, `Jwt:ExpirationHours=8`, and `Frontend:BaseUrl=http://localhost:3000`. Lifetime must be greater than 0 and at most 24 hours. Outside Development, supply the issuer, audience, signing key, frontend HTTPS origin, and connection string through deployment configuration/secrets. CORS only permits the configured Development origin with credentials; Production uses same-origin routing.
+`Jwt:SigningKey` must be Base64 encoding at least 32 cryptographically random bytes. Missing, short, or repetitive keys fail startup in every environment. Development configuration supplies `Jwt:Issuer=TalentValley.Api`, `Jwt:Audience=TalentValley.Frontend`, `Jwt:ExpirationHours=8`, and `Frontend:BaseUrl=http://localhost:3000`. Lifetime must be greater than 0 and at most 24 hours.
+
+Outside Development, supply:
+- `AllowedHosts`: the production domain (e.g., `talent.example`) to reject requests with incorrect Host headers.
+- `Jwt:SigningKey`: base64-encoded 32-byte key.
+- `Jwt:Issuer`, `Jwt:Audience`, and `Frontend:BaseUrl`: production HTTPS origin.
+- `ConnectionStrings:DefaultConnection`: production database connection string.
+
+CORS only permits the configured Development origin with credentials; Production uses same-origin routing.
 
 Identity requires a unique email and passwords with at least 8 characters, uppercase, lowercase, and a digit; symbols are optional. Five failed password attempts lock sign-in for 15 minutes. Accounts require activation/email confirmation before sign-in. Successful login shifts `UltimoLoginEm` into `LoginAnteriorEm` and records the current UTC time.
 
@@ -138,7 +162,7 @@ dotnet user-secrets set 'BootstrapAdmin:Password' $bootstrapCredential.Password 
 Remove-Variable bootstrapPassword, bootstrapCredential
 ```
 
-Missing/incomplete settings log an informational skip and startup continues (a valid JWT key and migrated DB are still required). Bootstrap runs only in Development, is idempotent, normalizes `NomeBusca`, and never resets an existing admin password or promotes an existing non-admin. No student/recruiter/demo accounts are seeded. Remove the bootstrap password secret after the initial account is created if bootstrap is no longer needed.
+Missing/incomplete settings log an informational skip and startup continues (a valid JWT key and migrated DB are still required). Bootstrap runs in Development or when `BootstrapAdmin:Enabled` is true, is idempotent, normalizes `NomeBusca`, and never resets an existing admin password or promotes an existing non-admin. No student/recruiter/demo accounts are seeded. Remove the bootstrap password secret after the initial account is created if bootstrap is no longer needed.
 
 ### API and antiforgery request flow
 
@@ -149,9 +173,9 @@ Missing/incomplete settings log an informational skip and startup continues (a v
 
 `POST /api/auth/activate-account` accepts `{ email, token, senha }`; `POST /api/auth/forgot-password` accepts `{ email }`; `POST /api/auth/reset-password` accepts `{ email, token, novaSenha }`. Activation/reset return 204 or a generic 400 and do not log in. Forgot-password returns the same generic 202 for eligible, missing, or unactivated accounts. Malformed requests still receive standard validation problems.
 
-`AccountTokenService` generates activation tokens/links for an existing admin-created user and can send them through `IEmailSender`; no admin creation endpoint exists yet. Links target `${Frontend:BaseUrl}/ativar-conta` and `/redefinir-senha` with URL-encoded `email` and `token`. Activation tokens use a dedicated Identity purpose; reset uses Identity password-reset tokens. Both use Identity's default Data Protection token lifetime (one day) and are invalidated after successful use. Activation sets the first password and confirms email atomically. Unactivated accounts cannot use reset as an activation shortcut.
+`AccountTokenService` generates activation tokens/links for an admin-created user and can send them through `IEmailSender`. Links target `${Frontend:BaseUrl}/ativar-conta` and `/redefinir-senha` with URL-encoded `email` and `token`. Activation tokens use a dedicated Identity purpose; reset uses Identity password-reset tokens. Both use Identity's default Data Protection token lifetime (one day) and are invalidated after successful use. Activation sets the first password and confirms email atomically. Unactivated accounts cannot use reset as an activation shortcut.
 
-The Development sender logs the destination email and full activation/reset URL in the API console; no external provider is needed. It never logs passwords or JWTs. Outside Development, the placeholder sender logs an explicit error and throws on attempted delivery. Forgot-password handles that known delivery error after logging it and preserves its generic 202 to prevent enumeration; it does not claim delivery succeeded. A production email implementation and persistent Data Protection keys must be configured for deployment.
+The `DevelopmentEmailSender` logs the destination email and full activation/reset URL in the API console; no external provider is needed and it never logs passwords or JWTs. Outside Development the API uses `BrevoEmailSender` when `Brevo__ApiKey`, `Brevo__SenderAddress`, and `Brevo__SenderName` are all configured; otherwise it uses `UnavailableEmailSender`, which logs an error and throws on attempted delivery. Forgot-password catches that delivery failure, preserves its generic 202 to prevent enumeration, and does not claim delivery succeeded. Production requires the three Brevo settings and a persistent Data Protection keys path (`DataProtection:KeysPath`) so activation/reset tokens survive restarts.
 
 ## Backend checks
 

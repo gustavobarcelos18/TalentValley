@@ -27,8 +27,8 @@ public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountSe
             await database.SaveChangesAsync();
             await transaction.CommitAsync();
         }
-        await accounts.TrySendActivationAsync(user);
-        return new(user.Id, user.NomeCompleto, user.Email!, StatusRecrutador.ATIVO);
+        var activationSent = await accounts.TrySendActivationAsync(user);
+        return new(user.Id, user.NomeCompleto, user.Email!, StatusRecrutador.ATIVO, activationSent);
     }
 
     public async Task<PaginatedResponse<RecrutadorListItem>> ListAsync(RecrutadorListQuery request)
@@ -67,6 +67,7 @@ public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountSe
         recruiter.Status = status;
         await audit.RecordAsync(active ? AcaoAuditoria.RECRUTADOR_REATIVADO : AcaoAuditoria.RECRUTADOR_BLOQUEADO,
             AppRoles.Recruiter, id, $"Recrutador {recruiter.User.NomeCompleto} {(active ? "reativado" : "bloqueado")}.");
+        await accounts.RevokeSessionsAsync(recruiter.User);
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;

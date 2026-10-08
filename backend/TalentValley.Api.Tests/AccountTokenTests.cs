@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using TalentValley.Api.Domain.Entities;
 using TalentValley.Api.DTOs;
+using TalentValley.Api.Email;
 using TalentValley.Api.Services;
 
 namespace TalentValley.Api.Tests;
@@ -141,6 +142,48 @@ public sealed class AccountTokenTests : IDisposable
             var token = await users.GeneratePasswordResetTokenAsync((await users.FindByIdAsync(id.ToString()))!);
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/auth/reset-password", new ResetPasswordRequest("maria@example.test", token, ApiFactory.Password))).StatusCode);
         });
+    }
+
+    [Fact]
+    public async Task Resend_activation_sends_a_working_link_only_to_eligible_accounts_and_stays_generic()
+    {
+        await factory.CreateUserAsync("maria@example.test", activated: false);
+        await factory.CreateUserAsync("active@example.test");
+        await factory.CreateUserAsync("blocked@example.test", active: false, activated: false);
+        using var client = factory.Client();
+        await ApiFactory.SetCsrfAsync(client);
+
+        var bodies = new List<string>();
+        foreach (var email in new[] { "maria@example.test", "active@example.test", "blocked@example.test", "unknown@example.test" })
+        {
+            var response = await client.PostAsJsonAsync("/api/auth/resend-activation", new ResendActivationRequest(email));
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+            bodies.Add(await response.Content.ReadAsStringAsync());
+        }
+
+        Assert.Single(bodies.Distinct());
+        var sent = Assert.Single(factory.Emails.Activations);
+        Assert.Equal("maria@example.test", sent.Email);
+        var uri = new Uri(sent.Link);
+        Assert.Equal("/ativar-conta", uri.AbsolutePath);
+        var token = QueryHelpers.ParseQuery(uri.Query)["token"].ToString();
+        Assert.DoesNotContain(token, bodies[0]);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PostAsJsonAsync("/api/auth/activate-account", new ActivateAccountRequest(sent.Email, token, ApiFactory.Password))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Resend_activation_stays_generic_when_delivery_is_unavailable()
+    {
+        await factory.CreateUserAsync("maria@example.test", activated: false);
+        factory.Emails.ActivationDelivery = (_, _) => throw new EmailDeliveryUnavailableException();
+        using var client = factory.Client();
+        await ApiFactory.SetCsrfAsync(client);
+
+        var response = await client.PostAsJsonAsync("/api/auth/resend-activation", new ResendActivationRequest("maria@example.test"));
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Empty(factory.Emails.Activations);
     }
 
     public void Dispose() => factory.Dispose();

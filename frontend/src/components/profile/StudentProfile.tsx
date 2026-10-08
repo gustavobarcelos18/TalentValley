@@ -20,6 +20,7 @@ import { ProfileHeader } from "./ProfileHeader";
 import { SobreSection } from "./SobreSection";
 import { TrajetoriaSection } from "./TrajetoriaSection";
 import { ProjetosSection } from "./ProjetosSection";
+import { ExclusaoSection } from "./ExclusaoSection";
 
 // Real student profile page content follows the approved professional profile order.
 export function StudentProfile() {
@@ -27,7 +28,10 @@ export function StudentProfile() {
   const [message, setMessage] = useState<string | null>(null);
 
   const notify = useCallback((text: string) => setMessage(text), []);
-  const closeMessage = useCallback(() => setMessage(null), []);
+  const closeMessage = useCallback((_event?: unknown, reason?: string) => {
+    if (reason === "clickaway") return;
+    setMessage(null);
+  }, []);
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 3, sm: 5 }, width: "100%" }}>
@@ -77,6 +81,7 @@ export function StudentProfile() {
           <DisponibilidadeSection profile={profile} onChanged={refresh} notify={notify} />
           <ProjetosSection profile={profile} onChanged={refresh} notify={notify} />
           <CurriculoSection profile={profile} onChanged={refresh} notify={notify} />
+          <ExclusaoSection />
         </Stack>
       )}
 

@@ -1,8 +1,5 @@
 import type { ClipboardEvent } from "react";
 
-export const PASSWORD_HELPER_TEXT =
-  "Mínimo de 8 caracteres, com maiúscula, minúscula e dígito.";
-
 export const BRAZILIAN_UFS = [
   "AC",
   "AL",
@@ -35,9 +32,9 @@ export const BRAZILIAN_UFS = [
 
 const ufSet = new Set<string>(BRAZILIAN_UFS);
 const emojiReplacePattern =
-  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/gu;
+  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}]|\uFE0F|\u200D|\u20E3/gu;
 const emojiTestPattern =
-  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]/u;
+  /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}]|\uFE0F|\u200D|\u20E3/u;
 const keycapReplacePattern = /[#*0-9]\uFE0F?\u20E3/gu;
 const keycapTestPattern = /[#*0-9]\uFE0F?\u20E3/u;
 const controlPattern = /[\p{Cc}\p{Cf}]/u;
@@ -376,6 +373,15 @@ export function validateAlphanumericWithPunctuation(
 ): string | null {
   return validateMeaningfulText(value, minLength, maxLength);
 }
+
+// Checklist shown while the user types a new password. Keep in sync with the
+// rules enforced by validatePassword below.
+export const PASSWORD_RULES = [
+  { id: "length", label: "Mínimo de 8 caracteres", test: (s: string) => s.length >= 8 },
+  { id: "upper", label: "Uma letra maiúscula", test: (s: string) => /[A-Z]/.test(s) },
+  { id: "lower", label: "Uma letra minúscula", test: (s: string) => /[a-z]/.test(s) },
+  { id: "digit", label: "Um dígito", test: (s: string) => /\d/.test(s) },
+] as const;
 
 export function validatePassword(senha: string): string | null {
   if (senha.length < 8) return "A senha deve ter pelo menos 8 caracteres.";

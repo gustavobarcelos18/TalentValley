@@ -7,10 +7,12 @@ import { Close, DarkModeOutlined, LightModeOutlined, Menu } from "@mui/icons-mat
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { Brand } from "./Brand";
-import { destinations, navigation } from "./navigation";
+import { getRoleDestination } from "@/lib/paths";
+import { navigation } from "./navigation";
 import { useLandingMotionPolicy } from "./motion/LandingMotion";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { useMyPhoto } from "@/hooks/useMyPhoto";
+import { entrance } from "./entrance";
 
 /** Viewport line that decides which navigation item is active. */
 const activeLine = 120;
@@ -18,7 +20,7 @@ const activeLine = 120;
 /** Public header; owns its scroll state so the landing content never rerenders while scrolling. */
 export function PublicHeader() {
   const { user } = useAuth();
-  const { photoPath } = useMyPhoto();
+  const { photoPath, reloadKey } = useMyPhoto();
   const { mode, systemMode, setMode } = useColorScheme();
   const policy = useLandingMotionPolicy();
   const reduced = policy === "pending" || policy === "reduced";
@@ -67,14 +69,14 @@ export function PublicHeader() {
   }, []);
 
   return <header className={`landing-header ${scrolled || menuOpen ? "is-elevated" : ""}`} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}>
-      <div className="nav-inner" data-entrance="0.08">
+      <div className="nav-inner entrance" style={entrance(0.08)}>
         <Link href="#hero" className="brand-link" aria-label="Talent Valley — início" onClick={() => setMenuOpen(false)}><Brand /></Link>
         <nav id="public-navigation" aria-label="Navegação principal" className={`public-nav ${menuOpen ? "is-open" : ""}`}>
           {navigation.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? "location" : undefined} onClick={() => setMenuOpen(false)}>{label}</a>)}
         </nav>
         <div className="nav-actions">
           <motion.div className="theme-control" whileTap={reduced ? undefined : { scale: 0.96 }} transition={{ duration: 0.16 }}><IconButton className="theme-toggle-button" aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"} onClick={() => setMode(dark ? "light" : "dark")}>{dark ? <LightModeOutlined aria-hidden="true"/> : <DarkModeOutlined aria-hidden="true"/>}</IconButton></motion.div>
-          {user ? <Link className="user-link" href={destinations[user.role]} aria-label={`Acessar área de ${user.nome}`}><UserAvatar name={user.nome} photoPath={photoPath} size={32} /><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Login</Button>}
+          {user ? <Link className="user-link" href={getRoleDestination(user.role)} aria-label={`Acessar área de ${user.nome}`}><UserAvatar key={`${user.id}-${reloadKey}`} name={user.nome} photoPath={photoPath} reloadKey={reloadKey} size={32} /><span>{user.nome.split(" ")[0]}</span></Link> : <Button component={Link} className="login-button" href="/login" variant="outlined">Entrar</Button>}
           <IconButton ref={menuButton} className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <Close/> : <Menu/>}</IconButton>
         </div>
       </div>

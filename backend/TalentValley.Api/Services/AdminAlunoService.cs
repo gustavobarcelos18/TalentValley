@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.Data;
@@ -10,8 +9,7 @@ using TalentValley.Api.Storage;
 namespace TalentValley.Api.Services;
 
 public sealed class AdminAlunoService(AppDbContext database, AdminAccountService accounts,
-    UserManager<ApplicationUser> users, SlugService slugs, AuditoriaService audit,
-    IFileStorage storage, ILogger<AdminAlunoService> logger)
+    SlugService slugs, AuditoriaService audit, IFileStorage storage, AlunoDeletionService deletion)
 {
     public async Task<AdminAlunoDetailResponse?> GetAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -46,8 +44,8 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
             await database.SaveChangesAsync();
             await transaction.CommitAsync();
         }
-        await accounts.TrySendActivationAsync(user);
-        return new(user.Id, user.NomeCompleto, user.Email!, true);
+        var activationSent = await accounts.TrySendActivationAsync(user);
+        return new(user.Id, user.NomeCompleto, user.Email!, true, activationSent);
     }
 
     public async Task<PaginatedResponse<AlunoListItem>> ListAsync(AdminListQuery request)
@@ -76,40 +74,25 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         aluno.Ativo = active;
         await audit.RecordAsync(active ? AcaoAuditoria.ALUNO_REATIVADO : AcaoAuditoria.ALUNO_BLOQUEADO,
             AppRoles.Student, id, $"Aluno {aluno.User.NomeCompleto} {(active ? "reativado" : "bloqueado")}.");
+        await accounts.RevokeSessionsAsync(aluno.User);
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<AdminAlunoDeleteResult> DeleteAsync(Guid id)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync();
-        var aluno = await database.Alunos.Include(x => x.User).Include(x => x.Formacoes)
-            .SingleOrDefaultAsync(x => x.UserId == id);
-        if (aluno is null) return false;
-        var user = aluno.User;
-        var files = new List<(FileCategory Category, string Key)>();
-        if (aluno.FotoStorageKey is not null) files.Add((FileCategory.Photo, aluno.FotoStorageKey));
-        if (aluno.CurriculoStorageKey is not null) files.Add((FileCategory.Curriculum, aluno.CurriculoStorageKey));
-        files.AddRange(aluno.Formacoes.Where(x => x.CertificadoStorageKey is not null)
-            .Select(x => (FileCategory.Certificate, x.CertificadoStorageKey!)));
-        await audit.RecordAsync(AcaoAuditoria.ALUNO_EXCLUIDO, AppRoles.Student, id,
-            $"Aluno {user.NomeCompleto} excluído.");
-        // Remove the profile first: owned rows/favorites cascade, while its Identity FK is Restrict.
-        database.Alunos.Remove(aluno);
-        await database.SaveChangesAsync();
-        AdminAccountService.RequireSuccess(await users.DeleteAsync(user));
-        await transaction.CommitAsync();
-        foreach (var file in files)
+        IReadOnlyList<StoredFile> files;
+        await using (var transaction = await database.Database.BeginTransactionAsync())
         {
-            try { await storage.DeleteAsync(file.Category, file.Key); }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to clean {Category} file {StorageKey} after student deletion.",
-                    file.Category, file.Key);
-            }
+            var aluno = await deletion.LoadAsync(id);
+            if (aluno is null) return AdminAlunoDeleteResult.NotFound;
+            if (aluno.Ativo) return AdminAlunoDeleteResult.MustBeBlocked;
+            files = await deletion.RemoveAsync(aluno, selfDeletion: false);
+            await transaction.CommitAsync();
         }
-        return true;
+        await deletion.DeleteFilesAsync(files);
+        return AdminAlunoDeleteResult.Deleted;
     }
 
     private IQueryable<Aluno> FullQuery() => database.Alunos.AsNoTracking().AsSplitQuery()
@@ -157,4 +140,11 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         x.Projetos.OrderBy(p => p.Ordem).ThenBy(p => p.Id).Select(TrajetoriaMapping.Map).ToList(),
         new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : $"/api/admin/alunos/{x.UserId}/curriculo"),
         x.AtualizadoEm);
+}
+
+public enum AdminAlunoDeleteResult
+{
+    Deleted,
+    NotFound,
+    MustBeBlocked,
 }

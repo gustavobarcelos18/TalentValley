@@ -1,30 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
-import {
-  Alert,
-  Box,
-  Button,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import { AuthPageShell } from "@/components/auth/AuthPageShell";
-import { GuestOnly } from "@/components/auth/GuestOnly";
+import { Alert } from "@mui/material";
+import { AuthField } from "@/components/auth/AuthField";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { useRetryCountdown } from "@/components/auth/motion/useRetryCountdown";
+import { AuthFooterLink } from "@/components/auth/AuthFooterLink";
+import { AuthFormPage } from "@/components/auth/AuthFormPage";
+import { AuthResultPage } from "@/components/auth/AuthResultPage";
 import { ApiError } from "@/lib/api";
 import { forgotPassword } from "@/lib/auth";
-import { normalizeEmailInput, stripEmoji, validateEmail } from "@/lib/validation";
+import { getAuthErrorMessage } from "@/lib/authErrors";
+import {
+  normalizeEmailInput,
+  stripEmoji,
+  stripEmojiOnPaste,
+  validateEmail,
+} from "@/lib/validation";
+
+const EYEBROW = "RECUPERAR ACESSO";
 
 export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const retry = useRetryCountdown();
 
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const errorAlertRef = useRef<HTMLDivElement | null>(null);
-  const successAlertRef = useRef<HTMLDivElement | null>(null);
   const [errorSequence, setErrorSequence] = useState(0);
   const lastErrorFocus = useRef<"email" | null>(null);
 
@@ -39,13 +43,6 @@ export default function EsqueciSenhaPage() {
       errorAlertRef.current?.focus();
     }
   }, [errorSequence]);
-
-  // Move focus to the success message once the form is replaced by it.
-  useEffect(() => {
-    if (submitted) {
-      successAlertRef.current?.focus();
-    }
-  }, [submitted]);
 
   function reportError(message: string, focus: "email" | null = null) {
     lastErrorFocus.current = focus;
@@ -69,107 +66,74 @@ export default function EsqueciSenhaPage() {
       await forgotPassword(normalizeEmailInput(email));
       setSubmitted(true);
     } catch (err) {
-      if (err instanceof ApiError && err.status >= 500) {
-        reportError(
-          "Não foi possível processar sua solicitação. Tente novamente.",
-        );
-      } else if (err instanceof ApiError) {
+      retry.observe(err);
+      // Client errors other than rate limiting get the same neutral success
+      // screen, so the answer never reveals whether the account exists.
+      if (err instanceof ApiError && err.status < 500 && err.status !== 429) {
         setSubmitted(true);
       } else {
-        reportError("Não foi possível conectar ao servidor. Tente novamente.");
+        reportError(
+          getAuthErrorMessage(err, {
+            fallback: "Não foi possível processar sua solicitação. Tente novamente.",
+          }),
+        );
       }
     } finally {
       setLoading(false);
     }
   }
 
+  if (submitted) {
+    return (
+      <AuthResultPage
+        eyebrow={EYEBROW}
+        title="Verifique seu e-mail"
+        severity="success"
+        message="Se a conta for elegível, enviaremos as instruções para redefinir sua senha."
+        actionHref="/login"
+        actionLabel="Voltar ao login"
+      />
+    );
+  }
+
   return (
-    <GuestOnly>
-      <AuthPageShell
-        title="Esqueci minha senha"
-        subtitle="Informe seu e-mail para receber as instruções de redefinição"
-        onSubmit={submitted ? undefined : handleSubmit}
-        ariaBusy={loading}
-      >
-        {submitted ? (
-          <Stack spacing={3}>
-            <Alert
-              ref={successAlertRef}
-              tabIndex={-1}
-              severity="success"
-              variant="filled"
-              sx={{ fontSize: "0.9375rem" }}
-            >
-              Se a conta for elegível, enviaremos as instruções para redefinir sua senha.
-            </Alert>
-            <Button
-              component={Link}
-              href="/login"
-              variant="contained"
-              size="large"
-              fullWidth
-            >
-              Voltar ao login
-            </Button>
-          </Stack>
-        ) : (
-          <>
-            {error && (
-              <Alert
-                ref={errorAlertRef}
-                tabIndex={-1}
-                severity="error"
-                variant="filled"
-                sx={{ fontSize: "0.875rem" }}
-              >
-                {error}
-              </Alert>
-            )}
+    <AuthFormPage
+      eyebrow={EYEBROW}
+      title="Esqueci minha senha"
+      subtitle="Informe seu e-mail para receber as instruções de redefinição"
+      onSubmit={handleSubmit}
+      ariaBusy={loading}
+      shakeKey={errorSequence}
+      footer={<AuthFooterLink href="/login">Voltar ao login</AuthFooterLink>}
+    >
+      {error && (
+        <Alert
+          ref={errorAlertRef}
+          tabIndex={-1}
+          severity="error"
+          variant="filled"
+          sx={{ fontSize: "0.875rem" }}
+        >
+          {error}
+        </Alert>
+      )}
 
-            <TextField
-              id="email"
-              name="email"
-              label="E-mail"
-              type="email"
-              autoComplete="email"
-              required
-              fullWidth
-              value={email}
-              onChange={(e) =>
-                setEmail(stripEmoji(e.target.value).slice(0, 254))
-              }
-              inputRef={emailInputRef}
-              disabled={loading}
-              slotProps={{ htmlInput: { "aria-label": "E-mail" } }}
-            />
+      <AuthField
+        id="email"
+        name="email"
+        label="E-mail"
+        type="email"
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
+        onPaste={stripEmojiOnPaste}
+        inputRef={emailInputRef}
+        disabled={loading}
+      />
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              fullWidth
-              disabled={loading}
-            >
-              {loading ? "Enviando..." : "Enviar instruções"}
-            </Button>
-
-            <Box sx={{ textAlign: "center" }}>
-              <Typography
-                component={Link}
-                href="/login"
-                variant="body2"
-                sx={{
-                  color: "primary.main",
-                  fontWeight: 500,
-                  "&:hover": { textDecoration: "underline" },
-                }}
-              >
-                Voltar ao login
-              </Typography>
-            </Box>
-          </>
-        )}
-      </AuthPageShell>
-    </GuestOnly>
+      <AuthSubmitButton loading={loading} retry={retry} loadingLabel="Enviando...">
+        Enviar instruções
+      </AuthSubmitButton>
+    </AuthFormPage>
   );
 }

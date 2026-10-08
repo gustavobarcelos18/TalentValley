@@ -66,8 +66,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = "TalentValley.Tests", ["Jwt:Audience"] = "TalentValley.Tests.Client",
                 ["Jwt:SigningKey"] = SigningKey, ["Jwt:ExpirationHours"] = "8",
                 ["Frontend:BaseUrl"] = EnvironmentName == "Development" ? "http://localhost:3000" : "https://talent.example",
+                ["AllowedHosts"] = "localhost;talent.example", // "localhost" keeps the test client's host accepted.
                 ["BootstrapAdmin:Email"] = "", ["BootstrapAdmin:Password"] = "", ["BootstrapAdmin:Name"] = "",
                 ["Storage:RootPath"] = StoragePath,
+                ["RateLimiting:PermitLimit"] = "1000", // Effectively off; rate-limit tests override it.
                 ["Logging:LogLevel:Default"] = "Error"
             };
             foreach (var setting in Overrides) settings[setting.Key] = setting.Value;

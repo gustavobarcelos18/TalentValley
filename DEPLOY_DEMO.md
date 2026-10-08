@@ -1,6 +1,6 @@
 # Talent Valley demo deployment
 
-> **DEMO / EVALUATION ONLY.** This guide uses a single Railway instance, logs account links instead of delivering email, and can apply migrations on startup. Before a real production release, add real email delivery and a formal migration/release process.
+> **DEMO / EVALUATION ONLY.** This guide uses a single Railway instance and can apply migrations on startup. Before a real production release, add a formal migration/release process. Account activation and password reset require working email delivery (Brevo) in production.
 
 ## Railway backend
 
@@ -15,20 +15,25 @@ ConnectionStrings__DefaultConnection=Data Source=/data/talent-valley.db
 Storage__RootPath=/data/storage
 DataProtection__KeysPath=/data/dataprotection
 Deployment__ApplyMigrationsOnStartup=true
-Deployment__TrustForwardedHeaders=true
+Deployment__ForwardedHeaders__Enabled=false
 Jwt__Issuer=TalentValley.Api
 Jwt__Audience=TalentValley.Frontend
 Jwt__SigningKey=<BASE64 SECRET WITH AT LEAST 32 RANDOM BYTES>
 Jwt__ExpirationHours=8
 Frontend__BaseUrl=https://YOUR-VERCEL-PROJECT.vercel.app
+AllowedHosts=<RAILWAY-DOMAIN, e.g. your-service.up.railway.app>
 BootstrapAdmin__Enabled=true
 BootstrapAdmin__Email=<DEMO ADMIN EMAIL>
 BootstrapAdmin__Name=<DEMO ADMIN NAME>
 BootstrapAdmin__Password=<DEMO ADMIN PASSWORD>
-Demo__LogAccountLinks=true
+Brevo__ApiKey=<BREVO API KEY>
+Brevo__SenderAddress=<VERIFIED SENDER EMAIL>
+Brevo__SenderName=<SENDER DISPLAY NAME>
 ```
 
 Do not define `PORT`; Railway supplies it. Configure Railway health checking to `/health`.
+
+Forwarded headers (used for the per-IP rate limit) stay disabled until the trusted proxy ranges are known. To enable them, set `Deployment__ForwardedHeaders__Enabled=true`, `Deployment__ForwardedHeaders__IpRanges=<comma-separated CIDRs of the proxies that connect to the API>` and `Deployment__ForwardedHeaders__ForwardLimit=<number of trusted hops>`. Startup fails if `Enabled=true` with no valid range, and if the removed `Deployment__TrustForwardedHeaders` variable is still set.
 
 Generate the signing key locally and copy only its Base64 result into Railway:
 
@@ -72,4 +77,9 @@ The final values must be the exact Vercel origin for `Frontend__BaseUrl` and the
 
 With the Railway settings above, startup applies migrations, configures SQLite, creates roles, seeds competency/language catalogs idempotently, and creates the configured admin when valid credentials are supplied. Open the Vercel URL and sign in with that admin account. Use the app to create student and recruiter accounts.
 
-When activation or reset email is requested, retrieve its link from Railway logs while `Demo__LogAccountLinks=true`, then open that link through the Vercel frontend. These links are deliberately logged only for this demo mode; do not use it for real production email. Once the bootstrap account exists, `BootstrapAdmin__Enabled` can be turned off without affecting it. Leave demo link logging enabled only while activation/reset links are needed.
+Email behavior depends on the environment:
+
+- In Development the API uses `DevelopmentEmailSender`, which logs the activation/reset link to the API console instead of delivering email.
+- In Production the API uses `BrevoEmailSender` only when `Brevo__ApiKey`, `Brevo__SenderAddress`, and `Brevo__SenderName` are all configured; otherwise it falls back to `UnavailableEmailSender`, which logs an error and does not deliver.
+
+Account activation and password reset require working email delivery in production. When Brevo is not fully configured, those emails are not sent. The account still persists, and the admin UI reports the delivery failure and offers "Reenviar ativação". Once the bootstrap account exists, `BootstrapAdmin__Enabled` can be turned off without affecting it.

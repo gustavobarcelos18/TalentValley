@@ -36,8 +36,10 @@ public sealed class BrevoEmailSenderTests
         });
         Assert.Contains("Ative sua conta", requests[0].Payload.GetProperty("subject").GetString());
         Assert.Contains(activation, requests[0].Payload.GetProperty("textContent").GetString());
+        Assert.Contains($"href=\"{WebUtility.HtmlEncode(activation)}\"", requests[0].Payload.GetProperty("htmlContent").GetString());
         Assert.Contains("Redefina sua senha", requests[1].Payload.GetProperty("subject").GetString());
         Assert.Contains(reset, requests[1].Payload.GetProperty("textContent").GetString());
+        Assert.Contains($"href=\"{WebUtility.HtmlEncode(reset)}\"", requests[1].Payload.GetProperty("htmlContent").GetString());
         Assert.Empty(logger.Messages);
     }
 

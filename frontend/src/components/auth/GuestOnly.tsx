@@ -3,25 +3,31 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CircularProgress, Stack, Typography } from "@mui/material";
+import { AuthCheckError } from "@/components/auth/AuthCheckError";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPageShell } from "@/components/auth/AuthPageShell";
+import { getRoleDestination } from "@/lib/paths";
 
 interface GuestOnlyProps {
   children: ReactNode;
 }
 
 export function GuestOnly({ children }: GuestOnlyProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, error, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
 
+    // An operational auth-check failure leaves the session state UNKNOWN; do
+    // not render guest content as if authentication had been confirmed.
+    if (!user && error) return;
+
     if (user) {
       const destination = getRoleDestination(user.role);
       router.replace(destination);
     }
-  }, [user, loading, router]);
+  }, [user, loading, error, router]);
 
   if (loading) {
     return (
@@ -35,6 +41,14 @@ export function GuestOnly({ children }: GuestOnlyProps) {
     return (
       <AuthPageShell>
         <LoadingStatus message="Redirecionando..." />
+      </AuthPageShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AuthPageShell>
+        <AuthCheckError message={error} onRetry={refreshUser} />
       </AuthPageShell>
     );
   }
@@ -56,17 +70,4 @@ function LoadingStatus({ message }: { message: string }) {
       </Typography>
     </Stack>
   );
-}
-
-function getRoleDestination(role: string): string {
-  switch (role) {
-    case "ALUNO":
-      return "/meu-perfil";
-    case "RECRUTADOR":
-      return "/recrutador";
-    case "ADMIN":
-      return "/admin";
-    default:
-      return "/login";
-  }
 }

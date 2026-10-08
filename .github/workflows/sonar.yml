@@ -1,0 +1,73 @@
+name: SonarQube Cloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonar:
+    name: Análise SonarQube Cloud
+    # Secrets não ficam disponíveis em PRs vindos de forks.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Instalar Java 17 (exigido pelo scanner)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dotnet-sonarscanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Iniciar análise
+        run: >
+          dotnet sonarscanner begin
+          /k:"gustavobarcelos18_TalentValley"
+          /o:"gustavobarcelos18"
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.host.url="https://sonarcloud.io"
+          /d:sonar.exclusions="**/bin/**,**/obj/**,**/Migrations/**,**/.next/**,**/node_modules/**"
+          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+          /d:sonar.javascript.lcov.reportPaths="frontend/coverage/lcov.info"
+          /d:sonar.test.inclusions="frontend/src/__tests__/**"
+          /d:sonar.coverage.exclusions="frontend/vitest.config.mts,frontend/vitest.setup.ts"
+
+      - name: Compilar o backend
+        run: dotnet build backend/TalentValley.slnx
+
+      - name: Executar testes do backend com cobertura
+        run: >
+          dotnet test backend/TalentValley.slnx --no-build
+          --collect:"XPlat Code Coverage"
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências do frontend (npm ci)
+        run: npm ci --ignore-scripts
+        working-directory: frontend
+
+      - name: Executar testes do frontend com cobertura
+        run: npm test
+        working-directory: frontend
+
+      - name: Finalizar análise
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TalentValley.Api.Authorization;
 using TalentValley.Api.DTOs;
 using TalentValley.Api.Services;
@@ -18,6 +19,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
         new CsrfResponse(antiforgery.GetAndStoreTokens(HttpContext).RequestToken!);
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
@@ -42,6 +44,41 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
         return user is null ? Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.") : Ok(user);
     }
 
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var result = await auth.ChangePasswordAsync(Guid.Parse(User.FindFirst("sub")!.Value), request);
+        switch (result.Status)
+        {
+            case StatusCodes.Status204NoContent:
+                Response.Cookies.Append(AuthCookie.Name, result.Token!, AuthCookie.Options(environment, result.Expires));
+                return NoContent();
+            case StatusCodes.Status400BadRequest:
+                ModelState.AddModelError(result.Field!, result.Field == ChangePasswordResult.CurrentPasswordField
+                    ? "A senha atual está incorreta."
+                    : "A nova senha não atende aos requisitos de segurança.");
+                return ValidationProblem(ModelState);
+            default:
+                return Problem(statusCode: result.Status, title: result.Status switch
+                {
+                    StatusCodes.Status423Locked => "Sign-in is temporarily locked. Try again later.",
+                    StatusCodes.Status403Forbidden => "Account access is unavailable.",
+                    _ => "Authentication is required."
+                });
+        }
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
+    [HttpPost("resend-activation")]
+    public async Task<IActionResult> ResendActivation(ResendActivationRequest request)
+    {
+        await accountTokens.ResendActivationAsync(request.Email);
+        return Accepted(new { mensagem = "If the account is eligible, a new activation link will be sent." });
+    }
+
     // Even expired or blocked sessions can clear their cookie; antiforgery still applies.
     [AllowAnonymous]
     [HttpPost("logout")]
@@ -52,12 +89,14 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("activate-account")]
     public async Task<IActionResult> Activate(ActivateAccountRequest request) =>
         await accountTokens.ActivateAsync(request.Email, request.Token, request.Senha)
             ? NoContent() : InvalidAccountToken();
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> Forgot(ForgotPasswordRequest request)
     {
@@ -66,6 +105,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("reset-password")]
     public async Task<IActionResult> Reset(ResetPasswordRequest request) =>
         await accountTokens.ResetPasswordAsync(request.Email, request.Token, request.NovaSenha)

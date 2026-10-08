@@ -20,7 +20,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         var normalized = Normalize(request);
         await ValidateCompetenciesAsync(normalized.CompetencyIds, cancellationToken);
 
-        var query = ApplyFilters(database.Alunos.AsNoTracking().Where(x => x.Ativo), normalized);
+        var query = ApplyFilters(database.Alunos.AsNoTracking().VisibleToRecruiters(), normalized);
         var totalItems = await query.CountAsync(cancellationToken);
         var sort = normalized.Sort ?? (normalized.HasFilters ? TalentSort.RELEVANCIA : TalentSort.RECENTES);
         var offset = checked((normalized.Page - 1) * PageSize);
@@ -45,8 +45,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
     public async Task<TalentProfileResponse?> GetBySlugAsync(
         Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var student = await FullQuery().SingleOrDefaultAsync(
-            x => x.Ativo && x.Slug == slug, cancellationToken);
+        var student = await FullQuery().VisibleToRecruiters()
+            .SingleOrDefaultAsync(x => x.Slug == slug, cancellationToken);
         if (student is null) return null;
         var favorite = await database.Favoritos.AsNoTracking()
             .AnyAsync(x => x.RecrutadorId == recruiterId && x.AlunoId == student.UserId, cancellationToken);
@@ -60,7 +60,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         .Include(x => x.Modalidades)
         .Include(x => x.Formacoes);
 
-    internal IQueryable<Aluno> FullQuery() => PreviewQuery()
+    // AsSplitQuery is repeated here so the extra collection includes are visibly split.
+    internal IQueryable<Aluno> FullQuery() => PreviewQuery().AsSplitQuery()
         .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
         .Include(x => x.Experiencias)
         .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia);
@@ -113,7 +114,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         try
         {
             await using var command = connection.CreateCommand();
-            var conditions = new List<string> { "a.\"Ativo\" = 1" };
+            var conditions = new List<string> { TalentVisibility.Sql };
             var parameterIndex = 0;
 
             string AddParameter(object value)

@@ -7,6 +7,12 @@ namespace TalentValley.Api.Services;
 
 public sealed record LoginResult(int Status, LoginResponse? Response = null, string? Token = null, DateTimeOffset? Expires = null);
 
+public sealed record ChangePasswordResult(int Status, string? Field = null, string? Token = null, DateTimeOffset? Expires = null)
+{
+    public const string CurrentPasswordField = "senhaAtual";
+    public const string NewPasswordField = "novaSenha";
+}
+
 public sealed class AuthService(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     AccountAccess access, JwtTokenService tokens)
 {
@@ -26,7 +32,7 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
         if (!(await users.UpdateAsync(user)).Succeeded)
             return new(StatusCodes.Status401Unauthorized);
 
-        var (token, expires) = tokens.Create(user, role);
+        var (token, expires) = tokens.Create(user, role, await users.GetSecurityStampAsync(user));
         var destination = role switch
         {
             AppRoles.Student => "/meu-perfil",
@@ -35,6 +41,26 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
             _ => throw new InvalidOperationException("Unsupported application role.")
         };
         return new(StatusCodes.Status200OK, new(Map(user, role), destination), token, expires);
+    }
+
+    // Identity rotates the security stamp on a password change, which revokes every JWT issued so far,
+    // including the caller's. A fresh token is returned so the current session keeps working.
+    public async Task<ChangePasswordResult> ChangePasswordAsync(Guid id, ChangePasswordRequest request)
+    {
+        var user = await users.FindByIdAsync(id.ToString());
+        if (user is null) return new(StatusCodes.Status401Unauthorized);
+        var role = await access.GetRoleAsync(user);
+        if (role is null || !await access.IsActiveAsync(user.Id, role)) return new(StatusCodes.Status403Forbidden);
+
+        // UserManager.ChangePasswordAsync does not count failures, so check through SignInManager to apply the lockout policy.
+        var current = await signIn.CheckPasswordSignInAsync(user, request.SenhaAtual, lockoutOnFailure: true);
+        if (current.IsLockedOut) return new(StatusCodes.Status423Locked);
+        if (!current.Succeeded) return new(StatusCodes.Status400BadRequest, ChangePasswordResult.CurrentPasswordField);
+        if (!(await users.ChangePasswordAsync(user, request.SenhaAtual, request.NovaSenha)).Succeeded)
+            return new(StatusCodes.Status400BadRequest, ChangePasswordResult.NewPasswordField);
+
+        var (token, expires) = tokens.Create(user, role, await users.GetSecurityStampAsync(user));
+        return new(StatusCodes.Status204NoContent, Token: token, Expires: expires);
     }
 
     public async Task<UsuarioAutenticadoResponse?> GetUserAsync(Guid id)

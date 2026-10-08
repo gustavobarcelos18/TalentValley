@@ -5,14 +5,14 @@ import { useLandingMotionPolicy } from "./LandingMotion";
 
 const steps = [
   [
-    ["Faça parte", "Solicite seu cadastro e dê o primeiro passo no ecossistema."],
-    ["Construa seu perfil", "Apresente sua formação, competências, projetos e experiências."],
-    ["Seja encontrado", "Deixe sua trajetória visível para recrutadores autorizados."],
+    ["Solicite seu cadastro", "Envie seus dados. O Instituto analisa o pedido e, aprovado, você ativa sua conta."],
+    ["Monte seu perfil", "Apresente formação, competências, projetos e experiências."],
+    ["Seja encontrado", "Recrutadores autorizados encontram seu perfil e conhecem sua trajetória."],
   ],
   [
-    ["Faça parte", "Solicite seu acesso como recrutador ao ecossistema."],
-    ["Encontre talentos", "Explore perfis por competências, formação e interesses."],
-    ["Conecte-se", "Conheça a trajetória e entre em contato pelos canais do talento."],
+    ["Solicite seu acesso", "Envie o pedido. O Instituto analisa e, aprovado, você ativa sua conta."],
+    ["Encontre talentos", "Filtre por competências, cidade, formação e disponibilidade."],
+    ["Conheça a trajetória", "Veja formação, competências, projetos e experiências de cada perfil."],
   ],
 ];
 
@@ -25,7 +25,7 @@ export function StorySteps({ audience }: { audience: number }) {
     {steps.map((group, index) => <ol key={index} className="steps-grid steps-measure grid md:grid-cols-3" aria-hidden="true" inert>
       {group.map(([title, copy], index) => <li key={title}><span className="step-number">0{index + 1}</span><h3>{title}</h3><p>{copy}</p></li>)}
     </ol>)}
-    <div className="steps-content" role="tabpanel" id={`how-panel-${audience}`} aria-labelledby={`how-tab-${audience}`} tabIndex={0}>
+    <div className="steps-content" role="tabpanel" id="how-panel" aria-labelledby={`how-tab-${audience}`} tabIndex={0}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.ol key={`${audience}-${policy}`} className="steps-grid grid md:grid-cols-3"
           initial={simple ? false : "hidden"} whileInView="visible" viewport={{ once: true, amount: 0.15 }}

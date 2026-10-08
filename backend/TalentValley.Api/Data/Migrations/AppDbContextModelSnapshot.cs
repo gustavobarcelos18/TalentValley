@@ -162,6 +162,9 @@ namespace TalentValley.Api.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("ConsentimentoEm")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CurriculoStorageKey")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
@@ -197,6 +200,10 @@ namespace TalentValley.Api.Data.Migrations
 
                     b.Property<string>("Uf")
                         .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VersaoTermos")
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.HasKey("UserId");
@@ -751,6 +758,9 @@ namespace TalentValley.Api.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("ConsentimentoEm")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("TEXT");
 
@@ -812,6 +822,10 @@ namespace TalentValley.Api.Data.Migrations
                     b.Property<string>("Uf")
                         .IsRequired()
                         .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VersaoTermos")
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
