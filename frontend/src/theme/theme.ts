@@ -1,5 +1,35 @@
 import { createTheme } from "@mui/material/styles";
 
+interface BrandGradients {
+  /** Primary call to action of the public landing and entry screens. */
+  action: string;
+  actionHover: string;
+  actionContrastText: string;
+  /** Highlighted words inside headings. */
+  accent: string;
+}
+
+declare module "@mui/material/styles" {
+  interface Palette {
+    gradient: BrandGradients;
+  }
+  interface PaletteOptions {
+    gradient?: BrandGradients;
+  }
+}
+
+declare module "@mui/material/Button" {
+  interface ButtonPropsVariantOverrides {
+    brand: true;
+  }
+}
+
+const actionGradients = {
+  action: "linear-gradient(100deg, #4afb8d, #09b8b6)",
+  actionHover: "linear-gradient(100deg, #79ffa8, #21d0c7)",
+  actionContrastText: "#081d17",
+};
+
 export const talentValleyTheme = createTheme({
   cssVariables: {
     colorSchemeSelector: "class",
@@ -28,6 +58,7 @@ export const talentValleyTheme = createTheme({
           secondary: "#53605C",
         },
         divider: "#D5DDD4",
+        gradient: { ...actionGradients, accent: "linear-gradient(100deg, #008652, #52832e)" },
       },
     },
     dark: {
@@ -53,6 +84,7 @@ export const talentValleyTheme = createTheme({
           secondary: "#A8B2B0",
         },
         divider: "#273238",
+        gradient: { ...actionGradients, accent: "linear-gradient(100deg, #35dc90, #8cba53)" },
       },
     },
   },
@@ -88,6 +120,22 @@ export const talentValleyTheme = createTheme({
           padding: "10px 20px",
         },
       },
+      // Opt-in look for the public landing and entry screens; internal screens keep the default buttons.
+      variants: [
+        {
+          props: { variant: "brand" },
+          style: ({ theme }) => {
+            const { gradient } = (theme.vars ?? theme).palette;
+            return {
+              borderRadius: 30,
+              background: gradient.action,
+              // Doubled selector: the button is usually a link, and plain `a { color: inherit }` rules would win.
+              "&&": { color: gradient.actionContrastText },
+              "&:hover": { background: gradient.actionHover },
+            };
+          },
+        },
+      ],
     },
     MuiTextField: {
       defaultProps: {
