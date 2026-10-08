@@ -27,7 +27,7 @@ export function HeroActions() {
   return <div className="join-actions">{actions.map((action, index) =>
     <div key={index} className="entrance" style={entrance(0.8 + index * 0.1)}>
       <ActionMotion>
-        <Button component={Link} href={action.href} variant={action.contained ? "contained" : "outlined"} endIcon={<ArrowForward />}>{action.label}</Button>
+        <Button component={Link} href={action.href} variant={action.contained ? "brand" : "outlined"} endIcon={<ArrowForward />}>{action.label}</Button>
       </ActionMotion>
     </div>
   )}</div>;

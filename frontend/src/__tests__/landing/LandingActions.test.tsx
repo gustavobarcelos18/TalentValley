@@ -63,7 +63,7 @@ describe("landing actions", () => {
       render(<HeroActions />);
       expect(hrefOf(TALENT)).toBe(TALENT_SIGNUP);
       expect(hrefOf(RECRUITER)).toBe(RECRUITER_SIGNUP);
-      expect(link(TALENT).className).toContain("MuiButton-contained");
+      expect(link(TALENT).className).toContain("MuiButton-brand");
       expect(link(RECRUITER).className).toContain("MuiButton-outlined");
     });
 

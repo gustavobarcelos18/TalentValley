@@ -101,8 +101,8 @@
 .hero-technology { will-change: transform; }
 .hero-copy { position: relative; padding: clamp(140px, 15.4vh, 185px) 20px 0; z-index: 2; }
 .hero h1 { font-family: var(--font-display), sans-serif; font-weight: 500; font-size: clamp(4.8rem, 6.35vw, 7rem); line-height: .92; letter-spacing: -.055em; }
-.hero h1 span:not(.hero-title-line) { color: #a0d060; background: linear-gradient(100deg, #35dc90, #8cba53); background-clip: text; -webkit-text-fill-color: transparent; }
-.light .hero h1 span:not(.hero-title-line) { color: #36832b; background-image: linear-gradient(100deg, #008652, #52832e); }
+.hero h1 span:not(.hero-title-line) { color: #a0d060; background: var(--mui-palette-gradient-accent); background-clip: text; -webkit-text-fill-color: transparent; }
+.light .hero h1 span:not(.hero-title-line) { color: #36832b; }
 .hero h1 .hero-title-line { display: inline-block; color: inherit; background: none; -webkit-text-fill-color: initial; }
 .hero h1 em { font-style: normal; color: #20c8c0; }
 .light .hero h1 em { color: #007f7b; }
@@ -114,8 +114,6 @@
 .landing .join-actions .MuiButton-contained { background: #a0d060; color: #15201d; }
 .landing .join-actions .MuiButton-contained:hover { background: #b4df7d; }
 .hero .join-actions .MuiButton-root { min-width: 230px; min-height: 60px; font-size: 1rem; }
-.hero .join-actions .MuiButton-contained { background: linear-gradient(100deg, #4afb8d, #09b8b6); color: #081d17; }
-.hero .join-actions .MuiButton-contained:hover { background: linear-gradient(100deg, #79ffa8, #21d0c7); }
 .hero .join-actions .MuiButton-outlined { background: rgb(13 17 20 / 60%); border-color: #a8d8cc; }
 .light .hero .join-actions .MuiButton-outlined { background: rgb(246 247 242 / 80%); border-color: #53605c; }
 .landing .join-actions .MuiButton-outlined { border-color: var(--muted); color: var(--ink); background: var(--nav); }
