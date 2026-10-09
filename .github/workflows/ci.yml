@@ -81,3 +81,45 @@ jobs:
 
       - name: Compilar imagem Docker
         run: docker build -t talent-valley-api backend/TalentValley.Api
+
+  skills-manifest:
+    name: Manifesto de skills
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Validar SKILLS-MANIFEST.json
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          manifest=./SKILLS-MANIFEST.json
+          listed=$(node -p "require('$manifest').files.join('\n')" | sort)
+          expected_count=$(node -p "require('$manifest').skill_count")
+          tracked=$(git -c core.quotePath=false ls-files AGENTS.md .agents/skills | sort)
+          skill_dirs=$(awk -F/ '$1 == ".agents" && NF >= 4 { print $3 }' <<< "$tracked" | sort -u | wc -l)
+          status=0
+
+          missing=$(comm -23 <(echo "$listed") <(echo "$tracked"))
+          if [ -n "$missing" ]; then
+            echo "::error::O manifesto cita caminhos que não são arquivos versionados de AGENTS.md ou .agents/skills (inexistentes ou repetidos):"
+            echo "$missing"
+            status=1
+          fi
+
+          unlisted=$(comm -13 <(echo "$listed") <(echo "$tracked"))
+          if [ -n "$unlisted" ]; then
+            echo "::error::Arquivos de skill que faltam no manifesto:"
+            echo "$unlisted"
+            status=1
+          fi
+
+          if ! [[ "$expected_count" =~ ^[0-9]+$ ]]; then
+            echo "::error::skill_count no manifesto precisa ser um número inteiro (valor atual: $expected_count)"
+            status=1
+          elif [ "$skill_dirs" -ne "$expected_count" ]; then
+            echo "::error::skill_count no manifesto é $expected_count, mas existem $skill_dirs pastas em .agents/skills"
+            status=1
+          fi
+
+          exit "$status"
