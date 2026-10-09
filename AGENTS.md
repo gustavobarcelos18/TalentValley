@@ -100,6 +100,8 @@ The maintainer is the project owner. These changes need the maintainer's decisio
 5. When the person asks you to publish the work, push the branch (never `main`) and open a pull request to `main`.
 6. In the pull request, state what changed and why, which files, and which checks you ran with their real results.
 
+Collaborators follow the complete process: `talent-valley-phased-delivery`, `talent-valley-quality-gate` and `talent-valley-project-brain`. Read `talent-valley-contribution-workflow` before starting: it has the branch names for phased plans, the one-migration-per-pull-request protocol, and how to do the independent review when your tool has no subagents. Only the maintainer merges.
+
 ## Checks before saying a task is done
 
 Follow `talent-valley-quality-gate`, and run what applies to the files you changed, reporting the real result:
@@ -132,6 +134,7 @@ Use the smallest relevant set of skills under `.agents/skills/`.
 - `talent-valley-smart-dispatch`: model choice (opus/sonnet/haiku) when delegating to subagents.
 - `talent-valley-phased-delivery`: phased plans, branch per phase, phase reports, approval, commit/push.
 - `talent-valley-project-brain`: local `.agents/brain/` (plans, phase reports, solved problems) and resume after context reset.
+- `talent-valley-contribution-workflow`: branch names, one migration per pull request, pull request rules, full process for collaborators, independent review when the tool has no subagents.
 
 Read only the references needed for the current task.
 
