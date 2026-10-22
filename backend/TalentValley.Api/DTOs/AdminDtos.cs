@@ -62,7 +62,7 @@ public sealed record AdminFormacaoResponse(Guid Id, TipoFormacao Tipo, string No
     DateOnly DataInicio, DateOnly? DataFim, int? CargaHoraria, StatusFormacao Status, bool Principal,
     bool EhRioPombaValley, StatusValidacaoRpv? StatusValidacaoRpv, bool PossuiCertificado, string? CertificadoUrl,
     DateTimeOffset CriadoEm, DateTimeOffset AtualizadoEm);
-public sealed record AdminCurriculoResponse(bool PossuiCurriculo, string? Url);
+public sealed record AdminCurriculoResponse(bool PossuiCurriculo, string? Url, string? LattesUrl);
 public sealed record RecrutadorCreatedResponse(Guid Id, string NomeCompleto, string Email, StatusRecrutador Status, bool ActivationSent);
 public sealed record RecrutadorListItem(Guid Id, string NomeCompleto, string Empresa, string Cargo,
     string Cidade, string Uf, StatusRecrutador Status, DateTimeOffset? UltimoAcessoEm);

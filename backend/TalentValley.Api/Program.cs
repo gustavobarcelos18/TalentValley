@@ -44,6 +44,18 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationDatabase(builder.Configuration);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowCredentials()
+              .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+              .WithHeaders("Content-Type", "Authorization");
+    });
+});
+
 builder.Services.AddApplicationSecurity(builder.Configuration, builder.Environment);
 builder.Services.AddRateLimiter(options =>
 {

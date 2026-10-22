@@ -139,7 +139,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         x.Experiencias.OrderByDescending(e => e.Atual).ThenByDescending(e => e.DataInicio).ThenBy(e => e.Id)
             .Select(TrajetoriaMapping.Map).ToList(),
         x.Projetos.OrderBy(p => p.Ordem).ThenBy(p => p.Id).Select(TrajetoriaMapping.Map).ToList(),
-        new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : $"/api/admin/alunos/{x.UserId}/curriculo"),
+        new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : $"/api/admin/alunos/{x.UserId}/curriculo", x.LattesUrl),
         x.AtualizadoEm);
 }
 

@@ -231,5 +231,95 @@ public sealed class AlunoProfileUpdateTests : IDisposable
         });
     }
 
+    [Theory]
+    [InlineData("https://lattes.cnpq.br/1234567890123456")]
+    [InlineData("http://www.buscatextual.cnpq.br/buscatextual/cv_lattes.jsp?lattes=X")]
+    public async Task UpdateLattes_valid_hosts_persist_and_are_returned_in_the_student_profile(string url)
+    {
+        var (client, id) = await StudentWithIdAsync();
+        var response = await client.PutAsJsonAsync("/api/alunos/me/curriculo/lattes", new { lattesUrl = url });
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            Assert.Equal(url, (await db.Alunos.SingleAsync(x => x.UserId == id)).LattesUrl);
+        });
+
+        var profile = await client.GetFromJsonAsync<MeResponse>("/api/alunos/me", ApiFactory.JsonOptions);
+        Assert.Equal(url, profile!.Curriculo.LattesUrl);
+    }
+
+    [Theory]
+    [InlineData("https://exemplo.com/lattes")]
+    [InlineData("https://lattes.cnpq.br.evil.example/123")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,oi")]
+    [InlineData("https://lattes.cnpq.br/com espaco")]
+    [InlineData("https://lattes.cnpq.br/😊")]
+    public async Task UpdateLattes_invalid_values_are_rejected_and_persist_nothing(string url)
+    {
+        var (client, id) = await StudentWithIdAsync();
+        var response = await client.PutAsJsonAsync("/api/alunos/me/curriculo/lattes", new { lattesUrl = url });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            Assert.Null((await db.Alunos.SingleAsync(x => x.UserId == id)).LattesUrl);
+        });
+    }
+
+    [Fact]
+    public async Task UpdateLattes_empty_value_removes_saved_link_and_advances_atualizadoEm()
+    {
+        var (client, id) = await StudentWithIdAsync();
+        const string url = "https://lattes.cnpq.br/1234567890123456";
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/curriculo/lattes", new { lattesUrl = url })).StatusCode);
+
+        DateTimeOffset changedAt = DateTimeOffset.MinValue;
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            changedAt = (await db.Alunos.SingleAsync(x => x.UserId == id)).AtualizadoEm;
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/curriculo/lattes", new { lattesUrl = "" })).StatusCode);
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
+            Assert.Null(aluno.LattesUrl);
+            Assert.True(aluno.AtualizadoEm > changedAt);
+        });
+    }
+
+    [Fact]
+    public async Task DeleteLattes_removes_saved_link_and_repeating_is_a_no_op()
+    {
+        var (client, id) = await StudentWithIdAsync();
+        const string url = "https://buscatextual.cnpq.br/buscatextual/cv_lattes.jsp?lattes=X";
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await client.PutAsJsonAsync("/api/alunos/me/curriculo/lattes", new { lattesUrl = url })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/alunos/me/curriculo/lattes")).StatusCode);
+
+        DateTimeOffset changedAt = DateTimeOffset.MinValue;
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
+            Assert.Null(aluno.LattesUrl);
+            changedAt = aluno.AtualizadoEm;
+        });
+        var profile = await client.GetFromJsonAsync<MeResponse>("/api/alunos/me", ApiFactory.JsonOptions);
+        Assert.Null(profile!.Curriculo.LattesUrl);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/alunos/me/curriculo/lattes")).StatusCode);
+        var after = await client.GetFromJsonAsync<MeResponse>("/api/alunos/me", ApiFactory.JsonOptions);
+        Assert.Equal(changedAt, after!.AtualizadoEm);
+    }
+
     public void Dispose() => factory.Dispose();
 }

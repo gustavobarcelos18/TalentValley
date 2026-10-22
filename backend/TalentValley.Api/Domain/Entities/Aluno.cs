@@ -15,6 +15,7 @@ public class Aluno
     public string? PortfolioUrl { get; set; }
     public string? Bio { get; set; }
     public string? CurriculoStorageKey { get; set; }
+    public string? LattesUrl { get; set; }
     public bool Ativo { get; set; }
     public DateTimeOffset AtualizadoEm { get; set; }
     // LGPD consent copied from the approved registration request.

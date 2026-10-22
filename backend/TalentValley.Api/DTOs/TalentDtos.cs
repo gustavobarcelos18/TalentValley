@@ -104,7 +104,7 @@ public sealed record TalentProjectResponse(
     string? RepositorioUrl,
     IReadOnlyCollection<TalentCompetencyResponse> Tecnologias);
 
-public sealed record TalentCurriculumResponse(bool PossuiCurriculo, string? Url);
+public sealed record TalentCurriculumResponse(bool PossuiCurriculo, string? Url, string? LattesUrl);
 
 public sealed record TalentProfileResponse(
     Guid Id,
