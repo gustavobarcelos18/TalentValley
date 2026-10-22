@@ -166,25 +166,25 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
 
         aluno.StatusBusca = request.StatusBusca;
         aluno.ObjetivoProfissional = request.ObjetivoProfissional;
-        aluno.DisponivelImediatamente = request.DisponivelImediatamente;
+        aluno.DisponivelImediatamente = request.DisponivelImediatamente is true;
         aluno.DisponivelAPartirDe = request.DisponivelAPartirDe;
         aluno.CargaHorariaSemanal = request.CargaHorariaSemanal;
-        aluno.AceitaViajar = request.AceitaViajar;
-        aluno.AceitaMudarDeCidade = request.AceitaMudarDeCidade;
-        aluno.PossuiVeiculoProprio = request.PossuiVeiculoProprio;
+        aluno.AceitaViajar = request.AceitaViajar is true;
+        aluno.AceitaMudarDeCidade = request.AceitaMudarDeCidade is true;
+        aluno.PossuiVeiculoProprio = request.PossuiVeiculoProprio is true;
 
         // Sensitive data: the disability types only exist while "Sou PCD" is on, and the consent only while
         // any PCD field is filled (the request validation already refuses PCD data without the consent).
-        aluno.SouPcd = request.SouPcd;
-        aluno.InteresseVagaPcd = request.InteresseVagaPcd;
-        SyncSet(aluno.TiposDeficiencia, request.SouPcd ? request.TiposDeficiencia : [], x => x.Tipo, v => new() { Tipo = v });
+        aluno.SouPcd = request.SouPcd is true;
+        aluno.InteresseVagaPcd = request.InteresseVagaPcd is true;
+        SyncSet(aluno.TiposDeficiencia, request.SouPcd is true ? request.TiposDeficiencia : [], x => x.Tipo, v => new() { Tipo = v });
 
         // Sending the same answers again is not a profile change: it keeps AtualizadoEm (which orders recruiter
         // search), while still reconfirming the status and renewing the PCD consent date.
         if (database.ChangeTracker.HasChanges()) Touch(aluno);
         // Saving the form reconfirms the status; without a status there is nothing to confirm.
         aluno.StatusBuscaConfirmadoEm = request.StatusBusca is null ? null : now;
-        aluno.ConsentimentoPcdEm = request.SouPcd || request.InteresseVagaPcd ? now : null;
+        aluno.ConsentimentoPcdEm = request.SouPcd is true || request.InteresseVagaPcd is true ? now : null;
         await database.SaveChangesAsync();
     }
 

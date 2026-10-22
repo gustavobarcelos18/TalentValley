@@ -114,17 +114,18 @@ public sealed class UpdateDisponibilidadeRequest : IValidatableObject
     [StringLength(280, ErrorMessage = "O texto deve ter no máximo 280 caracteres."), NoEmoji, NoControlCharacters]
     public string? ObjetivoProfissional { get => objetivoProfissional; init => objetivoProfissional = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
     public IReadOnlyCollection<AreaInteresse> AreasInteresse { get; init; } = [];
-    public bool DisponivelImediatamente { get; init; }
+    // The yes/no answers are nullable so an omitted one is visible as "not sent"; it is stored as "no".
+    public bool? DisponivelImediatamente { get; init; }
     [DateYearRange] public DateOnly? DisponivelAPartirDe { get; init; }
     [EnumDataType(typeof(CargaHorariaSemanal))] public CargaHorariaSemanal? CargaHorariaSemanal { get; init; }
-    public bool AceitaViajar { get; init; }
-    public bool AceitaMudarDeCidade { get; init; }
+    public bool? AceitaViajar { get; init; }
+    public bool? AceitaMudarDeCidade { get; init; }
     public IReadOnlyCollection<CategoriaCnh> CategoriasCnh { get; init; } = [];
-    public bool PossuiVeiculoProprio { get; init; }
-    public bool SouPcd { get; init; }
-    public bool InteresseVagaPcd { get; init; }
+    public bool? PossuiVeiculoProprio { get; init; }
+    public bool? SouPcd { get; init; }
+    public bool? InteresseVagaPcd { get; init; }
     public IReadOnlyCollection<TipoDeficiencia> TiposDeficiencia { get; init; } = [];
-    public bool ConsentimentoPcd { get; init; }
+    public bool? ConsentimentoPcd { get; init; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -136,9 +137,9 @@ public sealed class UpdateDisponibilidadeRequest : IValidatableObject
                      .Concat(CheckSet(nameof(CategoriasCnh), "Categorias de CNH", CategoriasCnh))
                      .Concat(CheckSet(nameof(TiposDeficiencia), "Tipos de deficiência", TiposDeficiencia)))
             yield return problem;
-        if (DisponivelImediatamente && DisponivelAPartirDe is not null)
+        if (DisponivelImediatamente is true && DisponivelAPartirDe is not null)
             yield return new("Informe disponibilidade imediata ou uma data de início, não os dois.", [nameof(DisponivelAPartirDe)]);
-        if ((SouPcd || InteresseVagaPcd) && !ConsentimentoPcd)
+        if ((SouPcd is true || InteresseVagaPcd is true) && ConsentimentoPcd is not true)
             yield return new("Marque a autorização para compartilhar a informação PCD com recrutadores.", [nameof(ConsentimentoPcd)]);
     }
 
