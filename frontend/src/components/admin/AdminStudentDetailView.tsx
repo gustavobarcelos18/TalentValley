@@ -17,7 +17,7 @@ import { ProtectedFileButton } from "@/components/recruiter/ProtectedFileButton"
 import { ProtectedTalentPhoto } from "@/components/recruiter/ProtectedTalentPhoto";
 import { useLoad } from "@/components/admin/useLoad";
 import { Page, LoadState, Status, Confirm } from "@/components/admin/adminShared";
-import { RpvShine, hasVerifiedMainFormation, rpvHighlightSx } from "@/components/recruiter/RpvHighlight";
+import { RpvShine, hasVerifiedFormation, rpvHighlightSx } from "@/components/recruiter/RpvHighlight";
 
 export function AdminStudentDetailView({ id }: { id: string }) {
   const state = useLoad(() => adminApi.student(id), [id]);
@@ -59,8 +59,8 @@ export function AdminStudentDetailView({ id }: { id: string }) {
       }
     >
       <Reveal index={1}>
-        <Card sx={(theme) => ({ p: { xs: 2.5, sm: 3 }, backgroundImage: brandWash(theme, 14), ...(hasVerifiedMainFormation(p.formacoes) && rpvHighlightSx(theme)) })}>
-          {hasVerifiedMainFormation(p.formacoes) && <RpvShine />}
+        <Card sx={(theme) => ({ p: { xs: 2.5, sm: 3 }, backgroundImage: brandWash(theme, 14), ...(hasVerifiedFormation(p.formacoes) && rpvHighlightSx(theme)) })}>
+          {hasVerifiedFormation(p.formacoes) && <RpvShine />}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5} sx={{ alignItems: { sm: "center" } }}>
             <ProtectedTalentPhoto path={p.fotoUrl} name={p.nomeCompleto} size={96} />
             <Box sx={{ minWidth: 0 }}>

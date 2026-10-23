@@ -109,6 +109,13 @@ describe("TalentPreviewDialog", () => {
     expect(within(screen.getByRole("dialog")).getByTestId("rpv-shine")).toBeTruthy();
   });
 
+  it("highlights the header when a formation that is not the main one is verified", async () => {
+    stubMotionMedia("pointer");
+    await renderLoaded(makeTalentProfile({ formacoes: [makeFormation(), makeFormation({ id: "f-2", principal: false, rpvVerificado: true })] }));
+
+    expect(within(screen.getByRole("dialog")).getByTestId("rpv-shine")).toBeTruthy();
+  });
+
   it("does not highlight the header without a verified formation", async () => {
     stubMotionMedia("pointer");
     await renderLoaded(makeTalentProfile({ formacoes: [makeFormation({ rpvVerificado: false })] }));

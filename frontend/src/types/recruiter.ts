@@ -45,6 +45,7 @@ export interface TalentListItem {
   modalidades: ModalidadeTrabalho[];
   favorito: boolean;
   atualizadoEm: string;
+  rpvVerificado: boolean;
 }
 
 export interface TalentContact {

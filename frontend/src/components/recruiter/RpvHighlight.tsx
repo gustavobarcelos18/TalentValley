@@ -15,7 +15,7 @@ const SHINE_REPEAT_DELAY = 2.5;
 const SHINE_DURATION = 1.1;
 
 /**
- * Frame for the blocks of a student whose main formation is verified by the Rio Pomba Valley:
+ * Frame for the blocks of a student with any formation verified by the Rio Pomba Valley:
  * neon green border, soft glow and a light green wash. Only visual, it never changes search order or relevance.
  * `ring` is the width of the outer ring in px (a selected comparison card asks for a thicker one).
  */
@@ -68,9 +68,9 @@ export function RpvShine() {
   );
 }
 
-/** A student is highlighted when the main formation is from the Rio Pomba Valley and its validation is verified. */
-export function hasVerifiedMainFormation(
-  formations: ReadonlyArray<{ principal: boolean; ehRioPombaValley: boolean; statusValidacaoRpv: string | null }>,
+/** A student is highlighted when any formation is from the Rio Pomba Valley and its validation is verified. */
+export function hasVerifiedFormation(
+  formations: ReadonlyArray<{ ehRioPombaValley: boolean; statusValidacaoRpv: string | null }>,
 ) {
-  return formations.some((formation) => formation.principal && formation.ehRioPombaValley && formation.statusValidacaoRpv === "VERIFICADO");
+  return formations.some((formation) => formation.ehRioPombaValley && formation.statusValidacaoRpv === "VERIFICADO");
 }

@@ -20,7 +20,7 @@ import PhotoCameraOutlined from "@mui/icons-material/PhotoCameraOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import { Reveal } from "@/components/common/Reveal";
 import { brandWash } from "@/components/common/surfaceGradient";
-import { RpvShine, hasVerifiedMainFormation, rpvHighlightSx } from "@/components/recruiter/RpvHighlight";
+import { RpvShine, hasVerifiedFormation, rpvHighlightSx } from "@/components/recruiter/RpvHighlight";
 import { useProtectedFile } from "@/hooks/useProtectedFile";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatUpdatedAt, initialsOf } from "@/lib/format";
@@ -144,7 +144,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
   }
 
   const busy = uploading || removing;
-  const rpvVerified = hasVerifiedMainFormation(profile.formacoes);
+  const rpvVerified = hasVerifiedFormation(profile.formacoes);
 
   return (
     <Reveal>

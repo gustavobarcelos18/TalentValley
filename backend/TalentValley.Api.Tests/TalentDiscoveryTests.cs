@@ -131,6 +131,31 @@ public sealed class TalentDiscoveryTests
     }
 
     [Fact]
+    public async Task List_marks_students_with_any_RPV_verified_formation()
+    {
+        using var factory = new ApiFactory();
+        var recruiter = await RecruiterAsync(factory);
+        using var client = recruiter.Client;
+        var verifiedId = await StudentAsync(factory, "Verified", "verified");
+        var pendingId = await StudentAsync(factory, "Pending", "pending");
+        await factory.InScopeAsync(async services =>
+        {
+            var db = services.GetRequiredService<AppDbContext>();
+            var main = Formation(verifiedId, TipoFormacao.TECNICO, StatusFormacao.CONCLUIDO, "Main");
+            main.Principal = true;
+            db.Formacoes.AddRange(main,
+                Formation(verifiedId, TipoFormacao.GRADUACAO, StatusFormacao.EM_ANDAMENTO, "Second", true, StatusValidacaoRpv.VERIFICADO),
+                Formation(pendingId, TipoFormacao.TECNICO, StatusFormacao.CONCLUIDO, "Waiting", true, StatusValidacaoRpv.PENDENTE));
+            await db.SaveChangesAsync();
+        });
+
+        var response = await client.GetFromJsonAsync<PaginatedResponse<TalentListItem>>("/api/talentos", ApiFactory.JsonOptions);
+
+        Assert.True(response!.Items.Single(x => x.Id == verifiedId).RpvVerificado);
+        Assert.False(response.Items.Single(x => x.Id == pendingId).RpvVerificado);
+    }
+
+    [Fact]
     public async Task Sorting_defaults_and_pagination_are_deterministic_and_validated()
     {
         using var factory = new ApiFactory();

@@ -21,6 +21,7 @@ export function makeTalentListItem(overrides: Partial<TalentListItem> = {}): Tal
     modalidades: ["REMOTO"],
     favorito: false,
     atualizadoEm: "2026-09-01T12:00:00Z",
+    rpvVerificado: false,
     ...overrides,
   };
 }

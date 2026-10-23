@@ -57,7 +57,8 @@ public sealed record TalentListItem(
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
     IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
     bool Favorito,
-    DateTimeOffset AtualizadoEm);
+    DateTimeOffset AtualizadoEm,
+    bool RpvVerificado);
 
 public sealed record TalentContactResponse(
     string? Telefone,

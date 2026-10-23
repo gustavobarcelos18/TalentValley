@@ -221,6 +221,14 @@ describe("TalentProfileView", () => {
       expect(within(header).getByText("Verificado pelo Rio Pomba Valley")).toBeTruthy();
     });
 
+    it("highlights the header when a formation that is not the main one is verified", async () => {
+      stubMotionMedia("pointer");
+      await renderProfile({ formacoes: [makeFormation(), makeFormation({ id: "f-2", principal: false, rpvVerificado: true })] });
+
+      const header = screen.getByRole("heading", { level: 1, name: NAME }).closest("header") as HTMLElement;
+      expect(within(header).getByTestId("rpv-shine")).toBeTruthy();
+    });
+
     it("does not highlight the header without a verified formation", async () => {
       stubMotionMedia("pointer");
       await renderProfile({ formacoes: [makeFormation({ rpvVerificado: false })] });

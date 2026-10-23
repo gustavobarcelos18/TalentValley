@@ -268,7 +268,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
             x.Disponibilidades.OrderBy(d => d.Tipo).Select(d => d.Tipo).ToList(),
             x.Modalidades.OrderBy(m => m.Modalidade).Select(m => m.Modalidade).ToList(),
             favorite,
-            x.AtualizadoEm);
+            x.AtualizadoEm,
+            x.Formacoes.Any(IsVerified));
     }
 
     internal static TalentProfileResponse MapProfile(Aluno x, bool favorite) => new(

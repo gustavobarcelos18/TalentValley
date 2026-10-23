@@ -12,7 +12,7 @@ import { FavoriteButton } from "./FavoriteButton";
 import { RpvShine, RpvVerifiedBadge, rpvHighlightSx } from "./RpvHighlight";
 
 export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparisonSelected, onComparisonChange, onPreview }: { talent: TalentListItem; onFavoriteChange?: (favorite: boolean) => void; onUnavailable?: () => void; comparisonSelected?: boolean; onComparisonChange?: (selected: boolean) => void; onPreview?: () => void }) {
-  const rpvVerified = Boolean(talent.formacaoPrincipal?.rpvVerificado);
+  const rpvVerified = talent.rpvVerificado;
 
   return (
     <Card

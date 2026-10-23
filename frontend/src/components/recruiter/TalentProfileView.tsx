@@ -84,8 +84,7 @@ export function TalentProfileView({ slug }: { slug: string }) {
 }
 
 function ProfileHeader({ profile, onFileError, onFavoriteChange, onUnavailable }: { profile: TalentProfile; onFileError: (message: string) => void; onFavoriteChange: (favorite: boolean) => void; onUnavailable: () => void }) {
-  const mainFormation = profile.formacoes.find((item) => item.principal) ?? profile.formacoes[0] ?? null;
-  const rpvVerified = Boolean(mainFormation?.rpvVerificado);
+  const rpvVerified = profile.formacoes.some((item) => item.rpvVerificado);
   return <Reveal><Card component="header" sx={(theme) => ({ p: { xs: 2.5, sm: 3.5 }, backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}>
     {rpvVerified && <RpvShine />}
     <Stack direction={{ xs: "column", sm: "row" }} spacing={3} sx={{ alignItems: { xs: "center", sm: "flex-start" } }}>

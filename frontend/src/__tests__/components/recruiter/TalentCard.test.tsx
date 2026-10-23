@@ -43,25 +43,33 @@ describe("TalentCard", () => {
     expect(within(card).queryByText(VERIFIED_LABEL)).toBeNull();
   });
 
-  it("shows the verified badge for an RPV verified main formation", () => {
+  it("shows the verified badge for an RPV verified student", () => {
     const formacaoPrincipal = {
       tipo: "TECNICO" as const,
       nome: "Informática",
       instituicao: "Colégio Técnico",
       rpvVerificado: true,
     };
-    render(<TalentCard talent={makeTalentListItem({ formacaoPrincipal })} />);
+    render(<TalentCard talent={makeTalentListItem({ formacaoPrincipal, rpvVerificado: true })} />);
 
     expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
     expect(screen.getByText("Técnico:")).toBeTruthy();
   });
 
   describe("RPV highlight", () => {
-    const verified = makeTalentListItem({ formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "Colégio Técnico", rpvVerificado: true } });
+    const verified = makeTalentListItem({ formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "Colégio Técnico", rpvVerificado: true }, rpvVerificado: true });
 
-    it("plays the repeating light sweep for a verified main formation", () => {
+    it("plays the repeating light sweep for a verified student", () => {
       stubMotionMedia("pointer");
       render(<TalentCard talent={verified} />);
+
+      expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+      expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
+    });
+
+    it("highlights a student whose verified formation is not the main one", () => {
+      stubMotionMedia("pointer");
+      render(<TalentCard talent={makeTalentListItem({ rpvVerificado: true })} />);
 
       expect(screen.getByTestId("rpv-shine")).toBeTruthy();
       expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();

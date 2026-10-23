@@ -98,7 +98,7 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
 
   const mainFormation = profile.formacoes.find((item) => item.principal) ?? profile.formacoes[0] ?? null;
 
-  const rpvVerified = Boolean(mainFormation?.rpvVerificado);
+  const rpvVerified = profile.formacoes.some((item) => item.rpvVerificado);
 
   return (
     <Stack spacing={2.5}>

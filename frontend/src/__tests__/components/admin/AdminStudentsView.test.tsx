@@ -742,7 +742,7 @@ describe("AdminStudentsView create access", () => {
 });
 
 describe("AdminStudentsView RPV highlight", () => {
-  it("highlights only the students whose main formation is RPV verified", async () => {
+  it("highlights only the students with an RPV verified formation", async () => {
     stubMotionMedia("pointer");
     await renderLoaded([makeStudentListItem({ rpvVerificado: true }), BRUNO]);
 

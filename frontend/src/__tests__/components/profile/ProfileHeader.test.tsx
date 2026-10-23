@@ -429,16 +429,22 @@ describe("ProfileHeader RPV highlight", () => {
   };
 
   it("shows the light sweep when the main formation is verified", () => {
-
     stubMotionMedia("pointer");
     renderHeader({ formacoes: [verifiedMain] });
 
     expect(screen.getByTestId("rpv-shine")).toBeTruthy();
   });
 
-  it("does not highlight a pending validation or a verified formation that is not the main one", () => {
+  it("shows the light sweep when only a formation that is not the main one is verified", () => {
     stubMotionMedia("pointer");
     renderHeader({ formacoes: [{ ...verifiedMain, statusValidacaoRpv: "PENDENTE" }, { ...verifiedMain, id: "f-2", principal: false }] });
+
+    expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("does not highlight a student whose formations are only pending or rejected", () => {
+    stubMotionMedia("pointer");
+    renderHeader({ formacoes: [{ ...verifiedMain, statusValidacaoRpv: "PENDENTE" }, { ...verifiedMain, id: "f-2", principal: false, statusValidacaoRpv: "REJEITADO" }] });
 
     expect(screen.queryByTestId("rpv-shine")).toBeNull();
   });

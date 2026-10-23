@@ -538,7 +538,14 @@ describe("AdminStudentDetailView RPV highlight", () => {
     expect(screen.getByTestId("rpv-shine")).toBeTruthy();
   });
 
-  it("does not highlight a student without a verified main formation", async () => {
+  it("shows the light sweep when a formation that is not the main one is verified", async () => {
+    stubMotionMedia("pointer");
+    renderView(makeAdminStudentDetail({ formacoes: [makeAdminFormation({ principal: true }), { ...VERIFIED_FORMATION, principal: false }] }));
+    await findProfile();
+    expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("does not highlight a student without a verified formation", async () => {
     stubMotionMedia("pointer");
     renderView(makeAdminStudentDetail({ formacoes: [makeAdminFormation()] }));
     await findProfile();

@@ -63,7 +63,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
             .Select(x => new AlunoListItem(x.UserId, x.Slug, x.User.NomeCompleto,
                 x.FotoStorageKey == null ? null : "/api/admin/alunos/" + x.UserId + "/foto",
                 x.Cidade, x.Uf, x.Ativo, x.AtualizadoEm,
-                x.Formacoes.Any(f => f.Principal && f.EhRioPombaValley && f.StatusValidacaoRpv == StatusValidacaoRpv.VERIFICADO))).ToListAsync();
+                x.Formacoes.Any(f => f.EhRioPombaValley && f.StatusValidacaoRpv == StatusValidacaoRpv.VERIFICADO))).ToListAsync();
         return new(items, request.Page, 10, total, (int)Math.Ceiling(total / 10d));
     }
 
