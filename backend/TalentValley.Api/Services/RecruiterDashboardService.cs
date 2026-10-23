@@ -8,6 +8,7 @@ public sealed class RecruiterDashboardService(AppDbContext database, FavoriteSer
 {
     public async Task<RecruiterDashboardResponse> GetAsync(Guid recruiterId, CancellationToken cancellationToken)
     {
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
         var boundary = await database.Users.AsNoTracking()
             .Where(x => x.Id == recruiterId)
             .Select(x => x.LoginAnteriorEm)
@@ -21,22 +22,22 @@ public sealed class RecruiterDashboardService(AppDbContext database, FavoriteSer
                 SELECT COUNT(*) AS "Value"
                 FROM "Alunos" AS a
                 INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
-                WHERE a."Ativo" AND u."EmailConfirmed" -- TalentVisibility
+                WHERE a."Ativo" AND u."EmailConfirmed" AND u."EhDemo" = {demo} -- TalentVisibility
                     AND a."AtualizadoEm" > {boundary.Value}
                 """).SingleAsync(cancellationToken);
             newStudents = await database.Database.SqlQuery<int>($"""
                 SELECT COUNT(*) AS "Value"
                 FROM "Alunos" AS a
                 INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
-                WHERE a."Ativo" AND u."EmailConfirmed" -- TalentVisibility
+                WHERE a."Ativo" AND u."EmailConfirmed" AND u."EhDemo" = {demo} -- TalentVisibility
                     AND u."CriadoEm" > {boundary.Value}
                 """).SingleAsync(cancellationToken);
         }
 
         var favoriteCount = await database.Favoritos.AsNoTracking()
-            .Where(x => x.RecrutadorId == recruiterId).Select(x => x.Aluno).VisibleToRecruiters()
+            .Where(x => x.RecrutadorId == recruiterId).Select(x => x.Aluno).VisibleToRecruiters(demo)
             .CountAsync(cancellationToken);
-        var recent = await favorites.LoadRecentAsync(recruiterId, 5, 0, cancellationToken);
+        var recent = await favorites.LoadRecentAsync(recruiterId, demo, 5, 0, cancellationToken);
         return new(boundary, new(updated, newStudents, favoriteCount), recent);
     }
 }

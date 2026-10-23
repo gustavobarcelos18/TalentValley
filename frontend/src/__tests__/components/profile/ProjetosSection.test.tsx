@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,7 @@ import { ProjetosSection } from "@/components/profile/ProjetosSection";
 import { ApiError } from "@/lib/api";
 import { createProjeto, deleteProjeto, fetchCompetenciaCatalog, fetchProjetos, updateProjeto } from "@/lib/student";
 import type { CatalogoCompetenciaResponse, ProjetoResponse } from "@/types/student";
+import { EMOJI, useExecCommandSpy } from "../registration/stepTestHelpers";
 import { deferred, makeSectionProps } from "./profileFixtures";
 
 vi.mock("@/lib/student");
@@ -17,13 +18,14 @@ const EDIT_DIALOG = "Editar projeto";
 const DELETE_DIALOG = "Excluir projeto?";
 const LOAD_ERROR = "Não foi possível carregar os projetos.";
 const EMPTY_MESSAGE = "Mostre até dois projetos que melhor representam seu trabalho.";
-const FORM_ERROR = "Revise nome, datas, descrição, tecnologias e links. Os links devem começar com http:// ou https://.";
+const NAME_ERROR = "Informe um nome de projeto válido.";
 const CATALOG_ERROR = "Não foi possível carregar o catálogo de tecnologias.";
 const LIMIT_ERROR = "Você já possui dois projetos em destaque.";
 const SAVE_ERROR_FALLBACK = "Não foi possível salvar o projeto.";
 const DELETE_ERROR_FALLBACK = "Não foi possível remover o projeto.";
-const URL_HELPER_INVALID = "Informe um link completo começando com http:// ou https://.";
-const URL_HELPER_DEFAULT = "Opcional. Use um endereço HTTP ou HTTPS.";
+const URL_SCHEME_ERROR = "Informe uma URL começando com http:// ou https://.";
+const URL_INVALID = "Informe uma URL válida.";
+const URL_HELPER_DEFAULT = "Opcional. Pode digitar sem https://.";
 const PROJECT_NAME = "Portal de Vagas";
 const SECOND_NAME = "Painel de Métricas";
 const NEW_NAME = "Meu App";
@@ -155,6 +157,14 @@ describe("ProjetosSection loading and listing", () => {
     expect(screen.queryByText(EMPTY_MESSAGE)).toBeNull();
   });
 
+  it("keeps the line breaks of the description when listing a project", async () => {
+    await renderSection([makeProject({ descricao: "Primeira linha\nSegunda linha" })]);
+
+    const description = screen.getByText(/Primeira linha/);
+    expect(description.textContent).toBe("Primeira linha\nSegunda linha");
+    expect(getComputedStyle(description).whiteSpace).toBe("pre-wrap");
+  });
+
   it("disables the add action once two projects exist", async () => {
     await renderSection([makeProject(), second()]);
 
@@ -163,6 +173,8 @@ describe("ProjetosSection loading and listing", () => {
 });
 
 describe("ProjetosSection add form", () => {
+  const execCommand = useExecCommandSpy();
+
   it("suggests position 1 when no project exists yet", async () => {
     const user = userEvent.setup();
     await renderSection([]);
@@ -181,29 +193,37 @@ describe("ProjetosSection add form", () => {
     expect(within(dialog).getByRole("combobox", { name: "Posição" }).textContent).toBe("Destaque 2");
   });
 
-  it("rejects an empty submission with the review message and no API call", async () => {
+  it("shows an error under each required field after an empty submission, with no API call", async () => {
     const user = userEvent.setup();
     await renderSection([]);
     const dialog = await openAddDialog(user);
+    expect(within(dialog).queryByText(NAME_ERROR)).toBeNull();
 
     await user.click(within(dialog).getByRole("button", { name: SAVE }));
 
-    expect((await within(dialog).findByRole("alert")).textContent).toBe(FORM_ERROR);
+    expect(await within(dialog).findByText(NAME_ERROR)).toBeTruthy();
+    expect(within(dialog).getByText("Informe a data de início.")).toBeTruthy();
+    expect(within(dialog).getByText("Informe a descrição do projeto.")).toBeTruthy();
+    expect(within(dialog).queryByRole("alert")).toBeNull();
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  const invalidSubmissions: [string, Record<string, string>][] = [
-    ["a project name that is too short", { Nome: "A" }],
-    ["an incomplete start date", { Início: "0101" }],
-    ["a start date that does not exist", { Início: "31022025" }],
-    ["an end date that does not exist", { Término: "31022025" }],
-    ["an end date before the start date", { Início: "10012025", Término: "09012025" }],
-    ["a missing description", { Descrição: "" }],
-    ["a non-http demo link", { "Link da demo": "ftp://servidor.example.com" }],
-    ["a malformed repository link", { "Link do repositório": "isso nao e url" }],
+  const lastYear = new Date().getFullYear() + 15;
+  const invalidSubmissions: [string, Record<string, string>, string][] = [
+    ["a project name that is too short", { Nome: "A" }, NAME_ERROR],
+    ["an incomplete start date", { Início: "0101" }, "Use o formato dd/mm/aaaa."],
+    ["a start date that does not exist", { Início: "31022025" }, "Informe uma data válida."],
+    ["a start date before 1900", { Início: "31121899" }, `Informe uma data entre 1900 e ${lastYear}.`],
+    ["a start date more than 15 years ahead", { Início: `0101${lastYear + 1}`, Término: "" }, `Informe uma data entre 1900 e ${lastYear}.`],
+    ["an end date that does not exist", { Término: "31022025" }, "Informe uma data válida."],
+    ["an end date more than 15 years ahead", { Término: `0101${lastYear + 1}` }, `Informe uma data entre 1900 e ${lastYear}.`],
+    ["an end date before the start date", { Início: "10012025", Término: "09012025" }, "A data final não pode ser anterior à data inicial."],
+    ["a missing description", { Descrição: "" }, "Informe a descrição do projeto."],
+    ["a non-http demo link", { "Link da demo": "ftp://servidor.example.com" }, URL_SCHEME_ERROR],
+    ["a malformed repository link", { "Link do repositório": "isso nao e url" }, URL_INVALID],
   ];
 
-  it.each(invalidSubmissions)("rejects %s", async (_label, overrides) => {
+  it.each(invalidSubmissions)("rejects %s", async (_label, overrides, message) => {
     const user = userEvent.setup();
     await renderSection([]);
     const dialog = await openAddDialog(user);
@@ -212,8 +232,24 @@ describe("ProjetosSection add form", () => {
     for (const [label, value] of Object.entries(values)) await fill(user, label, value);
     await user.click(within(dialog).getByRole("button", { name: SAVE }));
 
-    expect((await within(dialog).findByRole("alert")).textContent).toBe(FORM_ERROR);
+    expect(await within(dialog).findByText(message)).toBeTruthy();
+    expect(within(dialog).queryByRole("alert")).toBeNull();
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts the earliest and latest allowed dates", async () => {
+    const user = userEvent.setup();
+    createMock.mockResolvedValue(makeProject());
+    const props = await renderSection([]);
+    const dialog = await openAddDialog(user);
+
+    await fillValidForm(user);
+    await fill(user, "Início", "01011900");
+    await fill(user, "Término", `3112${lastYear}`);
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Projeto adicionado."));
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ dataInicio: "1900-01-01", dataFim: `${lastYear}-12-31` }));
   });
 
   it("creates the project with trimmed values, ISO dates and null optional links", async () => {
@@ -319,8 +355,58 @@ describe("ProjetosSection add form", () => {
     expect(field("Nome").getAttribute("aria-invalid")).toBe("false");
     expect(screen.getByText(`${NEW_NAME.length}/200`)).toBeTruthy();
 
-    await fill(user, "Descrição", "Texto \u{1F600}ok");
+    fireEvent.change(field("Descrição"), { target: { value: `Texto ${EMOJI}ok` } });
     expect(field("Descrição").value).toBe("Texto ok");
+    fireEvent.change(field("Nome"), { target: { value: `Meu ${EMOJI}App` } });
+    expect(field("Nome").value).toBe("Meu App");
+  });
+
+  it("accepts Enter in the description and sends the line breaks", async () => {
+    const user = userEvent.setup();
+    createMock.mockResolvedValue(makeProject());
+    const props = await renderSection([]);
+    const dialog = await openAddDialog(user);
+
+    await fillValidForm(user);
+    await user.type(field("Descrição"), "{Enter}Segunda linha");
+
+    expect(field("Descrição").getAttribute("aria-invalid")).toBe("false");
+    expect(within(dialog).queryByText("Revise o texto informado.")).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Projeto adicionado."));
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ descricao: `${NEW_DESCRIPTION}\nSegunda linha` }));
+  });
+
+  it("still flags control characters in the description", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openAddDialog(user);
+
+    fireEvent.change(field("Descrição"), { target: { value: "Texto\u0007" } });
+    expect(field("Descrição").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText("Revise o texto informado.")).toBeTruthy();
+  });
+
+  it.each(["Link da demo", "Link do repositório"])("drops emoji typed into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openAddDialog(user);
+
+    fireEvent.change(field(label), { target: { value: "https://a" + EMOJI + ".com" } });
+
+    expect(field(label).value).toBe("https://a.com");
+  });
+
+  it.each(["Nome", "Descrição", "Link da demo", "Link do repositório"])("removes emoji from text pasted into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openAddDialog(user);
+
+    const accepted = fireEvent.paste(field(label), { clipboardData: { getData: () => `Texto${EMOJI}` } });
+
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "Texto");
   });
 
   it("flags invalid links as the user types and falls back to the neutral hint when empty", async () => {
@@ -332,12 +418,14 @@ describe("ProjetosSection add form", () => {
 
     await fill(user, "Link da demo", "ftp://x.example.com");
     await fill(user, "Link do repositório", "nao-e-url");
-    expect(screen.getAllByText(URL_HELPER_INVALID)).toHaveLength(2);
+    expect(screen.getByText(URL_SCHEME_ERROR)).toBeTruthy();
+    expect(screen.getByText(URL_INVALID)).toBeTruthy();
     expect(field("Link da demo").getAttribute("aria-invalid")).toBe("true");
 
     await fill(user, "Link da demo", "");
     expect(field("Link da demo").getAttribute("aria-invalid")).toBe("false");
-    expect(screen.getAllByText(URL_HELPER_INVALID)).toHaveLength(1);
+    expect(screen.queryByText(URL_SCHEME_ERROR)).toBeNull();
+    expect(screen.getByText(URL_INVALID)).toBeTruthy();
   });
 
   it("maps a 409 conflict to the two-project limit message and keeps the dialog open", async () => {
@@ -574,5 +662,31 @@ describe("ProjetosSection delete", () => {
     await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
 
     expect((await within(dialog).findByRole("alert")).textContent).toBe(DELETE_ERROR_FALLBACK);
+  });
+});
+
+describe("ProjetosSection links and focus", () => {
+  it("completes the links with https:// when leaving the field", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openAddDialog(user);
+
+    await fill(user, "Link da demo", "exemplo.com/demo");
+    fireEvent.blur(field("Link da demo"));
+    await fill(user, "Link do repositório", "github.com/maria/projeto");
+    fireEvent.blur(field("Link do repositório"));
+
+    expect(field("Link da demo").value).toBe("https://exemplo.com/demo");
+    expect(field("Link do repositório").value).toBe("https://github.com/maria/projeto");
+  });
+
+  it("moves focus to the first invalid field when saving", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openAddDialog(user);
+
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(document.activeElement).toBe(field("Nome")));
   });
 });

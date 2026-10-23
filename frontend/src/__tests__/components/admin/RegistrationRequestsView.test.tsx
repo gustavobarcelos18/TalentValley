@@ -804,3 +804,15 @@ describe("RegistrationRequestsView rejection", () => {
     expect((within(reopened).getByRole("textbox", { name: REASON_LABEL }) as HTMLTextAreaElement).value).toBe("");
   });
 });
+
+describe("RegistrationRequestsView rejection reason counter", () => {
+  it("counts the characters of the rejection reason", async () => {
+    const user = userEvent.setup();
+    const rejection = await startRejection(user);
+
+    expect(within(rejection).getByText("0/500")).toBeTruthy();
+    await user.type(within(rejection).getByRole("textbox", { name: REASON_LABEL }), "Dados");
+
+    expect(within(rejection).getByText("5/500")).toBeTruthy();
+  });
+});

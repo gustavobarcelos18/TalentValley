@@ -34,6 +34,7 @@ import type { TalentExperience, TalentFormation, TalentProfile } from "@/types/r
 import { ProtectedFileButton } from "./ProtectedFileButton";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { FavoriteButton } from "./FavoriteButton";
+import { RpvShine, RpvVerifiedBadge, rpvHighlightSx } from "./RpvHighlight";
 
 export function TalentProfileView({ slug }: { slug: string }) {
   const [profile, setProfile] = useState<TalentProfile | null>(null);
@@ -83,13 +84,17 @@ export function TalentProfileView({ slug }: { slug: string }) {
 }
 
 function ProfileHeader({ profile, onFileError, onFavoriteChange, onUnavailable }: { profile: TalentProfile; onFileError: (message: string) => void; onFavoriteChange: (favorite: boolean) => void; onUnavailable: () => void }) {
-  return <Reveal><Card component="header" sx={(theme) => ({ p: { xs: 2.5, sm: 3.5 }, backgroundImage: brandWash(theme) })}>
+  const mainFormation = profile.formacoes.find((item) => item.principal) ?? profile.formacoes[0] ?? null;
+  const rpvVerified = Boolean(mainFormation?.rpvVerificado);
+  return <Reveal><Card component="header" sx={(theme) => ({ p: { xs: 2.5, sm: 3.5 }, backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}>
+    {rpvVerified && <RpvShine />}
     <Stack direction={{ xs: "column", sm: "row" }} spacing={3} sx={{ alignItems: { xs: "center", sm: "flex-start" } }}>
       <ProtectedTalentPhoto path={profile.fotoUrl} name={profile.nomeCompleto} size={112} />
       <Stack spacing={1.25} sx={{ minWidth: 0, alignItems: { xs: "center", sm: "flex-start" }, textAlign: { xs: "center", sm: "left" } }}>
         <Typography component="h1" variant="h4" sx={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{profile.nomeCompleto}</Typography>
         <Stack direction="row" spacing={.5} sx={{ alignItems: "center" }}><PlaceOutlined color="action" /><Typography color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{[profile.cidade, profile.uf].filter(Boolean).join(" / ") || "Localização não informada"}</Typography></Stack>
         <Typography variant="caption" color="text.secondary">Atualizado em {formatUpdatedAt(profile.atualizadoEm)}</Typography>
+        {rpvVerified && <RpvVerifiedBadge />}
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", justifyContent: { xs: "center", sm: "flex-start" } }}>
           <FavoriteButton slug={profile.slug} name={profile.nomeCompleto} favorite={profile.favorito} onChange={onFavoriteChange} onUnavailable={onUnavailable} />
           {profile.contato.emailProfissional && <SafeEmailButton value={profile.contato.emailProfissional} label="E-mail" />}

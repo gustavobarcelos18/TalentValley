@@ -161,3 +161,20 @@ public sealed class YearRangeAttribute : ValidationAttribute
         return new ValidationResult($"Informe um ano entre {Minimum} e {DateTime.UtcNow.Year + FutureYears}.");
     }
 }
+
+/// <summary>Same limits as <see cref="YearRangeAttribute"/>, applied to the year of a date.</summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
+public sealed class DateYearRangeAttribute : ValidationAttribute
+{
+    public int Minimum { get; init; } = 1900;
+    public int FutureYears { get; init; } = 15;
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is null) return ValidationResult.Success;
+        if (value is DateOnly date && date.Year >= Minimum && date.Year <= DateTime.UtcNow.Year + FutureYears)
+            return ValidationResult.Success;
+
+        return new ValidationResult($"Informe uma data entre {Minimum} e {DateTime.UtcNow.Year + FutureYears}.");
+    }
+}

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -98,6 +99,16 @@ public static class SecurityRegistration
                             context.Fail("Session is no longer valid.");
                             return;
                         }
+                        // Demonstration accounts have no password: they authenticate only through an administrator's
+                        // switch, and that session lives only while the administrator is still valid.
+                        var access = context.HttpContext.RequestServices.GetRequiredService<AccountAccess>();
+                        var inDemoSession = context.Principal.FindFirst(JwtTokenService.DemoAdminClaim) is not null;
+                        if (user.EhDemo != inDemoSession ||
+                            (inDemoSession && await access.GetDemoSessionAdminAsync(user, context.Principal) is null))
+                        {
+                            context.Fail("Session is no longer valid.");
+                            return;
+                        }
                         // Antiforgery binds tokens to the stable subject, never to a display name.
                         ((ClaimsIdentity)context.Principal.Identity!).AddClaim(new Claim(ClaimTypes.NameIdentifier, subject));
                     }
@@ -117,6 +128,7 @@ public static class SecurityRegistration
                 .RequireRole(AppRoles.Student, AppRoles.Recruiter).AddRequirements(new ActiveAccountRequirement()));
         });
         services.AddScoped<IAuthorizationHandler, ActiveAccountHandler>();
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, TermsPendingResultHandler>();
         services.AddScoped<AccountAccess>();
         services.AddScoped<IdentityBootstrap>();
         services.AddScoped<JwtTokenService>();

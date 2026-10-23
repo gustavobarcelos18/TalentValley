@@ -9,8 +9,9 @@ public sealed class TalentComparisonService(AppDbContext database, TalentDiscove
     public async Task<TalentComparisonResponse?> CompareAsync(
         Guid recruiterId, string firstSlug, string secondSlug, CancellationToken cancellationToken)
     {
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
         var slugs = new[] { firstSlug, secondSlug };
-        var students = await talents.FullQuery().VisibleToRecruiters()
+        var students = await talents.FullQuery().VisibleToRecruiters(demo)
             .Where(x => slugs.Contains(x.Slug))
             .ToListAsync(cancellationToken);
         if (students.Count != 2) return null;

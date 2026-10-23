@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { TalentCard } from "@/components/recruiter/TalentCard";
 import { ApiError } from "@/lib/api";
 import { addFavorite, removeFavorite } from "@/lib/recruiter";
+import { stubMotionMedia } from "../auth/motion/motionMedia";
 import { makeTalentListItem } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
@@ -53,6 +54,50 @@ describe("TalentCard", () => {
 
     expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
     expect(screen.getByText("Técnico:")).toBeTruthy();
+  });
+
+  describe("RPV highlight", () => {
+    const verified = makeTalentListItem({ formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "Colégio Técnico", rpvVerificado: true } });
+
+    it("plays a single light sweep for a verified main formation", () => {
+      stubMotionMedia("pointer");
+      render(<TalentCard talent={verified} />);
+
+      expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+      expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
+    });
+
+    it("keeps the badge but drops the sweep with reduced motion", () => {
+      render(<TalentCard talent={verified} />);
+
+      expect(screen.queryByTestId("rpv-shine")).toBeNull();
+      expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
+    });
+
+    it("leaves a talent without a verified formation unchanged", () => {
+      stubMotionMedia("pointer");
+      render(<TalentCard talent={makeTalentListItem()} />);
+
+      expect(screen.queryByTestId("rpv-shine")).toBeNull();
+      expect(screen.queryByText(VERIFIED_LABEL)).toBeNull();
+    });
+
+    it("does not highlight a talent without a main formation", () => {
+      stubMotionMedia("pointer");
+      render(<TalentCard talent={makeTalentListItem({ formacaoPrincipal: null })} />);
+
+      expect(screen.queryByTestId("rpv-shine")).toBeNull();
+    });
+
+    it("keeps the comparison checkbox working on a highlighted card", async () => {
+      const onComparisonChange = vi.fn();
+      const user = userEvent.setup();
+      render(<TalentCard talent={verified} comparisonSelected={false} onComparisonChange={onComparisonChange} />);
+
+      await user.click(screen.getByRole("checkbox", { name: "Comparar" }));
+
+      expect(onComparisonChange).toHaveBeenCalledWith(true);
+    });
   });
 
   it("hides optional blocks when the data is missing", () => {

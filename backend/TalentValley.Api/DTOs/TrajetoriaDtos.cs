@@ -14,9 +14,9 @@ public sealed class FormacaoRequest : IValidatableObject
     public string Nome { get => nome; init => nome = value?.Trim() ?? string.Empty; }
     [Required, StringLength(200), MeaningfulText, NoEmoji]
     public string Instituicao { get => instituicao; init => instituicao = value?.Trim() ?? string.Empty; }
-    [Required] public DateOnly? DataInicio { get; init; }
-    public DateOnly? DataFim { get; init; }
-    [Range(1, int.MaxValue)] public int? CargaHoraria { get; init; }
+    [Required, DateYearRange] public DateOnly? DataInicio { get; init; }
+    [DateYearRange] public DateOnly? DataFim { get; init; }
+    [Range(1, 10000)] public int? CargaHoraria { get; init; }
     [Required, EnumDataType(typeof(StatusFormacao))] public StatusFormacao? Status { get; init; }
     public bool Principal { get; init; }
     public bool EhRioPombaValley { get; init; }
@@ -42,8 +42,8 @@ public sealed class ExperienciaRequest : IValidatableObject
     [Required, StringLength(150), MeaningfulText, NoEmoji]
     public string Cargo { get => cargo; init => cargo = value?.Trim() ?? string.Empty; }
     [Required, EnumDataType(typeof(TipoExperiencia))] public TipoExperiencia? Tipo { get; init; }
-    [Required] public DateOnly? DataInicio { get; init; }
-    public DateOnly? DataFim { get; init; }
+    [Required, DateYearRange] public DateOnly? DataInicio { get; init; }
+    [DateYearRange] public DateOnly? DataFim { get; init; }
     public bool Atual { get; init; }
     [StringLength(2000, ErrorMessage = "O texto deve ter no máximo 2000 caracteres."), NoEmoji, NoControlCharacters(AllowLineBreaks = true)]
     public string? Descricao { get => descricao; init => descricao = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
@@ -54,6 +54,8 @@ public sealed class ExperienciaRequest : IValidatableObject
             yield return new("DataFim must not precede DataInicio.", [nameof(DataFim)]);
         if (Atual && DataFim is not null)
             yield return new("Current experiences must not have DataFim.", [nameof(DataFim)]);
+        if (!Atual && DataFim is null)
+            yield return new("Past experiences require DataFim.", [nameof(DataFim)]);
     }
 }
 
@@ -65,8 +67,8 @@ public sealed class ProjetoRequest : IValidatableObject
     [Range(1, 2)] public int Ordem { get; init; }
     [Required, StringLength(200), MeaningfulText, NoEmoji]
     public string Nome { get => nome; init => nome = value?.Trim() ?? string.Empty; }
-    [Required] public DateOnly? DataInicio { get; init; }
-    public DateOnly? DataFim { get; init; }
+    [Required, DateYearRange] public DateOnly? DataInicio { get; init; }
+    [DateYearRange] public DateOnly? DataFim { get; init; }
     public bool EmAndamento { get; init; }
     [Required, StringLength(1000, ErrorMessage = "O texto deve ter no máximo 1000 caracteres."), NoEmoji, NoControlCharacters(AllowLineBreaks = true)]
     public string Descricao { get => descricao; init => descricao = value?.Trim() ?? string.Empty; }

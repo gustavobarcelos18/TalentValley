@@ -38,14 +38,14 @@ public sealed class TalentosController(TalentDiscoveryService talents, TalentFil
     [HttpGet("{slug}/foto")]
     public async Task<IActionResult> GetPhoto(string slug, CancellationToken cancellationToken)
     {
-        var file = await files.OpenPhotoAsync(slug, cancellationToken);
+        var file = await files.OpenPhotoAsync(CurrentUserId, slug, cancellationToken);
         return file is null ? NotFoundProblem() : File(file.Content, file.ContentType, enableRangeProcessing: false);
     }
 
     [HttpGet("{slug}/curriculo")]
     public async Task<IActionResult> GetCurriculum(string slug, CancellationToken cancellationToken)
     {
-        var file = await files.OpenCurriculumAsync(slug, cancellationToken);
+        var file = await files.OpenCurriculumAsync(CurrentUserId, slug, cancellationToken);
         return file is null ? NotFoundProblem() :
             File(file.Content, file.ContentType, "curriculo.pdf", enableRangeProcessing: false);
     }
@@ -54,7 +54,7 @@ public sealed class TalentosController(TalentDiscoveryService talents, TalentFil
     public async Task<IActionResult> GetCertificate(
         string slug, Guid formacaoId, CancellationToken cancellationToken)
     {
-        var file = await files.OpenCertificateAsync(slug, formacaoId, cancellationToken);
+        var file = await files.OpenCertificateAsync(CurrentUserId, slug, formacaoId, cancellationToken);
         return file is null ? NotFoundProblem() :
             File(file.Content, file.ContentType, "certificado.pdf", enableRangeProcessing: false);
     }

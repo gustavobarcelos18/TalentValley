@@ -1,3 +1,5 @@
+using TalentValley.Api.Domain.Enums;
+
 namespace TalentValley.Api.Domain.Entities;
 
 public class Aluno
@@ -24,6 +26,21 @@ public class Aluno
     // Optional newsletter consent: current choice and when it was last changed.
     public bool NewsletterAceita { get; set; }
     public DateTimeOffset? NewsletterAtualizadaEm { get; set; }
+    // "O que eu busco": a null status means the student has not said yet. The confirmation date drives the 30-day warning.
+    public StatusBusca? StatusBusca { get; set; }
+    public DateTimeOffset? StatusBuscaConfirmadoEm { get; set; }
+    public string? ObjetivoProfissional { get; set; }
+    // Immediate availability and a start date are mutually exclusive; both empty means not informed.
+    public bool DisponivelImediatamente { get; set; }
+    public DateOnly? DisponivelAPartirDe { get; set; }
+    public CargaHorariaSemanal? CargaHorariaSemanal { get; set; }
+    public bool AceitaViajar { get; set; }
+    public bool AceitaMudarDeCidade { get; set; }
+    public bool PossuiVeiculoProprio { get; set; }
+    // Sensitive data (LGPD art. 11): only kept together with the explicit consent timestamp.
+    public bool SouPcd { get; set; }
+    public bool InteresseVagaPcd { get; set; }
+    public DateTimeOffset? ConsentimentoPcdEm { get; set; }
     public ICollection<AlunoCompetencia> Competencias { get; set; } = [];
     public ICollection<AlunoIdioma> Idiomas { get; set; } = [];
     public ICollection<Formacao> Formacoes { get; set; } = [];
@@ -31,4 +48,7 @@ public class Aluno
     public ICollection<Projeto> Projetos { get; set; } = [];
     public ICollection<AlunoDisponibilidade> Disponibilidades { get; set; } = [];
     public ICollection<AlunoModalidade> Modalidades { get; set; } = [];
+    public ICollection<AlunoAreaInteresse> AreasInteresse { get; set; } = [];
+    public ICollection<AlunoCategoriaCnh> CategoriasCnh { get; set; } = [];
+    public ICollection<AlunoTipoDeficiencia> TiposDeficiencia { get; set; } = [];
 }

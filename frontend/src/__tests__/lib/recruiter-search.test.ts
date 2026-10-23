@@ -60,6 +60,7 @@ describe("parseTalentSearch", () => {
     );
 
     expect(filters.uf).toBe("");
+    expect(parse("uf=ZZ").uf).toBe("");
     expect(filters.competenciaIds).toEqual([7]);
     expect(filters.tiposFormacao).toEqual(["TECNICO"]);
     expect(filters.modalidades).toEqual([]);

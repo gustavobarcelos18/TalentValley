@@ -172,7 +172,7 @@ export function AdminStudentDetailView({ id }: { id: string }) {
               <Typography color="text.secondary">
                 {x.empresa} · {TIPO_EXPERIENCIA_LABELS[x.tipo]}
               </Typography>
-              {x.descricao && <Typography>{x.descricao}</Typography>}
+              {x.descricao && <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{x.descricao}</Typography>}
             </Box>
           ))
         ) : (
@@ -204,7 +204,7 @@ export function AdminStudentDetailView({ id }: { id: string }) {
           p.projetos.map((x) => (
             <Box key={x.id} sx={{ mb: 2, "&:last-child": { mb: 0 } }}>
               <Typography sx={{ fontWeight: 700 }}>{x.nome}</Typography>
-              <Typography>{x.descricao}</Typography>
+              <Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{x.descricao}</Typography>
               <ContactRow label="Demo" value={x.demoUrl} kind="url" />
               <ContactRow
                 label="Repositório"

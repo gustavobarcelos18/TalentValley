@@ -3,7 +3,7 @@ import { act, render, renderHook, screen, waitFor } from "@testing-library/react
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { useAuth } from "@/hooks/useAuth";
-import { ApiError, refreshCsrfToken, setUnauthorizedHandler } from "@/lib/api";
+import { ApiError, refreshCsrfToken, setTermsPendingHandler, setUnauthorizedHandler } from "@/lib/api";
 import { fetchCurrentUser, logout as apiLogout } from "@/lib/auth";
 import type { UsuarioAutenticado } from "@/types/auth";
 
@@ -15,10 +15,11 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   refreshCsrfToken: vi.fn(),
   setUnauthorizedHandler: vi.fn(),
+  setTermsPendingHandler: vi.fn(),
 }));
 
-const ANA: UsuarioAutenticado = { id: "1", nome: "Ana", email: "ana@example.com", role: "ALUNO" };
-const BIA: UsuarioAutenticado = { id: "2", nome: "Bia", email: "bia@example.com", role: "RECRUTADOR" };
+const ANA: UsuarioAutenticado = { id: "1", nome: "Ana", email: "ana@example.com", role: "ALUNO", termosPendentes: false };
+const BIA: UsuarioAutenticado = { id: "2", nome: "Bia", email: "bia@example.com", role: "RECRUTADOR", termosPendentes: false };
 const SESSION_ERROR = "Não foi possível verificar sua sessão. Tente novamente.";
 const EXPIRED_LOGIN = "/login?sessao=expirada";
 
@@ -50,6 +51,12 @@ function registeredHandler() {
   const calls = vi.mocked(setUnauthorizedHandler).mock.calls;
   const handler = calls.at(-1)?.[0];
   if (!handler) throw new Error("no unauthorized handler is registered");
+  return handler;
+}
+
+function registeredTermsHandler() {
+  const handler = vi.mocked(setTermsPendingHandler).mock.calls.at(-1)?.[0];
+  if (!handler) throw new Error("no terms-pending handler is registered");
   return handler;
 }
 
@@ -285,6 +292,35 @@ describe("AuthProvider", () => {
       act(() => registeredHandler()());
 
       expect(router.replace).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("terms pending handling", () => {
+    it("flags the signed-in user as pending without touching the rest of the session", async () => {
+      vi.mocked(fetchCurrentUser).mockResolvedValue(ANA);
+      const { result } = await renderSettled();
+
+      act(() => registeredTermsHandler()());
+
+      expect(result.current).toMatchObject({ user: { ...ANA, termosPendentes: true }, loading: false, error: null });
+    });
+
+    it("does nothing when nobody is signed in", async () => {
+      vi.mocked(fetchCurrentUser).mockRejectedValue(new ApiError(401, "no"));
+      const { result } = await renderSettled();
+
+      act(() => registeredTermsHandler()());
+
+      expect(result.current.user).toBeNull();
+    });
+
+    it("removes its handler when the provider unmounts", async () => {
+      vi.mocked(fetchCurrentUser).mockResolvedValue(ANA);
+      const { unmount } = await renderSettled();
+
+      unmount();
+
+      expect(vi.mocked(setTermsPendingHandler).mock.calls.at(-1)?.[0]).toBeNull();
     });
   });
 

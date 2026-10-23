@@ -2,10 +2,11 @@
 
 import { registrationApi } from "@/lib/admin";
 import {
+  normalizeOptionalUrl,
   normalizeWhitespace,
   validateCompanyName,
-  validateHttpUrl,
   validateJobTitle,
+  validateTypedLink,
 } from "@/lib/validation";
 import {
   recruiterCompanyBlank,
@@ -26,7 +27,7 @@ const recruiterProfile: RegistrationProfile<RecruiterCompanyForm> = {
   validate: (company) => ({
     empresa: validateCompanyName(company.empresa),
     cargo: validateJobTitle(company.cargo),
-    siteEmpresa: validateHttpUrl(company.siteEmpresa),
+    siteEmpresa: validateTypedLink(company.siteEmpresa),
   }),
   DetailsStep: RecruiterCompanyStep,
   review: (company) => ({
@@ -43,7 +44,7 @@ const recruiterProfile: RegistrationProfile<RecruiterCompanyForm> = {
       ...base,
       empresa: normalizeWhitespace(company.empresa),
       cargo: normalizeWhitespace(company.cargo),
-      siteEmpresa: company.siteEmpresa.trim() || null,
+      siteEmpresa: normalizeOptionalUrl(company.siteEmpresa),
     }),
 };
 

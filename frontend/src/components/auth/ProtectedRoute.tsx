@@ -6,16 +6,20 @@ import { CircularProgress, Stack } from "@mui/material";
 import { AccessDenied } from "@/components/auth/AccessDenied";
 import { AuthCheckError } from "@/components/auth/AuthCheckError";
 import { useAuth } from "@/hooks/useAuth";
+import { TERMS_ACCEPTANCE_PATH } from "@/lib/paths";
 import type { UserRole } from "@/types/auth";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   allowedRoles?: UserRole[];
+  /** Only the terms acceptance screen sets this: everywhere else, pending terms redirect to it. */
+  allowPendingTerms?: boolean;
 }
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, allowPendingTerms = false }: ProtectedRouteProps) {
   const { user, loading, error, refreshUser } = useAuth();
   const router = useRouter();
+  const termsPending = Boolean(user?.termosPendentes) && !allowPendingTerms;
 
   useEffect(() => {
     if (loading) return;
@@ -26,8 +30,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
     if (!user) {
       router.replace("/login");
+    } else if (termsPending) {
+      router.replace(TERMS_ACCEPTANCE_PATH);
     }
-  }, [user, loading, error, router]);
+  }, [user, loading, error, termsPending, router]);
 
   if (loading) {
     return (
@@ -53,7 +59,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     );
   }
 
-  if (!user) {
+  // Never render the protected content while the terms are pending, not even for a moment before the redirect.
+  if (!user || termsPending) {
     return null;
   }
 

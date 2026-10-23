@@ -4,14 +4,16 @@ import { Button, Card, Checkbox, Chip, Divider, FormControlLabel, Stack, Typogra
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
-import VerifiedOutlined from "@mui/icons-material/VerifiedOutlined";
 import { CompetencyGroups } from "@/components/common/CompetencyGroups";
 import { DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import type { TalentListItem } from "@/types/recruiter";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { FavoriteButton } from "./FavoriteButton";
+import { RpvShine, RpvVerifiedBadge, rpvHighlightSx } from "./RpvHighlight";
 
 export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparisonSelected, onComparisonChange, onPreview }: { talent: TalentListItem; onFavoriteChange?: (favorite: boolean) => void; onUnavailable?: () => void; comparisonSelected?: boolean; onComparisonChange?: (selected: boolean) => void; onPreview?: () => void }) {
+  const rpvVerified = Boolean(talent.formacaoPrincipal?.rpvVerificado);
+
   return (
     <Card
       component="article"
@@ -19,10 +21,12 @@ export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparison
         const { primary } = (theme.vars ?? theme).palette;
         return {
           p: { xs: 2, sm: 2.5 },
-          ...(comparisonSelected && { borderColor: primary.main, boxShadow: `0 0 0 1px ${primary.main}` }),
+          ...(rpvVerified && rpvHighlightSx(theme, comparisonSelected ? 2 : 1)),
+          ...(comparisonSelected && !rpvVerified && { borderColor: primary.main, boxShadow: `0 0 0 1px ${primary.main}` }),
         };
       }}
     >
+      {rpvVerified && <RpvShine />}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5}>
         <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start", flex: 1, minWidth: 0 }}>
           <ProtectedTalentPhoto path={talent.fotoUrl} name={talent.nomeCompleto} />
@@ -38,7 +42,7 @@ export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparison
             {talent.formacaoPrincipal && <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
               <SchoolOutlined fontSize="small" color="action" />
               <Typography variant="body2"><strong>{TIPO_FORMACAO_LABELS[talent.formacaoPrincipal.tipo]}:</strong> {talent.formacaoPrincipal.nome} · {talent.formacaoPrincipal.instituicao}</Typography>
-              {talent.formacaoPrincipal.rpvVerificado && <Chip icon={<VerifiedOutlined />} size="small" color="success" label="Verificado pelo Rio Pomba Valley" />}
+              {rpvVerified && <RpvVerifiedBadge />}
             </Stack>}
             <CompetencyGroups competencias={talent.competencias} variant="outlined" limit={6} />
             <Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>

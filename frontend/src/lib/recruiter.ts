@@ -1,4 +1,5 @@
 import { apiGet, apiMutation } from "@/lib/api";
+import type { NewsletterResponse } from "@/types";
 import type { CatalogoCompetenciaResponse } from "@/types/student";
 import type {
   PaginatedResponse,
@@ -70,4 +71,13 @@ export function fetchTalentComparison(slugs: readonly [string, string]): Promise
 // LGPD export of the signed-in recruiter's own data (downloaded as a JSON file).
 export function fetchMyDataExport(): Promise<unknown> {
   return apiGet<unknown>("/api/recrutador/me/exportacao");
+}
+
+// LGPD newsletter consent of the signed-in recruiter (opt-in and revocation).
+export function fetchMyNewsletter(): Promise<NewsletterResponse> {
+  return apiGet<NewsletterResponse>("/api/recrutador/me/newsletter");
+}
+
+export function saveMyNewsletter(aceita: boolean): Promise<NewsletterResponse> {
+  return apiMutation<NewsletterResponse>("PUT", "/api/recrutador/me/newsletter", { aceita });
 }

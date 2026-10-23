@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { TalentFilters } from "@/components/recruiter/TalentFilters";
 import type { CatalogoCompetenciaResponse } from "@/types/student";
 import type { TalentSearchFilters } from "@/types/recruiter";
+import { useExecCommandSpy } from "../registration/stepTestHelpers";
 import { makeFilters } from "./recruiterDiscoveryFixtures";
 
 vi.setConfig({ testTimeout: 15_000 });
@@ -56,6 +57,15 @@ function lastChange(setup: Setup): TalentSearchFilters {
   return calls[calls.length - 1][0];
 }
 
+function ufSelect() {
+  return screen.getByRole("combobox", { name: "UF" });
+}
+
+async function chooseUf(user: ReturnType<typeof userEvent.setup>, option: string) {
+  await user.click(ufSelect());
+  await user.click(await screen.findByRole("option", { name: option }));
+}
+
 function group(name: string) {
   return within(screen.getByRole("group", { name }));
 }
@@ -71,7 +81,7 @@ describe("TalentFilters", () => {
       renderFilters({ nome: "Maria", cidade: "Rio Pomba", uf: "MG", formacaoNome: "Sistemas" });
       expect((screen.getByLabelText("Nome") as HTMLInputElement).value).toBe("Maria");
       expect((screen.getByLabelText("Cidade") as HTMLInputElement).value).toBe("Rio Pomba");
-      expect((screen.getByLabelText("UF") as HTMLInputElement).value).toBe("MG");
+      expect(ufSelect().textContent).toBe("MG");
       expect((screen.getByLabelText("Nome da formação") as HTMLInputElement).value).toBe("Sistemas");
     });
 
@@ -155,30 +165,32 @@ describe("TalentFilters", () => {
       renderFilters();
       expect(screen.getByLabelText("Nome").getAttribute("maxlength")).toBe("150");
       expect(screen.getByLabelText("Cidade").getAttribute("maxlength")).toBe("120");
-      expect(screen.getByLabelText("UF").getAttribute("maxlength")).toBe("2");
       expect(screen.getByLabelText("Nome da formação").getAttribute("maxlength")).toBe("200");
     });
 
-    it("uppercases the UF while typing", async () => {
+    it("offers every UF plus an option for all of them", async () => {
+      const user = userEvent.setup({ delay: null });
+      renderFilters();
+      await user.click(ufSelect());
+      const options = (await screen.findAllByRole("option")).map((option) => option.textContent);
+      expect(options).toHaveLength(28);
+      expect(options[0]).toBe("Todas");
+      expect(options).toContain("MG");
+    });
+
+    it("selects a UF from the list", async () => {
       const user = userEvent.setup({ delay: null });
       const setup = renderFilters();
-      await user.type(screen.getByLabelText("UF"), "mg");
+      await chooseUf(user, "MG");
       expect(lastChange(setup).uf).toBe("MG");
-      expect((screen.getByLabelText("UF") as HTMLInputElement).value).toBe("MG");
+      expect(ufSelect().textContent).toBe("MG");
     });
 
-    it("drops digits and symbols typed in the UF", () => {
-      const setup = renderFilters();
-      fireEvent.change(screen.getByLabelText("UF"), { target: { value: "m1" } });
-      expect(lastChange(setup).uf).toBe("M");
-      fireEvent.change(screen.getByLabelText("UF"), { target: { value: "5-" } });
+    it("clears the UF when all of them are chosen again", async () => {
+      const user = userEvent.setup({ delay: null });
+      const setup = renderFilters({ uf: "MG" });
+      await chooseUf(user, "Todas");
       expect(lastChange(setup).uf).toBe("");
-    });
-
-    it("keeps only two letters of a longer UF", () => {
-      const setup = renderFilters();
-      fireEvent.change(screen.getByLabelText("UF"), { target: { value: "mgx" } });
-      expect(lastChange(setup).uf).toBe("MG");
     });
 
     it("groups the catalog options under their category", async () => {
@@ -262,6 +274,8 @@ describe("TalentFilters", () => {
   });
 
   describe("applying", () => {
+    const execCommand = useExecCommandSpy();
+
     it("applies valid criteria once, without showing an error", async () => {
       const user = userEvent.setup({ delay: null });
       const setup = renderFilters({ nome: "Maria", cidade: "Rio Pomba", uf: "MG", formacaoNome: "Sistemas" });
@@ -286,16 +300,33 @@ describe("TalentFilters", () => {
     });
 
     it.each([
-      ["name", "Nome", EMOJI, INVALID_SEARCH],
-      ["city", "Cidade", EMOJI, INVALID_SEARCH],
-      ["formation name", "Nome da formação", EMOJI, INVALID_SEARCH],
-    ])("blocks a %s with emoji and explains why", async (_name, label, term, message) => {
+      ["name", "nome"],
+      ["city", "cidade"],
+      ["formation name", "formacaoNome"],
+    ] as const)("blocks a %s with emoji coming from the URL and explains why", async (_name, key) => {
       const user = userEvent.setup({ delay: null });
-      const setup = renderFilters();
-      fireEvent.change(screen.getByLabelText(label), { target: { value: term } });
+      const setup = renderFilters({ [key]: EMOJI });
       await user.click(screen.getByRole("button", { name: "Aplicar" }));
-      expect(screen.getByRole("alert").textContent).toBe(message);
+      expect(screen.getByRole("alert").textContent).toBe(INVALID_SEARCH);
       expect(setup.onApply).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["Nome", "nome"],
+      ["Cidade", "cidade"],
+      ["Nome da formação", "formacaoNome"],
+    ] as const)("drops emoji typed into %s", (label, key) => {
+      const setup = renderFilters();
+      fireEvent.change(screen.getByLabelText(label), { target: { value: `Ana${EMOJI}` } });
+      expect(lastChange(setup)[key]).toBe("Ana");
+      expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe("Ana");
+    });
+
+    it.each(["Nome", "Cidade", "Nome da formação"])("removes emoji from text pasted into %s", (label) => {
+      renderFilters();
+      const accepted = fireEvent.paste(screen.getByLabelText(label), { clipboardData: { getData: () => `Ana${EMOJI}` } });
+      expect(accepted).toBe(false);
+      expect(execCommand).toHaveBeenCalledWith("insertText", false, "Ana");
     });
 
     it.each([
@@ -338,8 +369,7 @@ describe("TalentFilters", () => {
       await user.click(screen.getByRole("button", { name: "Aplicar" }));
       expect(screen.getByRole("alert").textContent).toBe(INVALID_UF);
 
-      await user.clear(screen.getByLabelText("UF"));
-      await user.type(screen.getByLabelText("UF"), "sp");
+      await chooseUf(user, "SP");
       await user.click(screen.getByRole("button", { name: "Aplicar" }));
       expect(screen.queryByRole("alert")).toBeNull();
       expect(setup.onApply).toHaveBeenCalledTimes(1);

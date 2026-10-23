@@ -17,6 +17,9 @@ public sealed class DataExportService(AppDbContext database)
             .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
             .Include(x => x.Disponibilidades)
             .Include(x => x.Modalidades)
+            .Include(x => x.AreasInteresse)
+            .Include(x => x.CategoriasCnh)
+            .Include(x => x.TiposDeficiencia)
             .Include(x => x.Formacoes)
             .Include(x => x.Experiencias)
             .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia)
@@ -40,6 +43,7 @@ public sealed class DataExportService(AppDbContext database)
                 .Select(x => new AlunoIdiomaResponse(x.IdiomaId, x.Idioma.Nome, x.Nivel)).ToList(),
             aluno.Disponibilidades.OrderBy(x => x.Tipo).Select(x => x.Tipo).ToList(),
             aluno.Modalidades.OrderBy(x => x.Modalidade).Select(x => x.Modalidade).ToList(),
+            BuscaMapping.Map(aluno, DateTimeOffset.UtcNow),
             aluno.Formacoes.OrderBy(x => x.CriadoEm).Select(TrajetoriaMapping.Map).ToList(),
             aluno.Experiencias.OrderByDescending(x => x.DataInicio).Select(TrajetoriaMapping.Map).ToList(),
             aluno.Projetos.OrderBy(x => x.Ordem).Select(TrajetoriaMapping.Map).ToList(),

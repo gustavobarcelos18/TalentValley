@@ -1,4 +1,5 @@
 import { apiGet, apiMutation, apiUpload, ensureCsrfToken } from "./api";
+import type { NewsletterResponse } from "@/types";
 import type {
   CatalogoCompetenciaResponse,
   CatalogoIdiomaResponse,
@@ -147,4 +148,13 @@ export async function deleteOwnAccount(senhaAtual: string): Promise<void> {
 // LGPD export of the signed-in student's own data (downloaded as a JSON file).
 export function fetchMyDataExport(): Promise<unknown> {
   return apiGet<unknown>("/api/alunos/me/exportacao");
+}
+
+// LGPD newsletter consent of the signed-in student (opt-in and revocation).
+export function fetchMyNewsletter(): Promise<NewsletterResponse> {
+  return apiGet<NewsletterResponse>("/api/alunos/me/newsletter");
+}
+
+export function saveMyNewsletter(aceita: boolean): Promise<NewsletterResponse> {
+  return apiMutation<NewsletterResponse>("PUT", "/api/alunos/me/newsletter", { aceita });
 }

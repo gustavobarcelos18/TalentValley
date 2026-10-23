@@ -139,7 +139,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         return await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, password));
     }
 
-    public async Task<Guid> CreateUserAsync(string email, string role = AppRoles.Student, bool active = true, bool activated = true)
+    // Accounts accept the current terms by default, so tests of other features are not blocked by the terms gate;
+    // pass termsVersion: null (or an old version) to create an account with the terms pending.
+    public async Task<Guid> CreateUserAsync(string email, string role = AppRoles.Student, bool active = true, bool activated = true,
+        string? termsVersion = SolicitacaoCadastroService.VersaoTermosAtual)
     {
         using var scope = Services.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -152,9 +155,17 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         Assert.True((await users.AddToRoleAsync(user, role)).Succeeded);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (role == AppRoles.Student)
-            db.Alunos.Add(new Aluno { UserId = user.Id, Slug = user.Id.ToString(), Ativo = active, AtualizadoEm = DateTimeOffset.UtcNow });
+            db.Alunos.Add(new Aluno
+            {
+                UserId = user.Id, Slug = user.Id.ToString(), Ativo = active, AtualizadoEm = DateTimeOffset.UtcNow,
+                VersaoTermos = termsVersion, ConsentimentoEm = termsVersion is null ? null : DateTimeOffset.UtcNow
+            });
         if (role == AppRoles.Recruiter)
-            db.Recrutadores.Add(new Recrutador { UserId = user.Id, Status = active ? StatusRecrutador.ATIVO : StatusRecrutador.BLOQUEADO });
+            db.Recrutadores.Add(new Recrutador
+            {
+                UserId = user.Id, Status = active ? StatusRecrutador.ATIVO : StatusRecrutador.BLOQUEADO,
+                VersaoTermos = termsVersion, ConsentimentoEm = termsVersion is null ? null : DateTimeOffset.UtcNow
+            });
         await db.SaveChangesAsync();
         return user.Id;
     }

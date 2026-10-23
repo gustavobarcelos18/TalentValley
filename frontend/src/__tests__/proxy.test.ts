@@ -8,7 +8,7 @@ function run(path: string, cookie?: string) {
 }
 
 describe("proxy", () => {
-  it.each(["/meu-perfil", "/recrutador/talentos", "/admin/alunos", "/conta/senha"])(
+  it.each(["/meu-perfil", "/recrutador/talentos", "/admin/alunos", "/conta/senha", "/aceitar-termos"])(
     "sends an anonymous visitor of %s to the login with the return url",
     (path) => {
       const response = run(path);

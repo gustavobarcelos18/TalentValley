@@ -39,7 +39,7 @@ const SECRET = "Segredo123";
 const UNAUTHORIZED = "Unauthorized";
 const HOME = "/aluno";
 const RESPONSE: LoginResponse = {
-  usuario: { id: "1", nome: "Ana", email: NORMALIZED_EMAIL, role: "ALUNO" },
+  usuario: { id: "1", nome: "Ana", email: NORMALIZED_EMAIL, role: "ALUNO", termosPendentes: false },
   destinoInicial: HOME,
 };
 const PAUSE_MS = 700;

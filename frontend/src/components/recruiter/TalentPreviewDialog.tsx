@@ -8,7 +8,6 @@ import {
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
-import VerifiedOutlined from "@mui/icons-material/VerifiedOutlined";
 import { CompetencyGroups } from "@/components/common/CompetencyGroups";
 import { brandWash } from "@/components/common/surfaceGradient";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
@@ -17,6 +16,7 @@ import { DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, TIPO_FORMACAO_LABELS } from 
 import type { TalentProfile } from "@/types/recruiter";
 import { FavoriteButton } from "./FavoriteButton";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
+import { RpvShine, RpvVerifiedBadge, rpvHighlightSx } from "./RpvHighlight";
 
 interface TalentPreviewDialogProps {
   open: boolean;
@@ -98,9 +98,12 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
 
   const mainFormation = profile.formacoes.find((item) => item.principal) ?? profile.formacoes[0] ?? null;
 
+  const rpvVerified = Boolean(mainFormation?.rpvVerificado);
+
   return (
     <Stack spacing={2.5}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5} sx={(theme) => ({ alignItems: { xs: "center", sm: "flex-start" }, p: 2.5, borderRadius: "16px", backgroundImage: brandWash(theme) })}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5} useFlexGap sx={(theme) => ({ alignItems: { xs: "center", sm: "flex-start" }, p: 2.5, borderRadius: "16px", position: "relative", backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}>
+        {rpvVerified && <RpvShine />}
         <ProtectedTalentPhoto path={profile.fotoUrl} name={profile.nomeCompleto} size={96} />
         <Stack spacing={1} sx={{ minWidth: 0, flex: 1, alignItems: { xs: "center", sm: "flex-start" }, textAlign: { xs: "center", sm: "left" } }}>
           <Typography component="h2" variant="h5">{profile.nomeCompleto}</Typography>
@@ -118,7 +121,7 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
       {mainFormation && <Box><Typography variant="subtitle2" color="text.secondary" gutterBottom>{mainFormation.principal ? "Formação principal" : "Formação"}</Typography>
         <Stack spacing={.75}>
           <Typography variant="body2"><strong>{TIPO_FORMACAO_LABELS[mainFormation.tipo]}:</strong> {mainFormation.nome} · {mainFormation.instituicao}</Typography>
-          {mainFormation.rpvVerificado && <Chip icon={<VerifiedOutlined />} size="small" color="success" label="Verificado pelo Rio Pomba Valley" sx={{ alignSelf: "flex-start" }} />}
+          {rpvVerified && <RpvVerifiedBadge />}
         </Stack></Box>}
       <Box><Typography variant="subtitle2" color="text.secondary" gutterBottom>Competências</Typography>
         {profile.competencias.length ? <CompetencyGroups competencias={profile.competencias} variant="outlined" limit={8} />

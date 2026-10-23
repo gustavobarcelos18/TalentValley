@@ -5,6 +5,8 @@ export interface UsuarioAutenticado {
   nome: string;
   email: string;
   role: UserRole;
+  // True while the account has not accepted the current terms version (always false for ADMIN).
+  termosPendentes: boolean;
 }
 
 export interface CsrfResponse {

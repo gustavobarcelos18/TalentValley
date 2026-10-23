@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthField } from "@/components/auth/AuthField";
-import { stripEmoji, stripEmojiOnPaste } from "@/lib/validation";
+import { OPTIONAL_LINK_HINT, stripEmoji, stripEmojiOnPaste, withHttpsScheme } from "@/lib/validation";
 import type { FieldErrors, FocusableControl } from "./registrationForm";
 
 export type RecruiterCompanyForm = {
@@ -78,12 +78,16 @@ export function RecruiterCompanyStep({
           required={false}
           value={value.siteEmpresa}
           onChange={(e) => onChange("siteEmpresa", stripEmoji(e.target.value).slice(0, 2048))}
-          onBlur={() => onBlur("siteEmpresa")}
+          onBlur={() => {
+            const completed = withHttpsScheme(value.siteEmpresa);
+            if (completed !== value.siteEmpresa) onChange("siteEmpresa", completed);
+            onBlur("siteEmpresa");
+          }}
           onPaste={stripEmojiOnPaste}
           inputRef={registerFieldRef("siteEmpresa")}
           disabled={disabled}
           error={Boolean(errors.siteEmpresa)}
-          helperText={errors.siteEmpresa ?? "Opcional; use um endereço HTTP ou HTTPS."}
+          helperText={errors.siteEmpresa ?? OPTIONAL_LINK_HINT}
           inputMode="url"
           maxLength={2048}
         />

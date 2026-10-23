@@ -41,7 +41,7 @@ public sealed class AdminRecrutadorService(AppDbContext database, AdminAccountSe
 
     public async Task<PaginatedResponse<RecrutadorListItem>> ListAsync(RecrutadorListQuery request)
     {
-        var query = database.Recrutadores.AsNoTracking();
+        var query = database.Recrutadores.AsNoTracking().ExcludingDemo();
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = NameNormalizer.Normalize(request.Search);

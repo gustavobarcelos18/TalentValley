@@ -43,6 +43,9 @@ public sealed class StudentSelfDeletionTests : IDisposable
             Assert.False(await db.UserRoles.AnyAsync(x => x.UserId == id));
             Assert.False(await db.Alunos.AnyAsync(x => x.UserId == id));
             Assert.False(await db.Formacoes.AnyAsync());
+            Assert.False(await db.AlunoAreasInteresse.AnyAsync());
+            Assert.False(await db.AlunoCategoriasCnh.AnyAsync());
+            Assert.False(await db.AlunoTiposDeficiencia.AnyAsync());
             Assert.Empty(await db.SolicitacoesCadastro.ToListAsync());
             foreach (var file in storedFiles)
                 Assert.False(await storage.ExistsAsync(file.Category, file.Key));
@@ -136,6 +139,12 @@ public sealed class StudentSelfDeletionTests : IDisposable
             var storage = provider.GetRequiredService<IFileStorage>();
             var aluno = await db.Alunos.SingleAsync(x => x.UserId == id);
             aluno.FotoStorageKey = await storage.StoreAsync(FileCategory.Photo, new MemoryStream([0xff, 0xd8, 0xff]), ".jpg");
+            aluno.StatusBusca = StatusBusca.NAO_BUSCANDO;
+            aluno.SouPcd = true;
+            aluno.ConsentimentoPcdEm = DateTimeOffset.UtcNow;
+            db.AlunoAreasInteresse.Add(new AlunoAreaInteresse { AlunoId = id, Area = AreaInteresse.Redes });
+            db.AlunoCategoriasCnh.Add(new AlunoCategoriaCnh { AlunoId = id, Categoria = CategoriaCnh.B });
+            db.AlunoTiposDeficiencia.Add(new AlunoTipoDeficiencia { AlunoId = id, Tipo = TipoDeficiencia.VISUAL });
             aluno.CurriculoStorageKey = await storage.StoreAsync(FileCategory.Curriculum,
                 new MemoryStream("%PDF-cv"u8.ToArray()), ".pdf");
             var certificateKey = await storage.StoreAsync(FileCategory.Certificate,

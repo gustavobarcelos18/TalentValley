@@ -48,6 +48,9 @@ public sealed class AdminDeletionTests : IDisposable
             aluno.Idiomas.Add(new AlunoIdioma { Idioma = language, Nivel = NivelIdioma.NATIVO });
             aluno.Disponibilidades.Add(new AlunoDisponibilidade { Tipo = TipoDisponibilidade.CLT });
             aluno.Modalidades.Add(new AlunoModalidade { Modalidade = ModalidadeTrabalho.REMOTO });
+            aluno.AreasInteresse.Add(new AlunoAreaInteresse { Area = AreaInteresse.Redes });
+            aluno.CategoriasCnh.Add(new AlunoCategoriaCnh { Categoria = CategoriaCnh.B });
+            aluno.TiposDeficiencia.Add(new AlunoTipoDeficiencia { Tipo = TipoDeficiencia.VISUAL });
             var certificateKey = await storage.StoreAsync(FileCategory.Certificate,
                 new MemoryStream("%PDF-proof"u8.ToArray()), ".pdf");
             storedFiles.Add((FileCategory.Certificate, certificateKey));
@@ -97,6 +100,9 @@ public sealed class AdminDeletionTests : IDisposable
             Assert.Equal(failIdentity, await db.AlunoIdiomas.AnyAsync());
             Assert.Equal(failIdentity, await db.AlunoDisponibilidades.AnyAsync());
             Assert.Equal(failIdentity, await db.AlunoModalidades.AnyAsync());
+            Assert.Equal(failIdentity, await db.AlunoAreasInteresse.AnyAsync());
+            Assert.Equal(failIdentity, await db.AlunoCategoriasCnh.AnyAsync());
+            Assert.Equal(failIdentity, await db.AlunoTiposDeficiencia.AnyAsync());
             Assert.Equal(CatalogSeedService.CompetenciaNames.Length, await db.Competencias.CountAsync());
             Assert.Equal(CatalogSeedService.IdiomaNames.Length, await db.Idiomas.CountAsync());
             Assert.True(await db.Users.AnyAsync(x => x.Id == recruiterId));

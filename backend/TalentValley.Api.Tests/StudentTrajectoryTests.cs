@@ -298,6 +298,72 @@ public sealed class StudentTrajectoryTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + "formacoes", request)).StatusCode);
     }
 
+    [Fact]
+    public async Task Workload_is_limited_to_ten_thousand_hours()
+    {
+        var (client, _) = await StudentAsync();
+        using var ownerClient = client;
+        var request = Formation();
+        request["cargaHoraria"] = 10001;
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + "formacoes", request)).StatusCode);
+        request["cargaHoraria"] = 10000;
+        Assert.Equal(10000, (await CreateAsync(client, "formacoes", request))["cargaHoraria"]!.GetValue<int>());
+    }
+
+    [Theory]
+    [InlineData("formacoes", "dataInicio")]
+    [InlineData("formacoes", "dataFim")]
+    [InlineData("experiencias", "dataInicio")]
+    [InlineData("experiencias", "dataFim")]
+    [InlineData("projetos", "dataInicio")]
+    [InlineData("projetos", "dataFim")]
+    public async Task Dates_must_be_between_1900_and_fifteen_years_ahead(string section, string field)
+    {
+        var (client, _) = await StudentAsync();
+        using var ownerClient = client;
+        var lastYear = DateTime.UtcNow.Year + 15;
+        foreach (var invalid in new[] { "1899-12-31", $"{lastYear + 1}-01-01" })
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + section, DatedRequest(section, field, invalid))).StatusCode);
+        foreach (var valid in new[] { "1900-01-01", $"{lastYear}-12-31" })
+            await CreateAsync(client, section, DatedRequest(section, field, valid));
+    }
+
+    // A start date is tested on an ongoing item (no end date, so the order check cannot interfere);
+    // an end date is tested on a finished item that starts on the earliest allowed date.
+    private static JsonObject DatedRequest(string section, string field, string value)
+    {
+        var request = Request(section);
+        if (field == "dataInicio")
+        {
+            request[field] = value;
+            return request;
+        }
+        request["dataInicio"] = "1900-01-01";
+        request["dataFim"] = value;
+        switch (section)
+        {
+            case "formacoes": request["status"] = "CONCLUIDO"; break;
+            case "experiencias": request["atual"] = false; break;
+            default: request["emAndamento"] = false; break;
+        }
+        return request;
+    }
+
+    [Fact]
+    public async Task Experience_that_is_not_current_requires_end_date()
+    {
+        var (client, _) = await StudentAsync();
+        using var ownerClient = client;
+        var request = Experience();
+        request["atual"] = false;
+        request["dataFim"] = null;
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + "experiencias", request)).StatusCode);
+        request["atual"] = true;
+        var created = await CreateAsync(client, "experiencias", request);
+        request["atual"] = false;
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"{Root}experiencias/{Id(created)}", request)).StatusCode);
+    }
+
     [Theory]
     [InlineData("PROFISSIONAL")]
     [InlineData("ESTAGIO")]

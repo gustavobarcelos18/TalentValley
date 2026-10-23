@@ -9,6 +9,9 @@ public sealed record ActiveAccountRequirement(string? Role = null) : IAuthorizat
 public sealed class ActiveAccountHandler(UserManager<ApplicationUser> users, AccountAccess access)
     : AuthorizationHandler<ActiveAccountRequirement>
 {
+    // Reported through AuthorizationFailureReason so the response can tell "accept the terms" apart from other 403s.
+    public const string TermsPendingReason = "TERMOS_PENDENTES";
+
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ActiveAccountRequirement requirement)
     {
         if (context.User.Identity?.IsAuthenticated != true ||
@@ -20,6 +23,26 @@ public sealed class ActiveAccountHandler(UserManager<ApplicationUser> users, Acc
         if (role is null || context.User.FindFirst("role")?.Value != role ||
             (requirement.Role is not null && role != requirement.Role)) return;
 
-        if (await access.IsActiveAsync(id, role)) context.Succeed(requirement);
+        var state = await access.GetStateAsync(id, role);
+        if (!state.Active) return;
+
+        if (AccountAccess.HasPendingTerms(user, role, state) && !AllowsPendingTerms(context))
+        {
+            context.Fail(new AuthorizationFailureReason(this, TermsPendingReason));
+            return;
+        }
+        context.Succeed(requirement);
+    }
+
+    // Fails closed: when the endpoint cannot be identified, the terms are required.
+    private static bool AllowsPendingTerms(AuthorizationHandlerContext context)
+    {
+        var endpoint = context.Resource switch
+        {
+            HttpContext http => http.GetEndpoint(),
+            Endpoint found => found,
+            _ => null
+        };
+        return endpoint?.Metadata.GetMetadata<AllowPendingTermsAttribute>() is not null;
     }
 }

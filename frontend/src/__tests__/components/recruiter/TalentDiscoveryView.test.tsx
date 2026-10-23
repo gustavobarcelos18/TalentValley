@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TalentDiscoveryView } from "@/components/recruiter/TalentDiscoveryView";
@@ -321,7 +321,7 @@ describe("TalentDiscoveryView", () => {
       await renderLoaded([MARIA], "nome=Ana&uf=MG&disponibilidades=CLT");
       await user.click(filterButtons()[1]);
       expect((screen.getByLabelText("Nome") as HTMLInputElement).value).toBe("Ana");
-      expect((screen.getByLabelText("UF") as HTMLInputElement).value).toBe("MG");
+      expect(screen.getByRole("combobox", { name: "UF" }).textContent).toBe("MG");
       expect((screen.getByRole("checkbox", { name: "CLT" }) as HTMLInputElement).checked).toBe(true);
     });
 
@@ -350,10 +350,18 @@ describe("TalentDiscoveryView", () => {
       const user = userEvent.setup({ delay: null });
       await renderLoaded();
       await user.click(filterButtons()[1]);
-      await user.type(screen.getByLabelText("UF"), "zz");
+      fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "a\u0007" } });
       await user.click(screen.getByRole("button", { name: "Aplicar" }));
-      expect(screen.getByRole("alert").textContent).toBe("Selecione uma UF válida.");
+      expect(screen.getByRole("alert").textContent).toBe("Informe uma busca válida.");
       expect(mocks.push).not.toHaveBeenCalled();
+    });
+
+    it("ignores an unknown UF in the address and shows all of them in the filter", async () => {
+      const user = userEvent.setup({ delay: null });
+      await renderLoaded([MARIA], "nome=Ana&uf=ZZ");
+      expect(mocks.fetchTalents).toHaveBeenCalledWith(makeFilters({ nome: "Ana", uf: "" }));
+      await user.click(filterButtons()[1]);
+      expect(screen.getByRole("combobox", { name: "UF" }).textContent).toBe("Todas");
     });
 
     it("clears the criteria and the sort order of an active search", async () => {

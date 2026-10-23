@@ -205,6 +205,7 @@ describe("AdminStudentDetailView profile", () => {
     expect(experience.getByText("Desenvolvedora")).toBeTruthy();
     expect(experience.getByText("Empresa X · Profissional")).toBeTruthy();
     expect(experience.getByText("Construiu APIs.")).toBeTruthy();
+    expect(getComputedStyle(experience.getByText("Construiu APIs.")).whiteSpace).toBe("pre-wrap");
     expect(experience.getByText("Estagiária")).toBeTruthy();
     expect(experience.getByText("Empresa Y · Estágio")).toBeTruthy();
   });
@@ -249,6 +250,7 @@ describe("AdminStudentDetailView profile", () => {
     const projects = section("Projetos");
     expect(projects.getByText("Talent App")).toBeTruthy();
     expect(projects.getByText("Plataforma de talentos.")).toBeTruthy();
+    expect(getComputedStyle(projects.getByText("Plataforma de talentos.")).whiteSpace).toBe("pre-wrap");
     expect(projects.getByRole("link", { name: "https://demo.example.com" }).getAttribute("href")).toBe("https://demo.example.com");
     expect(projects.getByRole("link", { name: "https://github.com/maria/talent" }).getAttribute("href")).toBe("https://github.com/maria/talent");
     expect(projects.getByText("Projeto interno")).toBeTruthy();

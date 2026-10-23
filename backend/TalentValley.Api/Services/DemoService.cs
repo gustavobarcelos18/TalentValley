@@ -123,6 +123,22 @@ public sealed class DemoService(AppDbContext database, UserManager<ApplicationUs
         return user;
     }
 
+    private static void ApplySearch(Aluno aluno, DemoSearch search, DateTimeOffset now)
+    {
+        aluno.StatusBusca = search.Status;
+        aluno.StatusBuscaConfirmadoEm = now.AddDays(-search.ConfirmadoHaDias);
+        aluno.ObjetivoProfissional = search.Objetivo;
+        aluno.DisponivelImediatamente = search.DisponivelEmDias is null;
+        aluno.DisponivelAPartirDe = search.DisponivelEmDias is { } days
+            ? DateOnly.FromDateTime(now.UtcDateTime).AddDays(days) : null;
+        aluno.CargaHorariaSemanal = search.CargaHoraria;
+        aluno.AceitaViajar = search.AceitaViajar;
+        aluno.AceitaMudarDeCidade = search.AceitaMudarDeCidade;
+        aluno.PossuiVeiculoProprio = search.PossuiVeiculoProprio;
+        foreach (var area in search.Areas) aluno.AreasInteresse.Add(new() { Area = area });
+        foreach (var category in search.CategoriasCnh) aluno.CategoriasCnh.Add(new() { Categoria = category });
+    }
+
     private async Task AddStudentAsync(DemoStudent data, Dictionary<string, int> competencias,
         Dictionary<string, int> idiomas, DateTimeOffset now)
     {
@@ -140,6 +156,7 @@ public sealed class DemoService(AppDbContext database, UserManager<ApplicationUs
             aluno.Idiomas.Add(new() { IdiomaId = CatalogId(idiomas, language.Nome), Nivel = language.Nivel });
         foreach (var type in data.Disponibilidades) aluno.Disponibilidades.Add(new() { Tipo = type });
         foreach (var modality in data.Modalidades) aluno.Modalidades.Add(new() { Modalidade = modality });
+        ApplySearch(aluno, data.Busca, now);
 
         foreach (var formation in data.Formacoes)
             aluno.Formacoes.Add(new()

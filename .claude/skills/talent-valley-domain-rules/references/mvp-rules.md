@@ -93,6 +93,29 @@ Modalities:
 
 Multiple values are allowed.
 
+## What the student is looking for ("O que eu busco")
+
+Replaces the old "Disponibilidade e modalidade" section. Saved as one form by `PUT /api/alunos/me/disponibilidade` (full replacement).
+
+- Search status: `BUSCANDO_ATIVAMENTE`, `ABERTO_A_PROPOSTAS`, `NAO_BUSCANDO`. Empty means "not informed" (existing students).
+- A student who is not looking (`NAO_BUSCANDO`) still appears in recruiter search, with a visible warning.
+- The status counts as outdated when it was not confirmed for more than 30 days. It stays visible with a warning. The backend computes `statusDesatualizado`. The only reminder is an in-app notice (no email, no scheduled job).
+- The status is reconfirmed only by saving the form or by `POST /api/alunos/me/busca/confirmar` (409 when no status is set). Editing other parts of the profile never reconfirms.
+- Professional objective: up to 280 characters, no emoji, no line breaks.
+- Areas of interest: own list (`AreaInteresse`, stored as text, so adding values needs no migration), at most 5, no repeats.
+- Available from: either "immediately" or a date, never both. A past date is shown as "Imediato".
+- Weekly workload (optional): `ATE_20H`, `ATE_30H`, `ATE_40H`.
+- Mobility: two yes/no answers, `AceitaViajar` (for work) and `AceitaMudarDeCidade`.
+- Driver's license: categories `A`, `B`, `C`, `D`, `E` (none means no license) plus `PossuiVeiculoProprio`. Declared by the student. Never store the license number, a photo or a document.
+- PCD (sensitive data, LGPD art. 11, always optional): `SouPcd`, `InteresseVagaPcd` and disability types (`FISICA`, `VISUAL`, `AUDITIVA`, `INTELECTUAL`, `MULTIPLA`, `TEA`, `OUTRA`). Disability types are only kept while `SouPcd` is on.
+- PCD consent: saving `SouPcd` or `InteresseVagaPcd` requires the consent box ("Autorizo compartilhar esta informação com recrutadores cadastrados"); the backend refuses to save otherwise. `ConsentimentoPcdEm` is the date of the latest save with the box marked, and it is cleared, together with the disability types, when the student turns the PCD fields off.
+- Saving the same answers again does not change `AtualizadoEm`; it still reconfirms the status.
+- Recruiters and admins see the three PCD fields, but PCD data is only exposed when `ConsentimentoPcdEm` exists. Only `InteresseVagaPcd` is a search filter. The recruiter screen shows a fixed notice: PCD information may only be used to find and contact students.
+- The license is shown as "informado pelo aluno".
+- Recruiter search gets these new filters: search status, area of interest, mobility (travel / move city), license category and interest in PCD jobs. Start date, workload, own vehicle and disability type are shown but never filter.
+- The landing page texts that mention "disponibilidade" are not changed.
+- The LGPD export includes all of this, and account deletion removes all of it.
+
 ## Formation
 
 Types:
@@ -166,7 +189,8 @@ Filters:
 - formation status;
 - verified RPV formation;
 - availability;
-- work modality.
+- work modality;
+- search status, area of interest, mobility, driver's license category and interest in PCD jobs (see "What the student is looking for").
 
 No filters for:
 - institution;

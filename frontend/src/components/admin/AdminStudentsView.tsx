@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { adminApi } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatUpdatedAt } from "@/lib/format";
-import { sanitizePersonName, validateEmail, validatePersonName, validateSearchTerm } from "@/lib/validation";
+import { normalizeEmailInput, sanitizePersonName, stripEmoji, stripEmojiOnPaste, validateEmail, validatePersonName, validateSearchTerm } from "@/lib/validation";
 import { ProtectedTalentPhoto } from "@/components/recruiter/ProtectedTalentPhoto";
 import { ActivationSnackbar, useActivationFeedback } from "@/components/admin/activationFeedback";
 import type { AdminStudentCreated, AdminStudentListItem } from "@/types/admin";
@@ -97,11 +97,11 @@ export function AdminStudentsView() {
           fullWidth
           label="Buscar por nome"
           value={draft}
-          onChange={(e) => setDraft(e.target.value.slice(0, 150))}
+          onChange={(e) => setDraft(stripEmoji(e.target.value).slice(0, 150))}
           error={Boolean(searchError)}
           helperText={searchError}
           slotProps={{
-            htmlInput: { maxLength: 150 },
+            htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -264,7 +264,7 @@ function StudentCreate({
     try {
       const created = await adminApi.createStudent({
         nomeCompleto: nomeCompleto.trim(),
-        email: email.trim(),
+        email: normalizeEmailInput(email),
       });
       setName("");
       setEmail("");
@@ -283,7 +283,7 @@ function StudentCreate({
       maxWidth="xs"
       aria-labelledby={titleId}
     >
-      <Box component="form" onSubmit={submit}>
+      <Box component="form" noValidate onSubmit={submit}>
         <DialogTitle id={titleId}>Criar acesso de aluno</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
@@ -293,15 +293,15 @@ function StudentCreate({
               label="Nome completo"
               value={nomeCompleto}
               onChange={(e) => setName(sanitizePersonName(e.target.value))}
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{ htmlInput: { maxLength: 150, onPaste: stripEmojiOnPaste } }}
             />
             <TextField
               required
               type="email"
               label="E-mail"
               value={email}
-              onChange={(e) => setEmail(e.target.value.slice(0, 254))}
-              slotProps={{ htmlInput: { maxLength: 254 } }}
+              onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
+              slotProps={{ htmlInput: { maxLength: 254, onPaste: stripEmojiOnPaste } }}
             />
           </Stack>
         </DialogContent>

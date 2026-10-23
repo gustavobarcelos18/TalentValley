@@ -133,6 +133,7 @@ public sealed class DemoTests : IDisposable
         var students = await QueryAsync(db => db.Alunos.AsNoTracking().AsSplitQuery()
             .Include(x => x.Formacoes).Include(x => x.Experiencias).Include(x => x.Projetos).ThenInclude(x => x.Competencias)
             .Include(x => x.Competencias).Include(x => x.Idiomas).Include(x => x.Disponibilidades).Include(x => x.Modalidades)
+            .Include(x => x.AreasInteresse).Include(x => x.CategoriasCnh).Include(x => x.TiposDeficiencia)
             .Where(x => x.User.EhDemo).ToListAsync());
 
         Assert.Equal(DemoStudents, students.Count);
@@ -148,6 +149,17 @@ public sealed class DemoTests : IDisposable
             Assert.NotEmpty(student.Idiomas);
             Assert.NotEmpty(student.Disponibilidades);
             Assert.NotEmpty(student.Modalidades);
+            Assert.NotNull(student.StatusBusca);
+            Assert.NotNull(student.StatusBuscaConfirmadoEm);
+            Assert.True(student.ObjetivoProfissional is { Length: > 0 and <= 280 });
+            Assert.InRange(student.AreasInteresse.Count, 1, 5);
+            Assert.NotNull(student.CargaHorariaSemanal);
+            Assert.True(student.DisponivelImediatamente ^ student.DisponivelAPartirDe is not null);
+            // The demo never invents sensitive data.
+            Assert.False(student.SouPcd);
+            Assert.False(student.InteresseVagaPcd);
+            Assert.Null(student.ConsentimentoPcdEm);
+            Assert.Empty(student.TiposDeficiencia);
             Assert.True(student.Bio is { Length: > 0 and <= 1500 });
             Assert.Equal(1, student.Formacoes.Count(x => x.Principal));
             Assert.InRange(student.Projetos.Count, 1, 2);

@@ -36,6 +36,12 @@ public sealed class AlunoConfiguration : IEntityTypeConfiguration<Aluno>
 
         builder.Property(x => x.VersaoTermos).HasMaxLength(20);
 
+        builder.Property(x => x.StatusBusca).HasConversion<string>().HasMaxLength(30);
+
+        builder.Property(x => x.ObjetivoProfissional).HasMaxLength(280);
+
+        builder.Property(x => x.CargaHorariaSemanal).HasConversion<string>().HasMaxLength(10);
+
         // Account deletion must explicitly remove the profile and its owned data first.
         builder.HasOne(x => x.User).WithOne()
             .HasForeignKey<Aluno>(x => x.UserId).OnDelete(DeleteBehavior.Restrict);

@@ -26,10 +26,14 @@ import {
   validateCityName,
   validateCompanyName,
   validateCourseName,
+  validateDatePeriod,
   validateDateRange,
   validateEmail,
   validateFreeText,
+  validateMultilineText,
   validateHttpUrl,
+  validateTypedLink,
+  withHttpsScheme,
   validateInstitutionName,
   validateInteger,
   validateIntegerRange,
@@ -44,6 +48,7 @@ import {
   validateSearchTerm,
   validateTextLength,
   validateUF,
+  validateWorkloadHours,
   validateYear,
 } from "@/lib/validation";
 
@@ -341,6 +346,31 @@ describe("phone, UF and URL", () => {
     expect(validateHttpUrl("exemplo")).toBe("Informe uma URL válida.");
     expect(validateHttpUrl("https://exemplo.com/😀")).toBe("Informe uma URL válida.");
   });
+
+  it("requires a domain with a dot and completes typed links with https://", () => {
+    expect(validateHttpUrl("https://localhost")).toBe("Informe uma URL válida.");
+    expect(validateHttpUrl("https://exemplo.")).toBe("Informe uma URL válida.");
+    expect(withHttpsScheme("  github.com/maria ")).toBe("https://github.com/maria");
+    expect(withHttpsScheme("http://exemplo.com")).toBe("http://exemplo.com");
+    expect(withHttpsScheme("ftp://exemplo.com")).toBe("ftp://exemplo.com");
+    expect(withHttpsScheme("javascript:alert(1)")).toBe("javascript:alert(1)");
+    expect(withHttpsScheme("exemplo.com:8080/x")).toBe("https://exemplo.com:8080/x");
+    expect(withHttpsScheme("   ")).toBe("");
+    expect(normalizeOptionalUrl("exemplo.com")).toBe("https://exemplo.com");
+  });
+
+  it("validates typed links, optionally for one site", () => {
+    expect(validateTypedLink("")).toBeNull();
+    expect(validateTypedLink("exemplo.com")).toBeNull();
+    expect(validateTypedLink("exemplo")).toBe("Informe uma URL válida.");
+    expect(validateTypedLink("ftp://exemplo.com")).toBe("Informe uma URL começando com http:// ou https://.");
+    const github = { domain: "github.com", name: "GitHub" };
+    expect(validateTypedLink("github.com/maria", github)).toBeNull();
+    expect(validateTypedLink("https://www.github.com/maria", github)).toBeNull();
+    expect(validateTypedLink("", github)).toBeNull();
+    expect(validateTypedLink("https://evilgithub.com/maria", github)).toBe("Informe um link do GitHub (github.com).");
+    expect(validateTypedLink("https://github.com.evil.com/maria", github)).toBe("Informe um link do GitHub (github.com).");
+  });
 });
 
 describe("search, text and free text", () => {
@@ -362,11 +392,11 @@ describe("search, text and free text", () => {
   it("validates meaningful text and its named wrappers", () => {
     expect(validateMeaningfulText("ab", 2, 10)).toBeNull();
     expect(validateMeaningfulText("--", 2, 10)).toBe(invalidValue);
-    expect(validateMeaningfulText("a", 2, 10, "um cargo")).toBe("Informe um cargo válido.");
+    expect(validateMeaningfulText("a", 2, 10, "um cargo válido")).toBe("Informe um cargo válido.");
     expect(validateMeaningfulText("a😀b", 2, 10)).toBe(invalidValue);
     for (const validate of [validateCompanyName, validateJobTitle, validateInstitutionName, validateCourseName, validateProjectName]) {
       expect(validate("Nome Válido")).toBeNull();
-      expect(validate("")).toMatch(/válido\.$/);
+      expect(validate("")).toMatch(/^Informe .+ válid[oa]\.$/);
     }
     expect(validateAlphaOnly("ab")).toBeNull();
     expect(validateAlphaOnly("a")).toBe(invalidValue);
@@ -378,6 +408,16 @@ describe("search, text and free text", () => {
     expect(validateFreeText("ok", 5)).toBeNull();
     for (const invalid of ["longo demais", "a\u0007", "oi 😀"]) {
       expect(validateFreeText(invalid, 5)).toBe("Revise o texto informado.");
+    }
+    expect(validateFreeText("a\nb", 5)).toBe("Revise o texto informado.");
+  });
+
+  it("validates multiline text, which accepts paragraph breaks", () => {
+    expect(validateMultilineText("ok", 5)).toBeNull();
+    expect(validateMultilineText("a\nb", 5)).toBeNull();
+    expect(validateMultilineText("a\r\nb\n\nc", 9)).toBeNull();
+    for (const invalid of ["longo demais", "a\nlongo", "a\u0007", "a\n\u0007b", "oi\n😀"]) {
+      expect(validateMultilineText(invalid, 5)).toBe("Revise o texto informado.");
     }
   });
 });
@@ -434,6 +474,40 @@ describe("dates", () => {
     expect(validateBrazilianDateInput("29/02/2024")).toBeNull();
     expect(validateBrazilianDateInput("31/04/2024")).toBe(invalidDate);
     expect(validateBrazilianDateInput("1/1/2024")).toBe("Use o formato dd/mm/aaaa.");
+  });
+
+  it("limits Brazilian dates to 1900 and fifteen years ahead", () => {
+    const lastYear = new Date().getFullYear() + 15;
+    const rangeError = `Informe uma data entre 1900 e ${lastYear}.`;
+    expect(validateBrazilianDateInput("01/01/1900")).toBeNull();
+    expect(validateBrazilianDateInput("31/12/1899")).toBe(rangeError);
+    expect(validateBrazilianDateInput(`31/12/${lastYear}`)).toBeNull();
+    expect(validateBrazilianDateInput(`01/01/${lastYear + 1}`)).toBe(rangeError);
+    expect(validateBrazilianDateInput("31/04/1850")).toBe(invalidDate);
+  });
+
+  it("validates a start and an end date together", () => {
+    expect(validateDatePeriod("01/02/2023", "31/01/2024")).toEqual({ start: null, end: null });
+    expect(validateDatePeriod("01/02/2023", null)).toEqual({ start: null, end: null });
+    expect(validateDatePeriod("01/02/2023", "01/02/2023")).toEqual({ start: null, end: null });
+    expect(validateDatePeriod("", null).start).toBe("Informe a data de início.");
+    expect(validateDatePeriod("0102", null).start).toBe("Use o formato dd/mm/aaaa.");
+    expect(validateDatePeriod("01/02/2023", "31/02/2024").end).toBe(invalidDate);
+    expect(validateDatePeriod("01/02/2023", "31/01/2023").end).toBe("A data final não pode ser anterior à data inicial.");
+    expect(validateDatePeriod("01/02/2023", "", "Informe o fim.").end).toBe("Informe o fim.");
+    expect(validateDatePeriod("01/02/2023", null, "Informe o fim.").end).toBe("Informe o fim.");
+    expect(validateDatePeriod("01/02/2023", "31/01/2024", "Informe o fim.").end).toBeNull();
+    // The order is only compared when both dates are valid on their own.
+    expect(validateDatePeriod("31/02/2023", "01/01/2020")).toEqual({ start: invalidDate, end: null });
+  });
+
+  it("limits the workload to 1 through 10,000 hours", () => {
+    const workloadError = "Informe uma carga horária de 1 a 10.000 horas.";
+    expect(validateWorkloadHours(null)).toBeNull();
+    expect(validateWorkloadHours(1)).toBeNull();
+    expect(validateWorkloadHours(10000)).toBeNull();
+    expect(validateWorkloadHours(0)).toBe(workloadError);
+    expect(validateWorkloadHours(10001)).toBe(workloadError);
   });
 
   it("validates date ranges", () => {

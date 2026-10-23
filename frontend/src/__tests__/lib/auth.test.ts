@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  acceptTerms,
   activateAccount,
   changePassword,
   fetchCurrentUser,
@@ -24,6 +25,13 @@ beforeEach(() => {
 });
 
 describe("auth requests", () => {
+  it("acceptTerms ensures the token and posts the acceptance without a body", async () => {
+    await acceptTerms();
+
+    expect(calls).toEqual(["ensure", "mutation"]);
+    expect(apiMutation).toHaveBeenCalledWith("POST", "/api/auth/aceitar-termos");
+  });
+
   it("login ensures the token, posts and rebinds the token, returning the response", async () => {
     const response = { usuario: { id: "1" } };
     vi.mocked(apiMutation).mockImplementationOnce(async () => { calls.push("mutation"); return response; });

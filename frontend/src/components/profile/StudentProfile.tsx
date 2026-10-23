@@ -23,7 +23,7 @@ import { TrajetoriaSection } from "./TrajetoriaSection";
 import { ProjetosSection } from "./ProjetosSection";
 import { ExclusaoSection } from "./ExclusaoSection";
 import { PrivacidadeSection } from "@/components/account/PrivacidadeSection";
-import { fetchMyDataExport } from "@/lib/student";
+import { fetchMyDataExport, fetchMyNewsletter, saveMyNewsletter } from "@/lib/student";
 
 // Real student profile page content follows the approved professional profile order.
 export function StudentProfile() {
@@ -76,7 +76,11 @@ export function StudentProfile() {
           <DisponibilidadeSection profile={profile} onChanged={refresh} notify={notify} />
           <ProjetosSection profile={profile} onChanged={refresh} notify={notify} />
           <CurriculoSection profile={profile} onChanged={refresh} notify={notify} />
-          <PrivacidadeSection fetchData={fetchMyDataExport} />
+          <PrivacidadeSection
+            fetchData={fetchMyDataExport}
+            fetchNewsletter={fetchMyNewsletter}
+            saveNewsletter={saveMyNewsletter}
+          />
           <ExclusaoSection />
         </Stack>
       )}

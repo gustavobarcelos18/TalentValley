@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using TalentValley.Api.Domain.Enums;
 
 namespace TalentValley.Api.DTOs;
@@ -17,6 +18,7 @@ public sealed record MeResponse(
     IReadOnlyCollection<AlunoIdiomaResponse> Idiomas,
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
     IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
+    BuscaResponse Busca,
     IReadOnlyCollection<FormacaoResponse> Formacoes,
     IReadOnlyCollection<ExperienciaResponse> Experiencias,
     IReadOnlyCollection<ProjetoResponse> Projetos,
@@ -27,6 +29,28 @@ public sealed record DadosBasicosResponse(string NomeCompleto, string? FotoUrl, 
 public sealed record SobreResponse(string? Bio);
 public sealed record ContatoResponse(string? Telefone, string? EmailProfissional, string? LinkedInUrl, string? GitHubUrl, string? PortfolioUrl);
 public sealed record CurriculoResponse(bool PossuiCurriculo, string? NomeArquivo, string? LattesUrl);
+
+// "O que eu busco". StatusDesatualizado is computed by the backend (status not confirmed for over 30 days).
+public sealed record BuscaResponse(
+    StatusBusca? Status,
+    DateTimeOffset? StatusConfirmadoEm,
+    bool StatusDesatualizado,
+    string? Objetivo,
+    IReadOnlyCollection<AreaInteresse> AreasInteresse,
+    bool DisponivelImediatamente,
+    DateOnly? DisponivelAPartirDe,
+    CargaHorariaSemanal? CargaHoraria,
+    bool AceitaViajar,
+    bool AceitaMudarDeCidade,
+    IReadOnlyCollection<CategoriaCnh> CategoriasCnh,
+    bool PossuiVeiculoProprio,
+    PcdResponse Pcd);
+
+public sealed record PcdResponse(
+    bool SouPcd,
+    bool InteresseVagaPcd,
+    IReadOnlyCollection<TipoDeficiencia> Tipos,
+    DateTimeOffset? ConsentimentoEm);
 
 public sealed record CompetenciaResponse(int Id, string Nome, TipoCompetencia Tipo);
 public sealed record AlunoIdiomaResponse(int IdiomaId, string Nome, NivelIdioma Nivel);
@@ -77,9 +101,65 @@ public sealed record UpdateCompetenciasRequest(IReadOnlyCollection<int> Competen
 public sealed record ItemIdiomaRequest(int IdiomaId, NivelIdioma Nivel);
 public sealed record UpdateIdiomasRequest(IReadOnlyCollection<ItemIdiomaRequest> Idiomas);
 
-public sealed record UpdateDisponibilidadeRequest(
-    IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
-    IReadOnlyCollection<ModalidadeTrabalho> Modalidades);
+// PUT /api/alunos/me/disponibilidade: the whole "O que eu busco" form, always a full replacement.
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed class UpdateDisponibilidadeRequest : IValidatableObject
+{
+    public const int MaxAreasInteresse = 5;
+
+    private string? objetivoProfissional;
+    public IReadOnlyCollection<TipoDisponibilidade> Disponibilidades { get; init; } = null!;
+    public IReadOnlyCollection<ModalidadeTrabalho> Modalidades { get; init; } = null!;
+    [EnumDataType(typeof(StatusBusca))] public StatusBusca? StatusBusca { get; init; }
+    [StringLength(280, ErrorMessage = "O texto deve ter no máximo 280 caracteres."), NoEmoji, NoControlCharacters]
+    public string? ObjetivoProfissional { get => objetivoProfissional; init => objetivoProfissional = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
+    public IReadOnlyCollection<AreaInteresse> AreasInteresse { get; init; } = [];
+    public bool DisponivelImediatamente { get; init; }
+    [DateYearRange] public DateOnly? DisponivelAPartirDe { get; init; }
+    [EnumDataType(typeof(CargaHorariaSemanal))] public CargaHorariaSemanal? CargaHorariaSemanal { get; init; }
+    public bool AceitaViajar { get; init; }
+    public bool AceitaMudarDeCidade { get; init; }
+    public IReadOnlyCollection<CategoriaCnh> CategoriasCnh { get; init; } = [];
+    public bool PossuiVeiculoProprio { get; init; }
+    public bool SouPcd { get; init; }
+    public bool InteresseVagaPcd { get; init; }
+    public IReadOnlyCollection<TipoDeficiencia> TiposDeficiencia { get; init; } = [];
+    public bool ConsentimentoPcd { get; init; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (AreasInteresse.Count > MaxAreasInteresse)
+            yield return new($"Escolha no máximo {MaxAreasInteresse} áreas de interesse.", [nameof(AreasInteresse)]);
+        foreach (var problem in CheckDefined(nameof(Disponibilidades), "Tipos de vaga", Disponibilidades)
+                     .Concat(CheckDefined(nameof(Modalidades), "Modalidades", Modalidades))
+                     .Concat(CheckSet(nameof(AreasInteresse), "Áreas de interesse", AreasInteresse))
+                     .Concat(CheckSet(nameof(CategoriasCnh), "Categorias de CNH", CategoriasCnh))
+                     .Concat(CheckSet(nameof(TiposDeficiencia), "Tipos de deficiência", TiposDeficiencia)))
+            yield return problem;
+        if (DisponivelImediatamente && DisponivelAPartirDe is not null)
+            yield return new("Informe disponibilidade imediata ou uma data de início, não os dois.", [nameof(DisponivelAPartirDe)]);
+        if ((SouPcd || InteresseVagaPcd) && !ConsentimentoPcd)
+            yield return new("Marque a autorização para compartilhar a informação PCD com recrutadores.", [nameof(ConsentimentoPcd)]);
+    }
+
+    // The JSON enum converter accepts comma-joined names ("D, E") and builds a value that is not in the enum,
+    // so every item is checked against the defined values as well as for repeats.
+    private static IEnumerable<ValidationResult> CheckDefined<T>(string member, string label, IReadOnlyCollection<T> values)
+        where T : struct, Enum
+    {
+        if (values.Any(x => !Enum.IsDefined(x)))
+            yield return new($"{label}: valor inválido.", [member]);
+    }
+
+    private static IEnumerable<ValidationResult> CheckSet<T>(string member, string label, IReadOnlyCollection<T> values)
+        where T : struct, Enum
+    {
+        foreach (var problem in CheckDefined(member, label, values))
+            yield return problem;
+        if (values.Distinct().Count() != values.Count)
+            yield return new($"{label}: há itens repetidos.", [member]);
+    }
+}
 
 // PUT /api/alunos/me/curriculo/lattes (an empty value removes the saved link)
 public sealed class UpdateLattesRequest

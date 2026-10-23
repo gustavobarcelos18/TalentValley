@@ -176,6 +176,12 @@ namespace TalentValley.Api.Data.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AceitaMudarDeCidade")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AceitaViajar")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("Ativo")
                         .HasColumnType("boolean");
 
@@ -186,6 +192,10 @@ namespace TalentValley.Api.Data.Migrations
                         .HasMaxLength(1500)
                         .HasColumnType("character varying(1500)");
 
+                    b.Property<string>("CargaHorariaSemanal")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<string>("Cidade")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -193,9 +203,18 @@ namespace TalentValley.Api.Data.Migrations
                     b.Property<DateTimeOffset?>("ConsentimentoEm")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("ConsentimentoPcdEm")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("CurriculoStorageKey")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateOnly?>("DisponivelAPartirDe")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("DisponivelImediatamente")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("EmailProfissional")
                         .HasMaxLength(254)
@@ -212,6 +231,8 @@ namespace TalentValley.Api.Data.Migrations
                     b.Property<string>("LattesUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
+                    b.Property<bool>("InteresseVagaPcd")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LinkedInUrl")
                         .HasMaxLength(2048)
@@ -223,14 +244,31 @@ namespace TalentValley.Api.Data.Migrations
                     b.Property<DateTimeOffset?>("NewsletterAtualizadaEm")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ObjetivoProfissional")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
                     b.Property<string>("PortfolioUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
+
+                    b.Property<bool>("PossuiVeiculoProprio")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
+
+                    b.Property<bool>("SouPcd")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("StatusBusca")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset?>("StatusBuscaConfirmadoEm")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Telefone")
                         .HasMaxLength(20)
@@ -254,6 +292,36 @@ namespace TalentValley.Api.Data.Migrations
                     b.HasIndex("Uf", "Cidade");
 
                     b.ToTable("Alunos");
+                });
+
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoAreaInteresse", b =>
+                {
+                    b.Property<Guid>("AlunoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Area")
+                        .HasColumnType("text");
+
+                    b.HasKey("AlunoId", "Area");
+
+                    b.HasIndex("Area", "AlunoId");
+
+                    b.ToTable("AlunoAreasInteresse");
+                });
+
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoCategoriaCnh", b =>
+                {
+                    b.Property<Guid>("AlunoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Categoria")
+                        .HasColumnType("text");
+
+                    b.HasKey("AlunoId", "Categoria");
+
+                    b.HasIndex("Categoria", "AlunoId");
+
+                    b.ToTable("AlunoCategoriasCnh");
                 });
 
             modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoCompetencia", b =>
@@ -318,6 +386,21 @@ namespace TalentValley.Api.Data.Migrations
                     b.HasIndex("Modalidade", "AlunoId");
 
                     b.ToTable("AlunoModalidades");
+                });
+
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoTipoDeficiencia", b =>
+                {
+                    b.Property<Guid>("AlunoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Tipo")
+                        .HasColumnType("text");
+
+                    b.HasKey("AlunoId", "Tipo");
+
+                    b.HasIndex("Tipo", "AlunoId");
+
+                    b.ToTable("AlunoTiposDeficiencia");
                 });
 
             modelBuilder.Entity("TalentValley.Api.Domain.Entities.ApplicationUser", b =>
@@ -974,6 +1057,28 @@ namespace TalentValley.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoAreaInteresse", b =>
+                {
+                    b.HasOne("TalentValley.Api.Domain.Entities.Aluno", "Aluno")
+                        .WithMany("AreasInteresse")
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Aluno");
+                });
+
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoCategoriaCnh", b =>
+                {
+                    b.HasOne("TalentValley.Api.Domain.Entities.Aluno", "Aluno")
+                        .WithMany("CategoriasCnh")
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Aluno");
+                });
+
             modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoCompetencia", b =>
                 {
                     b.HasOne("TalentValley.Api.Domain.Entities.Aluno", "Aluno")
@@ -1027,6 +1132,17 @@ namespace TalentValley.Api.Data.Migrations
                 {
                     b.HasOne("TalentValley.Api.Domain.Entities.Aluno", "Aluno")
                         .WithMany("Modalidades")
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Aluno");
+                });
+
+            modelBuilder.Entity("TalentValley.Api.Domain.Entities.AlunoTipoDeficiencia", b =>
+                {
+                    b.HasOne("TalentValley.Api.Domain.Entities.Aluno", "Aluno")
+                        .WithMany("TiposDeficiencia")
                         .HasForeignKey("AlunoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1138,6 +1254,10 @@ namespace TalentValley.Api.Data.Migrations
 
             modelBuilder.Entity("TalentValley.Api.Domain.Entities.Aluno", b =>
                 {
+                    b.Navigation("AreasInteresse");
+
+                    b.Navigation("CategoriasCnh");
+
                     b.Navigation("Competencias");
 
                     b.Navigation("Disponibilidades");
@@ -1151,6 +1271,8 @@ namespace TalentValley.Api.Data.Migrations
                     b.Navigation("Modalidades");
 
                     b.Navigation("Projetos");
+
+                    b.Navigation("TiposDeficiencia");
                 });
 
             modelBuilder.Entity("TalentValley.Api.Domain.Entities.Competencia", b =>

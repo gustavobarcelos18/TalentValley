@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, refreshCsrfToken, setUnauthorizedHandler } from "@/lib/api";
+import { ApiError, refreshCsrfToken, setTermsPendingHandler, setUnauthorizedHandler } from "@/lib/api";
 import { fetchCurrentUser, logout as apiLogout } from "@/lib/auth";
 import type { UsuarioAutenticado } from "@/types/auth";
 
@@ -58,6 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => setUnauthorizedHandler(null);
   }, [router]);
+
+  // The server blocked a request because the terms changed while the person was signed in:
+  // flag the account as pending so the guards send them to the acceptance screen.
+  useEffect(() => {
+    setTermsPendingHandler(() => {
+      setState((prev) =>
+        prev.user && !prev.user.termosPendentes
+          ? { ...prev, user: { ...prev.user, termosPendentes: true } }
+          : prev
+      );
+    });
+    return () => setTermsPendingHandler(null);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     try {

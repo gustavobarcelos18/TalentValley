@@ -9,7 +9,7 @@ import { EMOJI, createStepHandlers, field, useExecCommandSpy } from "./stepTestH
 
 vi.setConfig({ testTimeout: 15_000 });
 
-const SITE_HINT = "Opcional; use um endereço HTTP ou HTTPS.";
+const SITE_HINT = "Opcional. Pode digitar sem https://.";
 const COMPANY_LABEL = "Empresa";
 const ROLE_LABEL = "Cargo";
 const SITE_LABEL = "Site da empresa";

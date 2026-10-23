@@ -365,6 +365,7 @@ export function RegistrationRequestsView() {
               setReason(stripEmoji(e.target.value).slice(0, 500))
             }
             disabled={busy}
+            helperText={`${reason.length}/500`}
             slotProps={{ htmlInput: { maxLength: 500 } }}
             sx={{ mt: 1 }}
           />

@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EMOJI, useExecCommandSpy } from "../registration/stepTestHelpers";
 import { AdminStudentsView } from "@/components/admin/AdminStudentsView";
 import { adminApi } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
@@ -252,6 +253,20 @@ describe("AdminStudentsView listing", () => {
 });
 
 describe("AdminStudentsView search", () => {
+  const execCommand = useExecCommandSpy();
+
+  it("drops emoji typed into the search and removes them from pasted text", async () => {
+    await renderLoaded([ANA]);
+    const searchField = screen.getByRole("textbox", { name: "Buscar por nome" }) as HTMLInputElement;
+
+    fireEvent.change(searchField, { target: { value: "ab" + EMOJI + "cd" } });
+    expect(searchField.value).toBe("abcd");
+
+    const accepted = fireEvent.paste(searchField, { clipboardData: { getData: () => "ab" + EMOJI } });
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "ab");
+  });
+
   it("searches by the trimmed term and returns to the first page", async () => {
     const user = await renderLoaded([ANA], 1, 2);
     studentsMock.mockResolvedValue(makePaginated([BRUNO], 2, 2));
@@ -279,7 +294,8 @@ describe("AdminStudentsView search", () => {
     const user = await renderLoaded([ANA]);
     const callsBefore = studentsMock.mock.calls.length;
 
-    await search(user, "😀");
+    fireEvent.change(screen.getByRole("textbox", { name: "Buscar por nome" }), { target: { value: "a\u0007" } });
+    await user.click(screen.getByRole("button", { name: "Buscar" }));
 
     expect(screen.getByText("Informe uma busca válida.")).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Buscar por nome" }).getAttribute("aria-invalid")).toBe("true");
@@ -520,6 +536,28 @@ describe("AdminStudentsView permanent deletion", () => {
 });
 
 describe("AdminStudentsView create access", () => {
+  const execCommand = useExecCommandSpy();
+
+  it("drops emoji typed into the e-mail", async () => {
+    const user = await renderLoaded([ANA]);
+    const dialog = await openCreate(user);
+    const email = within(dialog).getByRole("textbox", { name: /E-mail/ }) as HTMLInputElement;
+
+    fireEvent.change(email, { target: { value: "ab" + EMOJI + "cd@x.com" } });
+
+    expect(email.value).toBe("abcd@x.com");
+  });
+
+  it.each([/Nome completo/, /E-mail/])("removes emoji from text pasted into %s", async (label) => {
+    const user = await renderLoaded([ANA]);
+    const dialog = await openCreate(user);
+
+    const accepted = fireEvent.paste(within(dialog).getByRole("textbox", { name: label }), { clipboardData: { getData: () => "ab" + EMOJI } });
+
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "ab");
+  });
+
   async function createdAfter(user: UserEvent, created: AdminStudentCreated) {
     createMock.mockResolvedValue(created);
     const dialog = await openCreate(user);
@@ -553,6 +591,26 @@ describe("AdminStudentsView create access", () => {
     expect(createMock).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", email: "maria@example.com" });
     await waitFor(() => expect(studentsMock).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("button", { name: "Reenviar ativação" })).toBeNull();
+  });
+
+  it("sends the e-mail in lowercase and without surrounding spaces", async () => {
+    const user = await renderLoaded([ANA]);
+    createMock.mockResolvedValue(makeStudentCreated());
+
+    const dialog = await openCreate(user);
+    await fillCreate(user, dialog, "Maria Souza", " Maria@Example.COM ");
+    await submitCreate(user, dialog);
+
+    await closed();
+    expect(createMock).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", email: "maria@example.com" });
+  });
+
+  it("leaves the validation to the app instead of the browser", async () => {
+    const user = await renderLoaded([ANA]);
+
+    const dialog = await openCreate(user);
+
+    expect(dialog.querySelector("form")?.noValidate).toBe(true);
   });
 
   it("clears the form after a successful creation", async () => {

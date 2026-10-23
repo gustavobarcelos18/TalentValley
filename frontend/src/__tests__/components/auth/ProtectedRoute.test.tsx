@@ -24,9 +24,9 @@ function setAuth(partial: Partial<AuthMock>) {
   mocks.auth = buildAuth(partial);
 }
 
-function renderRoute(allowedRoles?: UserRole[]) {
+function renderRoute(allowedRoles?: UserRole[], allowPendingTerms?: boolean) {
   return render(
-    <ProtectedRoute allowedRoles={allowedRoles}>
+    <ProtectedRoute allowedRoles={allowedRoles} allowPendingTerms={allowPendingTerms}>
       <p>{SECRET}</p>
     </ProtectedRoute>,
   );
@@ -106,6 +106,44 @@ describe("ProtectedRoute", () => {
 
       expect(secret()).not.toBeNull();
       expect(screen.queryByRole("alert")).toBeNull();
+      expect(mocks.router.replace).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("when the signed-in account has pending terms", () => {
+    const TERMS = "/aceitar-termos";
+
+    it.each<UserRole>(["ALUNO", "RECRUTADOR"])("sends a %s to the acceptance screen and never renders the content", (role) => {
+      setAuth({ user: { ...userWith(role), termosPendentes: true } });
+      const { container } = renderRoute([role]);
+
+      expect(mocks.router.replace).toHaveBeenCalledTimes(1);
+      expect(mocks.router.replace).toHaveBeenCalledWith(TERMS);
+      expect(container.textContent).toBe("");
+      expect(secret()).toBeNull();
+    });
+
+    it("renders the content for the acceptance screen itself, without redirecting", () => {
+      setAuth({ user: { ...userWith("ALUNO"), termosPendentes: true } });
+      renderRoute(["ALUNO"], true);
+
+      expect(secret()).not.toBeNull();
+      expect(mocks.router.replace).not.toHaveBeenCalled();
+    });
+
+    it("still denies the acceptance screen to a role that may not use it", () => {
+      setAuth({ user: { ...userWith("ADMIN"), termosPendentes: true } });
+      renderRoute(["ALUNO"], true);
+
+      expect(secret()).toBeNull();
+      expect(screen.getByTestId("denied").getAttribute("data-role")).toBe("ADMIN");
+    });
+
+    it("does not redirect an account whose terms are accepted", () => {
+      setAuth({ user: userWith("ALUNO") });
+      renderRoute(["ALUNO"]);
+
+      expect(secret()).not.toBeNull();
       expect(mocks.router.replace).not.toHaveBeenCalled();
     });
   });

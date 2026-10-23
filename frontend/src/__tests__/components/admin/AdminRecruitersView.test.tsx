@@ -1,8 +1,10 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EMOJI, useExecCommandSpy } from "../registration/stepTestHelpers";
 import { AdminRecruitersView } from "@/components/admin/AdminRecruitersView";
+import { municipioCache } from "@/components/registration/location";
 import { adminApi } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
 import { formatUpdatedAt } from "@/lib/format";
@@ -65,9 +67,18 @@ const VALID_FORM = {
   Empresa: "Vale Tech",
   Cargo: "Analista",
   Telefone: "(32) 99123-4567",
-  Cidade: "Rio Pomba",
-  UF: "mg",
 };
+
+const LOCATION = { uf: "MG", cidade: "Rio Pomba" };
+const MANUAL_CITY_MESSAGE = "Não foi possível carregar a lista oficial. Digite a cidade manualmente ou tente novamente.";
+
+beforeEach(() => {
+  municipioCache.clear();
+  municipioCache.set("MG", [
+    { id: 3153004, nome: "Rio Pomba" },
+    { id: 3170404, nome: "Ubá" },
+  ]);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -94,13 +105,25 @@ async function openCreate(user: User) {
   return screen.findByRole("dialog", { name: CREATE_TITLE });
 }
 
-async function fillCreateForm(user: User, values: Partial<typeof VALID_FORM> = {}) {
+async function fillCreateForm(
+  user: User,
+  values: Partial<typeof VALID_FORM> = {},
+  location: { uf?: string; cidade?: string } = LOCATION,
+) {
   const dialog = createDialog();
   const form = { ...VALID_FORM, ...values };
   for (const [label, value] of Object.entries(form)) {
     const field = within(dialog).getByLabelText(new RegExp(`^${label}`));
     await user.click(field);
     await user.paste(value);
+  }
+  if (location.uf) {
+    await user.click(within(dialog).getByRole("combobox", { name: "UF" }));
+    await user.click(await screen.findByRole("option", { name: location.uf }));
+  }
+  if (location.cidade) {
+    await user.click(within(dialog).getByRole("combobox", { name: /^Cidade/ }));
+    await user.click(await screen.findByRole("option", { name: location.cidade }));
   }
   return dialog;
 }
@@ -187,6 +210,20 @@ describe("AdminRecruitersView list", () => {
 });
 
 describe("AdminRecruitersView search and filter", () => {
+  const execCommand = useExecCommandSpy();
+
+  it("drops emoji typed into the search and removes them from pasted text", async () => {
+    await renderList();
+    const search = screen.getByLabelText(SEARCH_LABEL) as HTMLInputElement;
+
+    fireEvent.change(search, { target: { value: "ab" + EMOJI + "cd" } });
+    expect(search.value).toBe("abcd");
+
+    const accepted = fireEvent.paste(search, { clipboardData: { getData: () => "ab" + EMOJI } });
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "ab");
+  });
+
   it("searches by the trimmed term and returns to the first page", async () => {
     const user = userEvent.setup();
     recruitersMock.mockImplementation((page) =>
@@ -210,8 +247,7 @@ describe("AdminRecruitersView search and filter", () => {
     const callsBefore = recruitersMock.mock.calls.length;
     const field = screen.getByLabelText(SEARCH_LABEL);
 
-    await user.click(field);
-    await user.paste("😀");
+    fireEvent.change(field, { target: { value: "a\u0007" } });
     await user.click(screen.getByRole("button", { name: "Buscar" }));
 
     expect(await screen.findByText("Informe uma busca válida.")).toBeTruthy();
@@ -476,6 +512,30 @@ describe("AdminRecruitersView block and reactivate", () => {
 });
 
 describe("AdminRecruitersView creation", () => {
+  const execCommand = useExecCommandSpy();
+
+  it.each(["Nome completo", "E-mail", "Empresa", "Cargo"])("drops emoji typed into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderList();
+    const dialog = await openCreate(user);
+    const field = within(dialog).getByLabelText(new RegExp("^" + label)) as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: "ab" + EMOJI + "cd" } });
+
+    expect(field.value).toBe("abcd");
+  });
+
+  it.each(["Nome completo", "E-mail", "Empresa", "Cargo"])("removes emoji from text pasted into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderList();
+    const dialog = await openCreate(user);
+
+    const accepted = fireEvent.paste(within(dialog).getByLabelText(new RegExp("^" + label)), { clipboardData: { getData: () => "ab" + EMOJI } });
+
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "ab");
+  });
+
   it("opens the form with empty fields and cancels", async () => {
     const user = userEvent.setup();
     await renderList();
@@ -484,6 +544,10 @@ describe("AdminRecruitersView creation", () => {
     for (const label of Object.keys(VALID_FORM)) {
       expect((within(dialog).getByLabelText(new RegExp(`^${label}`)) as HTMLInputElement).value).toBe("");
     }
+    expect(within(dialog).getByRole("combobox", { name: "UF" }).textContent).not.toMatch(/[A-Z]/);
+    const city = within(dialog).getByRole("combobox", { name: /^Cidade/ }) as HTMLInputElement;
+    expect(city.value).toBe("");
+    expect(city.disabled).toBe(true);
     await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
 
     await waitDialogClosed(CREATE_TITLE);
@@ -500,20 +564,16 @@ describe("AdminRecruitersView creation", () => {
     await waitDialogClosed(CREATE_TITLE);
   });
 
-  it("strips invalid characters and limits the UF while typing", async () => {
+  it("strips invalid characters while typing", async () => {
     const user = userEvent.setup();
     await renderList();
     const dialog = await openCreate(user);
 
     await user.type(within(dialog).getByLabelText(/^Nome completo/), "João 123 Silva");
-    await user.type(within(dialog).getByLabelText(/^Cidade/), "Ubá 45");
-    await user.type(within(dialog).getByLabelText(/^UF/), "mgx");
     await user.type(within(dialog).getByLabelText(/^Telefone/), "(32) 9");
     await user.type(within(dialog).getByLabelText(/^Empresa/), "Vale 2");
 
     expect((within(dialog).getByLabelText(/^Nome completo/) as HTMLInputElement).value).toBe("João  Silva");
-    expect((within(dialog).getByLabelText(/^Cidade/) as HTMLInputElement).value).toBe("Ubá ");
-    expect((within(dialog).getByLabelText(/^UF/) as HTMLInputElement).value).toBe("MG");
     expect((within(dialog).getByLabelText(/^Telefone/) as HTMLInputElement).value).toBe("(32) 9");
     expect((within(dialog).getByLabelText(/^Empresa/) as HTMLInputElement).value).toBe("Vale 2");
   });
@@ -532,11 +592,9 @@ describe("AdminRecruitersView creation", () => {
   it.each([
     ["Nome completo", "Al", "Informe um nome válido, sem números."],
     ["E-mail", "paulo@valetech", "Informe um e-mail válido."],
-    ["Empresa", "V", "Informe uma empresa válido."],
+    ["Empresa", "V", "Informe uma empresa válida."],
     ["Cargo", "A", "Informe um cargo válido."],
     ["Telefone", "123", "Informe um telefone brasileiro válido."],
-    ["Cidade", "R", "Informe uma cidade válida, sem números."],
-    ["UF", "XX", "Selecione uma UF válida."],
   ])("rejects the invalid %s field without calling the API", async (label, value, message) => {
     const user = userEvent.setup();
     await renderList();
@@ -549,12 +607,81 @@ describe("AdminRecruitersView creation", () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["without a UF", {}, "Selecione uma UF válida."],
+    ["without a city", { uf: "MG" }, "Informe uma cidade válida, sem números."],
+  ])("rejects the form %s and does not call the API", async (_case, location, message) => {
+    const user = userEvent.setup();
+    await renderList();
+    await openCreate(user);
+    await fillCreateForm(user, {}, location);
+
+    await submitCreate(user);
+
+    expect(await within(createDialog()).findByText(message)).toBeTruthy();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("asks for the city again after the UF changes", async () => {
+    const user = userEvent.setup();
+    await renderList();
+    await openCreate(user);
+    const dialog = await fillCreateForm(user);
+    municipioCache.set("SP", [{ id: 3509502, nome: "Campinas" }]);
+
+    await user.click(within(dialog).getByRole("combobox", { name: "UF" }));
+    await user.click(await screen.findByRole("option", { name: "SP" }));
+
+    expect((within(dialog).getByRole("combobox", { name: /^Cidade/ }) as HTMLInputElement).value).toBe("");
+  });
+
+  it("only offers the cities of the chosen UF from the official list", async () => {
+    const user = userEvent.setup();
+    await renderList();
+    const dialog = await openCreate(user);
+    await user.click(within(dialog).getByRole("combobox", { name: "UF" }));
+    await user.click(await screen.findByRole("option", { name: "MG" }));
+
+    await user.click(within(dialog).getByRole("combobox", { name: /^Cidade/ }));
+
+    expect((await screen.findAllByRole("option")).map((option) => option.textContent)).toEqual(["Rio Pomba", "Ubá"]);
+  });
+
+  it("lets the admin type the city when the official list cannot be loaded", async () => {
+    const user = userEvent.setup();
+    municipioCache.clear();
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    await renderList();
+    createMock.mockResolvedValue(makeAdminRecruiterCreated());
+    await openCreate(user);
+    await fillCreateForm(user, {}, { uf: "MG" });
+
+    expect(await within(createDialog()).findByText(MANUAL_CITY_MESSAGE)).toBeTruthy();
+    await user.click(within(createDialog()).getByLabelText(/^Cidade/));
+    await user.paste("  Rio   Pomba ");
+    await submitCreate(user);
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ cidade: "Rio Pomba", uf: "MG" })),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("leaves the validation to the app instead of the browser", async () => {
+    const user = userEvent.setup();
+    await renderList();
+
+    const dialog = await openCreate(user);
+
+    expect(dialog.querySelector("form")?.noValidate).toBe(true);
+  });
+
   it("creates the access with normalized data, closes the form and reloads the list", async () => {
     const user = userEvent.setup();
     await renderList();
     createMock.mockResolvedValue(makeAdminRecruiterCreated());
     await openCreate(user);
-    await fillCreateForm(user, { "Nome completo": "  Paulo   Ramos ", Telefone: "+55 (32) 99123-4567" });
+    await fillCreateForm(user, { "Nome completo": "  Paulo   Ramos ", "E-mail": " Paulo@ValeTech.com.BR ", Telefone: "+55 (32) 99123-4567" });
 
     await submitCreate(user);
 

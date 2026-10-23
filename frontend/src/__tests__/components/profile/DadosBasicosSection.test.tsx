@@ -1,8 +1,9 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DadosBasicosSection } from "@/components/profile/DadosBasicosSection";
+import { municipioCache } from "@/components/registration/location";
 import { updateDadosBasicos } from "@/lib/student";
 import type { DadosBasicosResponse } from "@/types/student";
 import { EMOJI, useExecCommandSpy } from "../registration/stepTestHelpers";
@@ -26,7 +27,23 @@ const NAME_HINT = "Use letras, espaços, hífen e apóstrofo.";
 const GENERIC_SAVE_ERROR = "Não foi possível salvar os dados básicos. Tente novamente.";
 const NO_LOCATION = "Localização não informada";
 
+const MANUAL_CITY_MESSAGE = "Não foi possível carregar a lista oficial. Digite a cidade manualmente ou tente novamente.";
+
 const BASE_DADOS = makeProfile().dadosBasicos;
+
+const MUNICIPIOS = {
+  MG: [
+    { id: 3153004, nome: "Rio Pomba" },
+    { id: 3170404, nome: "Ubá" },
+  ],
+  SP: [{ id: 3509502, nome: "Campinas" }],
+  RJ: [{ id: 3304557, nome: "Rio de Janeiro" }],
+};
+
+function seedMunicipios() {
+  municipioCache.clear();
+  for (const [uf, list] of Object.entries(MUNICIPIOS)) municipioCache.set(uf, list);
+}
 
 function renderSection(dados: Partial<DadosBasicosResponse> = {}) {
   const props = makeSectionProps({ dadosBasicos: { ...BASE_DADOS, ...dados } });
@@ -41,6 +58,15 @@ async function openForm(user: ReturnType<typeof userEvent.setup>) {
 
 function input(label: string): HTMLInputElement {
   return screen.getByLabelText(new RegExp(`^${label}`)) as HTMLInputElement;
+}
+
+function cityInput(): HTMLInputElement {
+  return screen.getByRole("combobox", { name: new RegExp(`^${CITY_LABEL}`) }) as HTMLInputElement;
+}
+
+async function chooseCity(user: ReturnType<typeof userEvent.setup>, city: string) {
+  await user.click(cityInput());
+  await user.click(await screen.findByRole("option", { name: city }));
 }
 
 function setValue(label: string, value: string) {
@@ -85,6 +111,7 @@ describe("DadosBasicosSection form", () => {
   const execCommand = useExecCommandSpy();
 
   beforeEach(() => {
+    seedMunicipios();
     mockUpdate.mockReset();
     mockUpdate.mockResolvedValue(undefined);
   });
@@ -97,9 +124,9 @@ describe("DadosBasicosSection form", () => {
 
     expect(within(dialog).getByText("Editar dados básicos")).toBeTruthy();
     expect(input(NAME_LABEL).value).toBe("Maria Souza");
-    expect(input(CITY_LABEL).value).toBe("Rio Pomba");
+    expect(cityInput().value).toBe("Rio Pomba");
     expect(screen.getByRole("combobox", { name: UF_LABEL }).textContent).toBe("MG");
-    expect(screen.getAllByText(NAME_HINT)).toHaveLength(2);
+    expect(screen.getByText(NAME_HINT)).toBeTruthy();
   });
 
   it("opens with an empty city and UF when the profile has none", async () => {
@@ -108,8 +135,28 @@ describe("DadosBasicosSection form", () => {
 
     await openForm(user);
 
-    expect(input(CITY_LABEL).value).toBe("");
+    expect(cityInput().value).toBe("");
+    expect(cityInput().disabled).toBe(true);
     expect(screen.getByRole("combobox", { name: UF_LABEL }).textContent).not.toMatch(/[A-Z]/);
+  });
+
+  it("opens with an empty city when the profile has a city but no UF", async () => {
+    const user = userEvent.setup();
+    renderSection({ cidade: "Rio Pomba", uf: null });
+
+    await openForm(user);
+
+    expect(cityInput().value).toBe("");
+  });
+
+  it("only offers the cities of the chosen UF from the official list", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    await openForm(user);
+
+    await user.click(cityInput());
+
+    expect((await screen.findAllByRole("option")).map((option) => option.textContent)).toEqual(["Rio Pomba", "Ubá"]);
   });
 
   it("lists the Brazilian UFs as options", async () => {
@@ -142,14 +189,14 @@ describe("DadosBasicosSection form", () => {
     await openForm(user);
 
     setValue(NAME_LABEL, "  Ana   Paula   Lima ");
-    setValue(CITY_LABEL, " Juiz   de Fora ");
     await chooseUf(user, "SP");
+    await chooseCity(user, "Campinas");
     submit();
 
     await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
     expect(mockUpdate).toHaveBeenCalledWith({
       nomeCompleto: "Ana Paula Lima",
-      cidade: "Juiz de Fora",
+      cidade: "Campinas",
       uf: "SP",
     });
     expect(props.notify).toHaveBeenCalledWith("Dados básicos atualizados.");
@@ -167,28 +214,24 @@ describe("DadosBasicosSection form", () => {
     expect(mockUpdate).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", cidade: "Rio Pomba", uf: "MG" });
   });
 
-  it("strips digits from the name and city while typing", async () => {
+  it("strips digits from the name while typing", async () => {
     const user = userEvent.setup();
     renderSection();
     await openForm(user);
 
     setValue(NAME_LABEL, "Jo4o S1lva");
-    setValue(CITY_LABEL, "Ub4 Cidade2");
 
     expect(input(NAME_LABEL).value).toBe("Joo Slva");
-    expect(input(CITY_LABEL).value).toBe("Ub Cidade");
   });
 
-  it("limits the name and city lengths", async () => {
+  it("limits the name length", async () => {
     const user = userEvent.setup();
     renderSection();
     await openForm(user);
 
     setValue(NAME_LABEL, "a".repeat(200));
-    setValue(CITY_LABEL, "b".repeat(200));
 
     expect(input(NAME_LABEL).value).toHaveLength(150);
-    expect(input(CITY_LABEL).value).toHaveLength(120);
   });
 
   it.each([[NAME_LABEL, "Maria"], [CITY_LABEL, "Rio"]])(
@@ -198,7 +241,8 @@ describe("DadosBasicosSection form", () => {
       renderSection();
       await openForm(user);
 
-      const accepted = fireEvent.paste(input(label), { clipboardData: { getData: () => `${text}${EMOJI}` } });
+      const field = label === CITY_LABEL ? cityInput() : input(label);
+      const accepted = fireEvent.paste(field, { clipboardData: { getData: () => `${text}${EMOJI}` } });
 
       expect(accepted).toBe(false);
       expect(execCommand).toHaveBeenCalledWith("insertText", false, text);
@@ -243,30 +287,52 @@ describe("DadosBasicosSection form", () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("rejects a single-letter city before the UF is validated", async () => {
+  it("asks for the city again after the UF changes", async () => {
     const user = userEvent.setup();
-    renderSection({ uf: null });
+    renderSection();
     await openForm(user);
 
-    setValue(CITY_LABEL, "R");
+    await chooseUf(user, "SP");
 
-    expect(input(CITY_LABEL).getAttribute("aria-invalid")).toBe("true");
+    expect(cityInput().value).toBe("");
     submit();
 
     expect((await screen.findByRole("alert")).textContent).toBe(CITY_ERROR);
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("rejects an empty city", async () => {
+  it("keeps the city when the same UF is chosen again", async () => {
     const user = userEvent.setup();
     renderSection();
     await openForm(user);
 
-    setValue(CITY_LABEL, "");
+    await chooseUf(user, "MG");
+
+    expect(cityInput().value).toBe("Rio Pomba");
+  });
+
+  it("clears a saved city that is not on the official list", async () => {
+    const user = userEvent.setup();
+    renderSection({ cidade: "Cidade Inventada", uf: "MG" });
+    await openForm(user);
+
+    await waitFor(() => expect(cityInput().value).toBe(""));
     submit();
 
     expect((await screen.findByRole("alert")).textContent).toBe(CITY_ERROR);
     expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("uses the official spelling when the saved city differs only in accents or case", async () => {
+    const user = userEvent.setup();
+    const props = renderSection({ cidade: "uba", uf: "MG" });
+    await openForm(user);
+
+    await waitFor(() => expect(cityInput().value).toBe("Ubá"));
+    submit();
+
+    await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
+    expect(mockUpdate).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", cidade: "Ubá", uf: "MG" });
   });
 
   it("requires a UF when the profile has none", async () => {
@@ -289,10 +355,11 @@ describe("DadosBasicosSection form", () => {
     await screen.findByRole("alert");
 
     await chooseUf(user, "RJ");
+    await chooseCity(user, "Rio de Janeiro");
     submit();
 
     await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
-    expect(mockUpdate).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", cidade: "Rio Pomba", uf: "RJ" });
+    expect(mockUpdate).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", cidade: "Rio de Janeiro", uf: "RJ" });
   });
 
   it("shows the API error message and keeps the dialog open when saving fails", async () => {
@@ -332,11 +399,81 @@ describe("DadosBasicosSection form", () => {
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("button", { name: "Salvando..." }).hasAttribute("disabled")).toBe(true);
     expect(input(NAME_LABEL).disabled).toBe(true);
-    expect(input(CITY_LABEL).disabled).toBe(true);
+    expect(cityInput().disabled).toBe(true);
     fireEvent.submit(dialog.querySelector("form") as HTMLFormElement);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
 
     resolveSave();
     await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("DadosBasicosSection form when the official city list is unavailable", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    municipioCache.clear();
+    mockUpdate.mockReset();
+    mockUpdate.mockResolvedValue(undefined);
+    fetchMock.mockReset();
+    fetchMock.mockRejectedValue(new Error("offline"));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("lets the user type the city and offers to try again", async () => {
+    const user = userEvent.setup();
+    const props = renderSection({ cidade: "Rio Pomba", uf: "MG" });
+    await openForm(user);
+
+    expect(await screen.findByText(MANUAL_CITY_MESSAGE)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeTruthy();
+    setValue(CITY_LABEL, "  Rio   Pomba ");
+    submit();
+
+    await waitFor(() => expect(props.onChanged).toHaveBeenCalledTimes(1));
+    expect(mockUpdate).toHaveBeenCalledWith({ nomeCompleto: "Maria Souza", cidade: "Rio Pomba", uf: "MG" });
+  });
+
+  it("strips digits and limits the typed city", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    await openForm(user);
+    await screen.findByText(MANUAL_CITY_MESSAGE);
+
+    setValue(CITY_LABEL, "Ub4 Cidade2");
+    expect(input(CITY_LABEL).value).toBe("Ub Cidade");
+    setValue(CITY_LABEL, "b".repeat(200));
+    expect(input(CITY_LABEL).value).toHaveLength(120);
+  });
+
+  it("rejects a typed city that is too short", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    await openForm(user);
+    await screen.findByText(MANUAL_CITY_MESSAGE);
+
+    setValue(CITY_LABEL, "R");
+    submit();
+
+    expect((await screen.findByRole("alert")).textContent).toBe(CITY_ERROR);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("checks the typed city against the official list once it loads again", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    await openForm(user);
+    await screen.findByText(MANUAL_CITY_MESSAGE);
+    setValue(CITY_LABEL, "Cidade Inventada");
+    fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve(MUNICIPIOS.MG) } as Response);
+
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    await waitFor(() => expect(screen.queryByText(MANUAL_CITY_MESSAGE)).toBeNull());
+    await waitFor(() => expect(cityInput().value).toBe(""));
   });
 });

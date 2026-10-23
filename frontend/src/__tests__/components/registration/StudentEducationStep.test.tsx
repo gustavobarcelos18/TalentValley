@@ -150,6 +150,12 @@ describe("StudentEducationStep", () => {
     expect(execCommand).toHaveBeenCalledWith("insertText", false, "Sistemas");
   });
 
+  it("shows the relation as a single-line field", () => {
+    renderStep();
+
+    expect(field(RELATION).tagName).toBe("INPUT");
+  });
+
   it("counts the characters of the relation text against its 500 limit", () => {
     const { rerenderValue } = renderStep();
     expect(screen.getByText("0 / 500")).toBeTruthy();

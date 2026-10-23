@@ -5,6 +5,7 @@ import { TalentPreviewDialog } from "@/components/recruiter/TalentPreviewDialog"
 import { ApiError } from "@/lib/api";
 import { addFavorite, fetchTalent, removeFavorite } from "@/lib/recruiter";
 import type { TalentProfile } from "@/types/recruiter";
+import { stubMotionMedia } from "../auth/motion/motionMedia";
 import { makeFormation, makeTalentProfile } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
@@ -99,6 +100,21 @@ describe("TalentPreviewDialog", () => {
     expect(within(dialog).getByText("React")).toBeTruthy();
     expect(within(dialog).getByText("Estágio")).toBeTruthy();
     expect(within(dialog).getByText("Remoto")).toBeTruthy();
+  });
+
+  it("highlights the header when the main formation is verified", async () => {
+    stubMotionMedia("pointer");
+    await renderLoaded(makeTalentProfile({ formacoes: [makeFormation({ rpvVerificado: true })] }));
+
+    expect(within(screen.getByRole("dialog")).getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("does not highlight the header without a verified formation", async () => {
+    stubMotionMedia("pointer");
+    await renderLoaded(makeTalentProfile({ formacoes: [makeFormation({ rpvVerificado: false })] }));
+
+    expect(within(screen.getByRole("dialog")).queryByTestId("rpv-shine")).toBeNull();
+    expect(within(screen.getByRole("dialog")).queryByText("Verificado pelo Rio Pomba Valley")).toBeNull();
   });
 
   it("falls back to the first formation, labelled generically, when none is main", async () => {

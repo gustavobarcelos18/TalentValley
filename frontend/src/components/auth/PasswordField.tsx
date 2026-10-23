@@ -7,6 +7,7 @@ import { IconButton, Stack } from "@mui/material";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AuthField, type AuthFieldProps } from "./AuthField";
 import { PasswordRules } from "./PasswordRules";
+import { PASSWORD_MAX_LENGTH } from "@/lib/validation";
 import { duration, ease } from "./motion/tokens";
 
 interface PasswordFieldProps extends Omit<AuthFieldProps, "type" | "endAdornment" | "onPaste"> {
@@ -14,7 +15,7 @@ interface PasswordFieldProps extends Omit<AuthFieldProps, "type" | "endAdornment
   showRules?: boolean;
 }
 
-export function PasswordField({ showRules = false, ...props }: PasswordFieldProps) {
+export function PasswordField({ showRules = false, maxLength = PASSWORD_MAX_LENGTH, ...props }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   const Icon = visible ? VisibilityOff : Visibility;
   const reduced = useReducedMotion();
@@ -23,6 +24,7 @@ export function PasswordField({ showRules = false, ...props }: PasswordFieldProp
   const field = (
     <AuthField
       {...props}
+      maxLength={maxLength}
       type={visible ? "text" : "password"}
       endAdornment={
         <IconButton

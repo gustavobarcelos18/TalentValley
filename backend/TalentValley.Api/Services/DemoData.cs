@@ -13,9 +13,15 @@ internal sealed record DemoProject(string Nome, DateOnly Inicio, DateOnly? Fim, 
 
 internal sealed record DemoLanguage(string Nome, NivelIdioma Nivel);
 
+// DisponivelEmDias null means available immediately. No sensitive (PCD) data is ever part of the demo.
+internal sealed record DemoSearch(StatusBusca Status, string Objetivo, AreaInteresse[] Areas, int? DisponivelEmDias,
+    CargaHorariaSemanal CargaHoraria, int ConfirmadoHaDias, bool AceitaViajar, bool AceitaMudarDeCidade,
+    CategoriaCnh[] CategoriasCnh, bool PossuiVeiculoProprio);
+
 internal sealed record DemoStudent(string Nome, string Email, string Cidade, string Uf, string Telefone, string Bio,
     int AtualizadoHaDias, string[] Competencias, DemoLanguage[] Idiomas, TipoDisponibilidade[] Disponibilidades,
-    ModalidadeTrabalho[] Modalidades, DemoFormation[] Formacoes, DemoExperience[] Experiencias, DemoProject[] Projetos);
+    ModalidadeTrabalho[] Modalidades, DemoFormation[] Formacoes, DemoExperience[] Experiencias, DemoProject[] Projetos,
+    DemoSearch Busca);
 
 internal sealed record DemoRecruiter(string Nome, string Email, string Empresa, string Cargo, string Telefone,
     string Cidade, string Uf);
@@ -78,7 +84,11 @@ internal static class DemoData
                     "Aplicativo web para agendar consultas em uma unidade de saúde comunitária, com lembretes e " +
                     "confirmação de presença.",
                     ["Next.js", Tailwind, "Git"], null, "https://example.com/repositorio/agenda-saude")
-            ]),
+            ],
+            new(StatusBusca.BUSCANDO_ATIVAMENTE, "Conseguir um estágio ou primeira vaga como desenvolvedora full stack.",
+                [AreaInteresse.DesenvolvimentoFullStack, AreaInteresse.DesenvolvimentoFrontend,
+                    AreaInteresse.DesenvolvimentoBackend], null,
+                CargaHorariaSemanal.ATE_30H, 2, AceitaViajar: false, AceitaMudarDeCidade: true, [CategoriaCnh.B], PossuiVeiculoProprio: false)),
 
         new("Rafael Teixeira Nunes", $"rafael.nunes@{EmailDomain}", "Ubá", "MG", "32900000002",
             "Estudante de gestão com foco em dados e processos. Gosto de organizar informações, montar painéis que " +
@@ -104,7 +114,11 @@ internal static class DemoData
                     "Painel interativo com vendas por região, produto e vendedor, criado a partir de dados fictícios de " +
                     "um comércio local.",
                     [PowerBi, "Microsoft Excel", "SQL"])
-            ]),
+            ],
+            new(StatusBusca.BUSCANDO_ATIVAMENTE, "Estagiar em análise de dados e processos de uma área comercial ou administrativa.",
+                [AreaInteresse.DadosAnalytics, AreaInteresse.Administracao, AreaInteresse.VendasComercial,
+                    AreaInteresse.ProcessosQualidade], 20,
+                CargaHorariaSemanal.ATE_30H, 4, AceitaViajar: true, AceitaMudarDeCidade: false, [CategoriaCnh.B], PossuiVeiculoProprio: false)),
 
         new("Camila Ferraz Duarte", $"camila.duarte@{EmailDomain}", "Juiz de Fora", "MG", "32900000003",
             "Designer de interfaces com olhar para acessibilidade e consistência visual. Gosto de trabalhar perto de " +
@@ -130,7 +144,10 @@ internal static class DemoData
                     "Biblioteca de componentes e guia de estilo para um site institucional, com foco em contraste e " +
                     "navegação por teclado.",
                     [FigmaTool, "CSS", "Web Accessibility"], "https://example.com/sistema-de-design", null)
-            ]),
+            ],
+            new(StatusBusca.BUSCANDO_ATIVAMENTE, "Projetar interfaces acessíveis e consistentes em um time de produto.",
+                [AreaInteresse.DesignInterfacesUiUx, AreaInteresse.DesignGrafico], null,
+                CargaHorariaSemanal.ATE_30H, 45, AceitaViajar: false, AceitaMudarDeCidade: true, [CategoriaCnh.B], PossuiVeiculoProprio: false)),
 
         new("Lucas Meireles Prado", $"lucas.prado@{EmailDomain}", "Viçosa", "MG", "32900000004",
             "Engenheiro de produção em fim de curso, com interesse em ciência de dados aplicada à indústria. " +
@@ -156,7 +173,10 @@ internal static class DemoData
                     "Modelo simples de previsão de demanda semanal para uma linha de produtos, com comparação de " +
                     "métodos e visualização dos erros.",
                     ["Python", "Pandas", "Machine Learning"], null, "https://example.com/repositorio/previsao-demanda")
-            ]),
+            ],
+            new(StatusBusca.ABERTO_A_PROPOSTAS, "Aplicar dados e automação para melhorar processos industriais.",
+                [AreaInteresse.CienciaDadosIa, AreaInteresse.DadosAnalytics, AreaInteresse.AutomacaoIot], 60,
+                CargaHorariaSemanal.ATE_40H, 5, AceitaViajar: true, AceitaMudarDeCidade: true, [CategoriaCnh.A, CategoriaCnh.B], PossuiVeiculoProprio: true)),
 
         new("Beatriz Souza Lacerda", $"beatriz.lacerda@{EmailDomain}", "Cataguases", "MG", "32900000005",
             "Desenvolvedora mobile em início de carreira. Criei aplicativos Flutter para uso comunitário e gosto de " +
@@ -176,7 +196,10 @@ internal static class DemoData
                 new("Feira Digital", D(2025, 9, 1), D(2025, 12, 10),
                     "Aplicativo para feirantes divulgarem produtos do dia e clientes reservarem itens para retirada.",
                     ["Flutter", "Dart", "Firebase"], null, "https://example.com/repositorio/feira-digital")
-            ]),
+            ],
+            new(StatusBusca.NAO_BUSCANDO, "Aprofundar o desenvolvimento mobile enquanto conclui o curso.",
+                [AreaInteresse.DesenvolvimentoMobile], 90,
+                CargaHorariaSemanal.ATE_20H, 40, AceitaViajar: false, AceitaMudarDeCidade: false, [], PossuiVeiculoProprio: false)),
 
         new("Thiago Andrade Pires", $"thiago.pires@{EmailDomain}", RioPomba, "MG", "32900000006",
             "Estudante de análise e desenvolvimento de sistemas com foco em back-end e infraestrutura. Gosto de APIs " +
@@ -205,6 +228,9 @@ internal static class DemoData
                 new("Pipeline de Entrega", D(2025, 10, 1), D(2026, 1, 31),
                     "Esteira de integração contínua que compila, testa e publica um serviço em contêiner a cada alteração.",
                     ["GitHub Actions", DockerTool, "CI/CD"])
-            ])
+            ],
+            new(StatusBusca.ABERTO_A_PROPOSTAS, "Atuar com back-end e infraestrutura, evoluindo em APIs, testes e entrega contínua.",
+                [AreaInteresse.DesenvolvimentoBackend, AreaInteresse.DevOps, AreaInteresse.InfraestruturaNuvem], 30,
+                CargaHorariaSemanal.ATE_30H, 3, AceitaViajar: false, AceitaMudarDeCidade: true, [CategoriaCnh.B], PossuiVeiculoProprio: true))
     ];
 }

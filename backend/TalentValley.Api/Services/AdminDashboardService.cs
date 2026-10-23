@@ -9,26 +9,27 @@ public sealed class AdminDashboardService(AppDbContext database)
 {
     public async Task<AdminDashboardResponse> GetAsync(CancellationToken cancellationToken)
     {
-        var activeStudents = await database.Alunos.AsNoTracking()
+        // Demonstration accounts are fictitious and never count in the numbers below.
+        var activeStudents = await database.Alunos.AsNoTracking().ExcludingDemo()
             .CountAsync(x => x.Ativo, cancellationToken);
 
-        var activeRecruiters = await database.Recrutadores.AsNoTracking()
+        var activeRecruiters = await database.Recrutadores.AsNoTracking().ExcludingDemo()
             .CountAsync(x => x.Status == StatusRecrutador.ATIVO, cancellationToken);
 
         var pendingRegistrations = await database.SolicitacoesCadastro.AsNoTracking()
             .CountAsync(x => x.Status == StatusSolicitacaoCadastro.PENDENTE, cancellationToken);
 
-        var pendingRpv = await database.Formacoes.AsNoTracking()
+        var pendingRpv = await database.Formacoes.AsNoTracking().ExcludingDemo()
             .CountAsync(x => x.EhRioPombaValley && x.StatusValidacaoRpv == StatusValidacaoRpv.PENDENTE, cancellationToken);
 
         var cutoff = DateTimeOffset.UtcNow.AddDays(-7);
-        var updatedInLast7Days = await database.Alunos.AsNoTracking()
+        var updatedInLast7Days = await database.Alunos.AsNoTracking().ExcludingDemo()
             .CountAsync(x => x.Ativo && x.AtualizadoEm >= cutoff, cancellationToken);
 
-        var verifiedRpv = await database.Formacoes.AsNoTracking()
+        var verifiedRpv = await database.Formacoes.AsNoTracking().ExcludingDemo()
             .CountAsync(x => x.EhRioPombaValley && x.StatusValidacaoRpv == StatusValidacaoRpv.VERIFICADO, cancellationToken);
 
-        var topCompetencies = await database.AlunoCompetencias.AsNoTracking()
+        var topCompetencies = await database.AlunoCompetencias.AsNoTracking().ExcludingDemo()
             .Where(x => x.Aluno.Ativo)
             .GroupBy(x => new { x.CompetenciaId, x.Competencia.Nome, x.Competencia.NomeBusca })
             .Select(g => new { g.Key.CompetenciaId, g.Key.Nome, g.Key.NomeBusca, Count = g.Count() })

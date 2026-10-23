@@ -53,7 +53,8 @@ public sealed class RecrutadorDeletionService(AppDbContext database, SignInManag
         CancellationToken cancellationToken = default)
     {
         var user = await signIn.UserManager.FindByIdAsync(userId.ToString());
-        if (user is null) return RecrutadorSelfDeleteResult.NotFound;
+        // A demonstration account can only be removed by restoring the demonstration.
+        if (user is null || user.EhDemo) return RecrutadorSelfDeleteResult.NotFound;
         var check = await signIn.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
         if (check.IsLockedOut) return RecrutadorSelfDeleteResult.LockedOut;
         if (!check.Succeeded) return RecrutadorSelfDeleteResult.InvalidPassword;

@@ -8,6 +8,7 @@ using TalentValley.Api.DTOs;
 namespace TalentValley.Api.Services;
 
 public sealed class AlunoProfileNotFoundException : Exception;
+public sealed class StatusBuscaNotInformedException : Exception;
 public sealed class InvalidUrlException : Exception
 {
     public InvalidUrlException(string message) : base(message) { }
@@ -28,7 +29,8 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
     public async Task<AlunoSelfDeleteResult> DeleteOwnAsync(Guid userId, string password, CancellationToken cancellationToken)
     {
         var user = await signIn.UserManager.FindByIdAsync(userId.ToString());
-        if (user is null) return AlunoSelfDeleteResult.NotFound;
+        // A demonstration account can only be removed by restoring the demonstration.
+        if (user is null || user.EhDemo) return AlunoSelfDeleteResult.NotFound;
         var check = await signIn.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
         if (check.IsLockedOut) return AlunoSelfDeleteResult.LockedOut;
         if (!check.Succeeded) return AlunoSelfDeleteResult.InvalidPassword;
@@ -53,6 +55,9 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
             .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
             .Include(x => x.Disponibilidades)
             .Include(x => x.Modalidades)
+            .Include(x => x.AreasInteresse)
+            .Include(x => x.CategoriasCnh)
+            .Include(x => x.TiposDeficiencia)
             .Include(x => x.Formacoes)
             .Include(x => x.Experiencias)
             .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia)
@@ -178,21 +183,55 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
     public async Task UpdateDisponibilidadeAsync(Guid userId, UpdateDisponibilidadeRequest request)
     {
         var aluno = await LoadAsync(userId);
-        var desiredDisp = request.Disponibilidades.Distinct().ToHashSet();
-        var desiredMod = request.Modalidades.Distinct().ToHashSet();
-        var currentDisp = aluno.Disponibilidades.Select(x => x.Tipo).ToHashSet();
-        var currentMod = aluno.Modalidades.Select(x => x.Modalidade).ToHashSet();
-        if (currentDisp.SetEquals(desiredDisp) && currentMod.SetEquals(desiredMod)) return;
-        foreach (var item in aluno.Disponibilidades.Where(x => !desiredDisp.Contains(x.Tipo)).ToList())
-            aluno.Disponibilidades.Remove(item);
-        foreach (var tipo in desiredDisp.Where(x => !currentDisp.Contains(x)))
-            aluno.Disponibilidades.Add(new() { Tipo = tipo });
-        foreach (var item in aluno.Modalidades.Where(x => !desiredMod.Contains(x.Modalidade)).ToList())
-            aluno.Modalidades.Remove(item);
-        foreach (var mod in desiredMod.Where(x => !currentMod.Contains(x)))
-            aluno.Modalidades.Add(new() { Modalidade = mod });
-        Touch(aluno);
+        var now = DateTimeOffset.UtcNow;
+        SyncSet(aluno.Disponibilidades, request.Disponibilidades, x => x.Tipo, v => new() { Tipo = v });
+        SyncSet(aluno.Modalidades, request.Modalidades, x => x.Modalidade, v => new() { Modalidade = v });
+        SyncSet(aluno.AreasInteresse, request.AreasInteresse, x => x.Area, v => new() { Area = v });
+        SyncSet(aluno.CategoriasCnh, request.CategoriasCnh, x => x.Categoria, v => new() { Categoria = v });
+
+        aluno.StatusBusca = request.StatusBusca;
+        aluno.ObjetivoProfissional = request.ObjetivoProfissional;
+        aluno.DisponivelImediatamente = request.DisponivelImediatamente;
+        aluno.DisponivelAPartirDe = request.DisponivelAPartirDe;
+        aluno.CargaHorariaSemanal = request.CargaHorariaSemanal;
+        aluno.AceitaViajar = request.AceitaViajar;
+        aluno.AceitaMudarDeCidade = request.AceitaMudarDeCidade;
+        aluno.PossuiVeiculoProprio = request.PossuiVeiculoProprio;
+
+        // Sensitive data: the disability types only exist while "Sou PCD" is on, and the consent only while
+        // any PCD field is filled (the request validation already refuses PCD data without the consent).
+        aluno.SouPcd = request.SouPcd;
+        aluno.InteresseVagaPcd = request.InteresseVagaPcd;
+        SyncSet(aluno.TiposDeficiencia, request.SouPcd ? request.TiposDeficiencia : [], x => x.Tipo, v => new() { Tipo = v });
+
+        // Sending the same answers again is not a profile change: it keeps AtualizadoEm (which orders recruiter
+        // search), while still reconfirming the status and renewing the PCD consent date.
+        if (database.ChangeTracker.HasChanges()) Touch(aluno);
+        // Saving the form reconfirms the status; without a status there is nothing to confirm.
+        aluno.StatusBuscaConfirmadoEm = request.StatusBusca is null ? null : now;
+        aluno.ConsentimentoPcdEm = request.SouPcd || request.InteresseVagaPcd ? now : null;
         await database.SaveChangesAsync();
+    }
+
+    // Reconfirming never changes the answers, only the date that resets the 30-day warning.
+    public async Task ConfirmStatusBuscaAsync(Guid userId)
+    {
+        var aluno = await database.Alunos.SingleOrDefaultAsync(x => x.UserId == userId)
+            ?? throw new AlunoProfileNotFoundException();
+        if (aluno.StatusBusca is null) throw new StatusBuscaNotInformedException();
+        aluno.StatusBuscaConfirmadoEm = DateTimeOffset.UtcNow;
+        await database.SaveChangesAsync();
+    }
+
+    private static void SyncSet<TLink, TValue>(ICollection<TLink> current, IEnumerable<TValue> desired,
+        Func<TLink, TValue> valueOf, Func<TValue, TLink> create) where TValue : notnull
+    {
+        var desiredSet = desired.ToHashSet();
+        foreach (var item in current.Where(x => !desiredSet.Contains(valueOf(x))).ToList())
+            current.Remove(item);
+        var currentSet = current.Select(valueOf).ToHashSet();
+        foreach (var value in desiredSet.Where(x => !currentSet.Contains(x)))
+            current.Add(create(value));
     }
 
     public async Task<IReadOnlyCollection<CatalogoCompetenciaResponse>> GetCompetenciasAsync(string? search)
@@ -234,6 +273,9 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
             .Include(x => x.Idiomas)
             .Include(x => x.Disponibilidades)
             .Include(x => x.Modalidades)
+            .Include(x => x.AreasInteresse)
+            .Include(x => x.CategoriasCnh)
+            .Include(x => x.TiposDeficiencia)
             .SingleOrDefaultAsync(x => x.UserId == userId);
         return aluno ?? throw new AlunoProfileNotFoundException();
     }
@@ -252,6 +294,7 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
             .Select(x => new AlunoIdiomaResponse(x.IdiomaId, x.Idioma.Nome, x.Nivel)).ToList(),
         aluno.Disponibilidades.OrderBy(x => x.Tipo).Select(x => x.Tipo).ToList(),
         aluno.Modalidades.OrderBy(x => x.Modalidade).Select(x => x.Modalidade).ToList(),
+        BuscaMapping.Map(aluno, DateTimeOffset.UtcNow),
         aluno.Formacoes.OrderBy(x => x.CriadoEm)
             .Select(TrajetoriaMapping.Map).ToList(),
         aluno.Experiencias.OrderByDescending(x => x.DataInicio)

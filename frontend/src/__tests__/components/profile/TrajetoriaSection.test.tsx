@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
+import { EMOJI, useExecCommandSpy } from "../registration/stepTestHelpers";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { TrajetoriaSection } from "@/components/profile/TrajetoriaSection";
@@ -32,8 +33,13 @@ const ADD_FORMATION = "Adicionar formação";
 const ADD_EXPERIENCE = "Adicionar experiência";
 const EDIT_FORMATION_DIALOG = "Editar formação";
 const EDIT_EXPERIENCE_DIALOG = "Editar experiência";
-const FORMATION_REVIEW_ERROR = "Revise nome, instituição, datas e carga horária.";
-const EXPERIENCE_REVIEW_ERROR = "Revise empresa, cargo e datas.";
+const DATE_FORMAT_ERROR = "Use o formato dd/mm/aaaa.";
+const DATE_INVALID_ERROR = "Informe uma data válida.";
+const START_REQUIRED_ERROR = "Informe a data de início.";
+const END_BEFORE_START_ERROR = "A data final não pode ser anterior à data inicial.";
+const LAST_YEAR = new Date().getFullYear() + 15;
+const DATE_RANGE_ERROR = `Informe uma data entre 1900 e ${LAST_YEAR}.`;
+const WORKLOAD_ERROR = "Informe uma carga horária de 1 a 10.000 horas.";
 const NOT_PDF = "O arquivo selecionado não é um PDF válido.";
 const SAVE = "Salvar";
 const CANCEL = "Cancelar";
@@ -220,6 +226,14 @@ describe("TrajetoriaSection loading and listing", () => {
     expect(within(lists[0]).getAllByRole("listitem")).toHaveLength(1);
     expect(within(lists[0]).getByText(FORMATION_NAME)).toBeTruthy();
     expect(within(lists[1]).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("keeps the line breaks of an experience description", async () => {
+    await renderSection([experienceItem(makeExperience({ descricao: "Primeira linha\nSegunda linha" }))]);
+
+    const description = screen.getByText(/Primeira linha/);
+    expect(description.textContent).toBe("Primeira linha\nSegunda linha");
+    expect(getComputedStyle(description).whiteSpace).toBe("pre-wrap");
   });
 
   it("shows the load error and no groups when the fetch fails", async () => {
@@ -559,6 +573,29 @@ describe("TrajetoriaSection certificate", () => {
 });
 
 describe("TrajetoriaSection formation form", () => {
+  const execCommand = useExecCommandSpy();
+
+  it.each(["Nome", "Instituição"])("drops emoji typed into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openFormationAdd(user);
+
+    fireEvent.change(field(label), { target: { value: "Texto" + EMOJI + "limpo" } });
+
+    expect(field(label).value).toBe("Textolimpo");
+  });
+
+  it.each(["Nome", "Instituição"])("removes emoji from text pasted into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openFormationAdd(user);
+
+    const accepted = fireEvent.paste(field(label), { clipboardData: { getData: () => "Texto" + EMOJI } });
+
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "Texto");
+  });
+
   it("opens with sensible defaults and a disabled end date for an in-progress formation", async () => {
     const user = userEvent.setup();
     await renderSection([]);
@@ -573,16 +610,20 @@ describe("TrajetoriaSection formation form", () => {
   });
 
   const formationBase = { Nome: FORMATION_NAME, Instituição: FORMATION_INSTITUTION, Início: "01032020" };
-  const invalidFormations: [string, (user: User, dialog: HTMLElement) => Promise<void>][] = [
-    ["a name that is too short", async (user) => fill(user, "Nome", "A")],
-    ["an institution that is too short", async (user) => fill(user, "Instituição", "B")],
-    ["a missing start date", async (user) => fill(user, "Início", "")],
-    ["a start date that does not exist", async (user) => fill(user, "Início", "31022020")],
-    ["an incomplete start date", async (user) => fill(user, "Início", "0103")],
-    ["a workload of zero", async (user) => fill(user, "Carga horária", "0")],
+  const invalidFormations: [string, (user: User, dialog: HTMLElement) => Promise<void>, string][] = [
+    ["a name that is too short", async (user) => fill(user, "Nome", "A"), "Informe um curso válido."],
+    ["an institution that is too short", async (user) => fill(user, "Instituição", "B"), "Informe uma instituição válida."],
+    ["a missing start date", async (user) => fill(user, "Início", ""), START_REQUIRED_ERROR],
+    ["a start date that does not exist", async (user) => fill(user, "Início", "31022020"), DATE_INVALID_ERROR],
+    ["an incomplete start date", async (user) => fill(user, "Início", "0103"), DATE_FORMAT_ERROR],
+    ["a start date before 1900", async (user) => fill(user, "Início", "31121899"), DATE_RANGE_ERROR],
+    ["a start date more than 15 years ahead", async (user) => fill(user, "Início", `0101${LAST_YEAR + 1}`), DATE_RANGE_ERROR],
+    ["a workload of zero", async (user) => fill(user, "Carga horária", "0"), WORKLOAD_ERROR],
+    ["a workload above 10,000 hours", async (user) => fill(user, "Carga horária", "10001"), WORKLOAD_ERROR],
     [
       "a concluded formation without an end date",
       async (user, dialog) => choose(user, dialog, "Status", "Concluído"),
+      "Informe a data de conclusão.",
     ],
     [
       "a concluded formation with an impossible end date",
@@ -590,6 +631,15 @@ describe("TrajetoriaSection formation form", () => {
         await choose(user, dialog, "Status", "Concluído");
         await fill(user, "Conclusão", "31022021");
       },
+      DATE_INVALID_ERROR,
+    ],
+    [
+      "an end date more than 15 years ahead",
+      async (user, dialog) => {
+        await choose(user, dialog, "Status", "Concluído");
+        await fill(user, "Conclusão", `0101${LAST_YEAR + 1}`);
+      },
+      DATE_RANGE_ERROR,
     ],
     [
       "an end date before the start date",
@@ -597,20 +647,72 @@ describe("TrajetoriaSection formation form", () => {
         await choose(user, dialog, "Status", "Concluído");
         await fill(user, "Conclusão", "31122019");
       },
+      END_BEFORE_START_ERROR,
     ],
   ];
 
-  it.each(invalidFormations)("rejects %s", async (_label, mutate) => {
+  it.each(invalidFormations)("rejects %s and explains it under the field", async (_label, mutate, message) => {
     const user = userEvent.setup();
     await renderSection([]);
     const dialog = await openFormationAdd(user);
 
     for (const [label, value] of Object.entries(formationBase)) await fill(user, label, value);
     await mutate(user, dialog);
+    expect(within(dialog).queryByText(message)).toBeNull();
     await user.click(within(dialog).getByRole("button", { name: SAVE }));
 
-    expect((await within(dialog).findByRole("alert")).textContent).toBe(FORMATION_REVIEW_ERROR);
+    expect(await within(dialog).findByText(message)).toBeTruthy();
+    expect(within(dialog).queryByRole("alert")).toBeNull();
     expect(createFormationMock).not.toHaveBeenCalled();
+  });
+
+  it("marks only the invalid field and clears its error once it is fixed", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await fillValidFormation(user);
+    await fill(user, "Carga horária", "20000");
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    expect(await within(dialog).findByText(WORKLOAD_ERROR)).toBeTruthy();
+    expect(field("Carga horária").getAttribute("aria-invalid")).toBe("true");
+    expect(field("Nome").getAttribute("aria-invalid")).toBe("false");
+    await fill(user, "Carga horária", "2000");
+
+    expect(within(dialog).queryByText(WORKLOAD_ERROR)).toBeNull();
+    expect(field("Carga horária").getAttribute("aria-invalid")).toBe("false");
+  });
+
+  it("shows the hours unit and accepts the limits of 1 and 10,000 hours", async () => {
+    const user = userEvent.setup();
+    createFormationMock.mockResolvedValue(makeFormation());
+    const props = await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    expect(within(dialog).getByText("horas")).toBeTruthy();
+    await fillValidFormation(user);
+    await fill(user, "Carga horária", "10000");
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Formação adicionada."));
+    expect(createFormationMock).toHaveBeenCalledWith(expect.objectContaining({ cargaHoraria: 10000 }));
+  });
+
+  it("accepts the earliest and latest allowed dates", async () => {
+    const user = userEvent.setup();
+    createFormationMock.mockResolvedValue(makeFormation());
+    const props = await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await fillValidFormation(user);
+    await fill(user, "Início", "01011900");
+    await choose(user, dialog, "Status", "Concluído");
+    await fill(user, "Conclusão", `3112${LAST_YEAR}`);
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Formação adicionada."));
+    expect(createFormationMock).toHaveBeenCalledWith(expect.objectContaining({ dataInicio: "1900-01-01", dataFim: `${LAST_YEAR}-12-31` }));
   });
 
   it("creates an in-progress formation with trimmed text, ISO date and null optional fields", async () => {
@@ -688,6 +790,8 @@ describe("TrajetoriaSection formation form", () => {
 
     await user.type(field("Carga horária"), "1a2b3");
     expect(field("Carga horária").value).toBe("123");
+    await user.type(field("Carga horária"), "4567");
+    expect(field("Carga horária").value).toBe("12345");
     await user.clear(field("Carga horária"));
     expect(field("Carga horária").value).toBe("");
   });
@@ -710,7 +814,7 @@ describe("TrajetoriaSection formation form", () => {
 
     await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Formação adicionada."));
     expect(createFormationMock).toHaveBeenCalledWith(expect.objectContaining({ status: "EM_ANDAMENTO", dataFim: null }));
-    expect(screen.queryByText(FORMATION_REVIEW_ERROR)).toBeNull();
+    expect(screen.queryByText("Informe a data de conclusão.")).toBeNull();
   });
 
   it("keeps the end date when switching between statuses that allow one", async () => {
@@ -769,6 +873,22 @@ describe("TrajetoriaSection formation form", () => {
     expect((await within(dialog).findByRole("alert")).textContent).toBe("Formação recusada pelo servidor");
     expect(props.onChanged).not.toHaveBeenCalled();
     expect(props.notify).not.toHaveBeenCalled();
+  });
+
+  it("drops an earlier server error when the next save attempt fails validation", async () => {
+    const user = userEvent.setup();
+    createFormationMock.mockRejectedValue(new ApiError(422, "Inválido", { title: "Formação recusada pelo servidor" }));
+    await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await fillValidFormation(user);
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("Formação recusada pelo servidor");
+    await fill(user, "Carga horária", "20000");
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    expect(await within(dialog).findByText(WORKLOAD_ERROR)).toBeTruthy();
+    expect(within(dialog).queryByRole("alert")).toBeNull();
   });
 
   it("falls back to the generic save message for an opaque failure", async () => {
@@ -878,6 +998,29 @@ describe("TrajetoriaSection formation form", () => {
 });
 
 describe("TrajetoriaSection experience form", () => {
+  const execCommand = useExecCommandSpy();
+
+  it.each(["Empresa", "Cargo", "Descrição"])("drops emoji typed into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openExperienceAdd(user);
+
+    fireEvent.change(field(label), { target: { value: "Texto" + EMOJI + "limpo" } });
+
+    expect(field(label).value).toBe("Textolimpo");
+  });
+
+  it.each(["Empresa", "Cargo", "Descrição"])("removes emoji from text pasted into %s", async (label) => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openExperienceAdd(user);
+
+    const accepted = fireEvent.paste(field(label), { clipboardData: { getData: () => "Texto" + EMOJI } });
+
+    expect(accepted).toBe(false);
+    expect(execCommand).toHaveBeenCalledWith("insertText", false, "Texto");
+  });
+
   it("opens with professional type and an enabled end date", async () => {
     const user = userEvent.setup();
     await renderSection([]);
@@ -890,26 +1033,60 @@ describe("TrajetoriaSection experience form", () => {
   });
 
   const experienceBase = { Empresa: COMPANY, Cargo: ROLE, Início: "01022023", Término: "31012024" };
-  const invalidExperiences: [string, Record<string, string>][] = [
-    ["a company name that is too short", { Empresa: "A" }],
-    ["a job title that is too short", { Cargo: "B" }],
-    ["a missing start date", { Início: "" }],
-    ["a start date that does not exist", { Início: "31022023" }],
-    ["an incomplete start date", { Início: "0102" }],
-    ["an end date that does not exist", { Término: "31022024" }],
-    ["an end date before the start date", { Término: "31012023" }],
+  const invalidExperiences: [string, Record<string, string>, string][] = [
+    ["a company name that is too short", { Empresa: "A" }, "Informe uma empresa válida."],
+    ["a job title that is too short", { Cargo: "B" }, "Informe um cargo válido."],
+    ["a missing start date", { Início: "" }, START_REQUIRED_ERROR],
+    ["a start date that does not exist", { Início: "31022023" }, DATE_INVALID_ERROR],
+    ["an incomplete start date", { Início: "0102" }, DATE_FORMAT_ERROR],
+    ["a start date before 1900", { Início: "31121899" }, DATE_RANGE_ERROR],
+    ["an end date that does not exist", { Término: "31022024" }, DATE_INVALID_ERROR],
+    ["an end date more than 15 years ahead", { Término: `0101${LAST_YEAR + 1}` }, DATE_RANGE_ERROR],
+    ["an end date before the start date", { Término: "31012023" }, END_BEFORE_START_ERROR],
+    ["a missing end date when the job is not current", { Término: "" }, "Informe a data de término."],
   ];
 
-  it.each(invalidExperiences)("rejects %s", async (_label, overrides) => {
+  it.each(invalidExperiences)("rejects %s and explains it under the field", async (_label, overrides, message) => {
     const user = userEvent.setup();
     await renderSection([]);
     const dialog = await openExperienceAdd(user);
 
     for (const [label, value] of Object.entries({ ...experienceBase, ...overrides })) await fill(user, label, value);
+    expect(within(dialog).queryByText(message)).toBeNull();
     await user.click(within(dialog).getByRole("button", { name: SAVE }));
 
-    expect((await within(dialog).findByRole("alert")).textContent).toBe(EXPERIENCE_REVIEW_ERROR);
+    expect(await within(dialog).findByText(message)).toBeTruthy();
+    expect(within(dialog).queryByRole("alert")).toBeNull();
     expect(createExperienceMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts the earliest and latest allowed dates", async () => {
+    const user = userEvent.setup();
+    createExperienceMock.mockResolvedValue(makeExperience());
+    const props = await renderSection([]);
+    const dialog = await openExperienceAdd(user);
+
+    await fillValidExperience(user);
+    await fill(user, "Início", "01011900");
+    await fill(user, "Término", `3112${LAST_YEAR}`);
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Experiência adicionada."));
+    expect(createExperienceMock).toHaveBeenCalledWith(expect.objectContaining({ dataInicio: "1900-01-01", dataFim: `${LAST_YEAR}-12-31` }));
+  });
+
+  it("does not ask for an end date while the job is current", async () => {
+    const user = userEvent.setup();
+    createExperienceMock.mockResolvedValue(makeExperience());
+    const props = await renderSection([]);
+    const dialog = await openExperienceAdd(user);
+
+    await fillValidExperience(user);
+    await user.click(within(dialog).getByRole("switch", { name: "Trabalho atual" }));
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Experiência adicionada."));
+    expect(createExperienceMock).toHaveBeenCalledWith(expect.objectContaining({ atual: true, dataFim: null }));
   });
 
   it("creates the experience with trimmed text, ISO dates and a null description", async () => {
@@ -944,7 +1121,7 @@ describe("TrajetoriaSection experience form", () => {
 
     await fillValidExperience(user);
     await choose(user, dialog, "Tipo", "Estágio");
-    await fill(user, "Descrição", "Suporte ao time \u{1F600}de dados");
+    fireEvent.change(field("Descrição"), { target: { value: "Suporte ao time " + EMOJI + "de dados" } });
     await user.click(within(dialog).getByRole("button", { name: SAVE }));
 
     await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Experiência adicionada."));
@@ -994,20 +1171,6 @@ describe("TrajetoriaSection experience form", () => {
 
     expect(field("Término").disabled).toBe(false);
     expect(field("Término").value).toBe("");
-  });
-
-  it("clears an optional end date when the field is emptied", async () => {
-    const user = userEvent.setup();
-    createExperienceMock.mockResolvedValue(makeExperience());
-    const props = await renderSection([]);
-    const dialog = await openExperienceAdd(user);
-
-    await fillValidExperience(user);
-    await fill(user, "Término", "");
-    await user.click(within(dialog).getByRole("button", { name: SAVE }));
-
-    await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Experiência adicionada."));
-    expect(createExperienceMock).toHaveBeenCalledWith(expect.objectContaining({ dataFim: null, atual: false }));
   });
 
   it("shows the API error when saving fails and keeps the dialog open", async () => {
@@ -1251,5 +1414,49 @@ describe("TrajetoriaSection delete", () => {
     await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
 
     expect((await within(dialog).findByRole("alert")).textContent).toBe("Não foi possível remover o item.");
+  });
+});
+
+describe("TrajetoriaSection accessibility and counters", () => {
+  it("moves focus to the first invalid field when saving a formation", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(document.activeElement).toBe(field("Nome")));
+  });
+
+  it("moves focus to the first invalid field when saving an experience", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openExperienceAdd(user);
+
+    await user.click(within(dialog).getByRole("button", { name: SAVE }));
+
+    await waitFor(() => expect(document.activeElement).toBe(field("Empresa")));
+  });
+
+  it("marks the formation end date as required only for a concluded formation", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    expect(field("Conclusão").required).toBe(false);
+    await choose(user, dialog, "Status", "Concluído");
+
+    expect(field("Conclusão").required).toBe(true);
+  });
+
+  it("counts the characters of the experience description", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    await openExperienceAdd(user);
+
+    expect(screen.getByText("0/2000")).toBeTruthy();
+    await fill(user, "Descrição", "Atuei com React");
+
+    expect(screen.getByText("15/2000")).toBeTruthy();
   });
 });

@@ -1,4 +1,5 @@
 import type { ChangeEvent, ClipboardEvent } from "react";
+import { parseDateInput } from "./format";
 
 export const BRAZILIAN_UFS = [
   "AC",
@@ -134,9 +135,17 @@ export function normalizeUF(value: string): string {
   return value.trim().toUpperCase().slice(0, 2);
 }
 
+export const OPTIONAL_LINK_HINT = "Opcional. Pode digitar sem https://.";
+
+/** Adds "https://" to an address typed without a scheme ("github.com/fulano"); anything else is only trimmed. */
+export function withHttpsScheme(value: string): string {
+  const candidate = value.trim();
+  if (!candidate || /^[a-z][a-z\d+.-]*:(?!\d)/i.test(candidate)) return candidate;
+  return `https://${candidate}`;
+}
+
 export function normalizeOptionalUrl(value: string): string | null {
-  const normalized = value.trim();
-  return normalized || null;
+  return withHttpsScheme(value) || null;
 }
 
 /** Filters only characters which can never be part of a person name. */
@@ -272,14 +281,29 @@ export function validateHttpUrl(
     return "Informe uma URL válida.";
   try {
     const url = new URL(candidate);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.hostname
-        ? null
-        : "Informe uma URL válida."
-      : "Informe uma URL começando com http:// ou https://.";
+    if (url.protocol !== "http:" && url.protocol !== "https:")
+      return "Informe uma URL começando com http:// ou https://.";
+    return /^[^.\s]+(\.[^.\s]+)+$/.test(url.hostname) ? null : "Informe uma URL válida.";
   } catch {
     return "Informe uma URL válida.";
   }
+}
+
+/**
+ * Validates a link typed by the user (the scheme may be missing). With `site`, the link must belong
+ * to that site or one of its subdomains, e.g. { domain: "github.com", name: "GitHub" }.
+ */
+export function validateTypedLink(
+  value: string | null | undefined,
+  site?: { domain: string; name: string },
+): string | null {
+  const url = withHttpsScheme(value ?? "");
+  const invalid = validateHttpUrl(url);
+  if (invalid || !url || !site) return invalid;
+  const { hostname } = new URL(url);
+  return hostname === site.domain || hostname.endsWith(`.${site.domain}`)
+    ? null
+    : `Informe um link do ${site.name} (${site.domain}).`;
 }
 
 export function validateSearchTerm(
@@ -327,6 +351,20 @@ export function validateIntegerRange(
     : `Informe um valor entre ${min} e ${max}.`;
 }
 
+// Same limits as the backend (YearRange / DateYearRange): from 1900 up to 15 years ahead.
+const MIN_YEAR = 1900;
+const FUTURE_YEARS = 15;
+const maxYear = () => new Date().getFullYear() + FUTURE_YEARS;
+
+const MAX_WORKLOAD_HOURS = 10000;
+
+export function validateWorkloadHours(value: number | null): string | null {
+  if (value === null) return null;
+  return value >= 1 && value <= MAX_WORKLOAD_HOURS
+    ? null
+    : "Informe uma carga horária de 1 a 10.000 horas.";
+}
+
 export function validateYear(
   value: string | number | null | undefined,
 ): string | null {
@@ -334,10 +372,9 @@ export function validateYear(
   const candidate = String(value);
   if (!/^\d{4}$/.test(candidate)) return "Informe um ano com 4 dígitos.";
   const year = Number(candidate);
-  const currentYear = new Date().getFullYear();
-  return year >= 1900 && year <= currentYear + 15
+  return year >= MIN_YEAR && year <= maxYear()
     ? null
-    : `Informe um ano entre 1900 e ${currentYear + 15}.`;
+    : `Informe um ano entre ${MIN_YEAR} e ${maxYear()}.`;
 }
 
 export function validateIsoDate(
@@ -359,10 +396,38 @@ export function validateBrazilianDateInput(value: string): string | null {
   if (!value) return null;
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return "Use o formato dd/mm/aaaa.";
   const [day, month, year] = value.split("/").map(Number);
-  return validateIsoDate(
+  const invalid = validateIsoDate(
     `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`,
     true,
   );
+  if (invalid) return invalid;
+  return year >= MIN_YEAR && year <= maxYear()
+    ? null
+    : `Informe uma data entre ${MIN_YEAR} e ${maxYear()}.`;
+}
+
+export interface DatePeriodErrors {
+  start: string | null;
+  end: string | null;
+}
+
+/**
+ * Validates a start and an optional end date typed as dd/mm/aaaa.
+ * `endRequiredMessage` makes the end date mandatory and is shown when it is empty.
+ */
+export function validateDatePeriod(
+  start: string,
+  end: string | null,
+  endRequiredMessage: string | null = null,
+): DatePeriodErrors {
+  const startError = start ? validateBrazilianDateInput(start) : "Informe a data de início.";
+  let endError: string | null = null;
+  if (end) endError = validateBrazilianDateInput(end);
+  else if (endRequiredMessage) endError = endRequiredMessage;
+  if (!startError && !endError && end) {
+    endError = validateDateRange(parseDateInput(start), parseDateInput(end));
+  }
+  return { start: startError, end: endError };
 }
 
 export function validateDateRange(
@@ -391,7 +456,7 @@ export function validateMeaningfulText(
   value: string,
   min: number,
   max: number,
-  label = "um valor",
+  label = "um valor válido",
 ): string | null {
   const text = normalizeWhitespace(value);
   if (
@@ -400,25 +465,27 @@ export function validateMeaningfulText(
     hasForbiddenText(text) ||
     !/[\p{L}\p{N}]/u.test(text)
   ) {
-    return `Informe ${label} válido.`;
+    return `Informe ${label}.`;
   }
   return null;
 }
 
 export const validateCompanyName = (value: string) =>
-  validateMeaningfulText(value, 2, 150, "uma empresa");
+  validateMeaningfulText(value, 2, 150, "uma empresa válida");
 export const validateJobTitle = (value: string) =>
-  validateMeaningfulText(value, 2, 150, "um cargo");
+  validateMeaningfulText(value, 2, 150, "um cargo válido");
 export const validateInstitutionName = (value: string) =>
-  validateMeaningfulText(value, 2, 200, "uma instituição");
+  validateMeaningfulText(value, 2, 200, "uma instituição válida");
 export const validateCourseName = (value: string) =>
-  validateMeaningfulText(value, 2, 200, "um curso");
+  validateMeaningfulText(value, 2, 200, "um curso válido");
 export const validateProjectName = (value: string) =>
-  validateMeaningfulText(value, 2, 200, "um nome de projeto");
+  validateMeaningfulText(value, 2, 200, "um nome de projeto válido");
+const INVALID_TEXT = "Revise o texto informado.";
 export const validateFreeText = (value: string, max: number) =>
-  !controlPattern.test(value) && !containsEmoji(value) && value.length <= max
-    ? null
-    : "Revise o texto informado.";
+  !hasForbiddenText(value) && value.length <= max ? null : INVALID_TEXT;
+/** Same as validateFreeText, but paragraph breaks (Enter) are allowed, as in the backend. */
+export const validateMultilineText = (value: string, max: number) =>
+  !hasForbiddenText(value.replace(/[\r\n]/g, "")) && value.length <= max ? null : INVALID_TEXT;
 
 // Compatibility names used by existing profile forms. They intentionally allow
 // technology and business punctuation, unlike person-name validation.
@@ -446,6 +513,9 @@ export const PASSWORD_RULES = [
   { id: "lower", label: "Uma letra minúscula", test: (s: string) => /[a-z]/.test(s) },
   { id: "digit", label: "Um dígito", test: (s: string) => /\d/.test(s) },
 ] as const;
+
+/** Longest password the API accepts. */
+export const PASSWORD_MAX_LENGTH = 1024;
 
 export function validatePassword(senha: string): string | null {
   if (senha.length < 8) return "A senha deve ter pelo menos 8 caracteres.";

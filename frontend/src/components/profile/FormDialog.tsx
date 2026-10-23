@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type FormEvent, type ReactNode } from "react";
+import { useId, useRef, type FormEvent, type ReactNode } from "react";
 import {
   Alert,
   Box,
@@ -21,6 +21,14 @@ interface FormDialogProps {
   error: string | null;
   children: ReactNode;
   maxWidth?: "xs" | "sm" | "md" | "lg" | "xl";
+  /** After a save attempt, moves focus to the first field marked invalid (aria-invalid). */
+  focusFirstInvalid?: boolean;
+}
+
+/** TextField props that show `message` under the field only after the user tried to save. */
+export function fieldError(message: string | null, attempted: boolean) {
+  const shown = attempted ? message : null;
+  return { error: shown !== null, helperText: shown };
 }
 
 // Shared editing dialog for profile sections. It owns the MUI Dialog so the
@@ -35,13 +43,21 @@ export function FormDialog({
   error,
   children,
   maxWidth = "sm",
+  focusFirstInvalid = false,
 }: FormDialogProps) {
   const titleId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
     onSubmit(event);
+    // The errors are rendered by the next frame, so look for the invalid field only then.
+    if (focusFirstInvalid) {
+      requestAnimationFrame(() =>
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]:not([aria-hidden="true"])')?.focus(),
+      );
+    }
   }
 
   return (
@@ -52,7 +68,7 @@ export function FormDialog({
       maxWidth={maxWidth}
       aria-labelledby={titleId}
     >
-      <Box component="form" onSubmit={handleSubmit} noValidate>
+      <Box component="form" ref={formRef} onSubmit={handleSubmit} noValidate>
         <DialogTitle id={titleId} sx={(theme) => ({ backgroundImage: brandWash(theme) })}>
           {title}
         </DialogTitle>

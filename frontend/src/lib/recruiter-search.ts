@@ -5,6 +5,7 @@ import type {
   TipoFormacao,
 } from "@/types/student";
 import type { TalentSearchFilters, TalentSort } from "@/types/recruiter";
+import { BRAZILIAN_UFS } from "@/lib/validation";
 
 export const FORMATION_TYPES: TipoFormacao[] = ["CURSO_LIVRE", "TECNICO", "TECNOLOGO", "GRADUACAO", "POS_GRADUACAO"];
 export const FORMATION_STATUSES: StatusFormacao[] = ["EM_ANDAMENTO", "CONCLUIDO", "TRANCADO"];
@@ -33,7 +34,7 @@ export function parseTalentSearch(params: URLSearchParams): TalentSearchFilters 
     page: Number.isSafeInteger(rawPage) && rawPage > 0 && rawPage <= 214_748_364 ? rawPage : 1,
     nome: text(params, "nome"),
     cidade: text(params, "cidade"),
-    uf: /^[A-Z]{2}$/.test(uf) ? uf : "",
+    uf: (BRAZILIAN_UFS as readonly string[]).includes(uf) ? uf : "",
     competenciaIds: [...new Set(competencyIds)],
     tiposFormacao: validValues(params, "tiposFormacao", FORMATION_TYPES),
     formacaoNome: text(params, "formacaoNome"),

@@ -118,8 +118,6 @@ export function StudentEducationStep({
           name="relacaoRioPombaValley"
           label="Relação com o Rio Pomba Valley"
           required={false}
-          multiline
-          minRows={2}
           value={value.relacaoRioPombaValley}
           onChange={(e) => onChange("relacaoRioPombaValley", stripEmoji(e.target.value).slice(0, 500))}
           onBlur={() => onBlur("relacaoRioPombaValley")}

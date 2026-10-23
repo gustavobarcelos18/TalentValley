@@ -51,6 +51,15 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
 }
 
+// Reason code of the 403 the server sends when the signed-in student/recruiter has not accepted
+// the current terms. The auth provider registers a handler so every screen reacts in one place.
+export const TERMS_PENDING_CODE = "TERMOS_PENDENTES";
+let termsPendingHandler: (() => void) | null = null;
+
+export function setTermsPendingHandler(handler: (() => void) | null): void {
+  termsPendingHandler = handler;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
@@ -221,6 +230,9 @@ async function parseError(response: Response): Promise<ApiError> {
   if (contentType.includes("json")) {
     try {
       const problem = (await response.json()) as ProblemDetails;
+      if (response.status === 403 && problem.code === TERMS_PENDING_CODE) {
+        termsPendingHandler?.();
+      }
       const message = problem.title ?? `Erro na requisição (${response.status})`;
       return new ApiError(response.status, message, problem, retryAfterSeconds);
     } catch {

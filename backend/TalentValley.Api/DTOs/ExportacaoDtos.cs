@@ -26,6 +26,7 @@ public sealed record ExportacaoAlunoResponse(
     IReadOnlyCollection<AlunoIdiomaResponse> Idiomas,
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
     IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
+    BuscaResponse Busca,
     IReadOnlyCollection<FormacaoResponse> Formacoes,
     IReadOnlyCollection<ExperienciaResponse> Experiencias,
     IReadOnlyCollection<ProjetoResponse> Projetos,

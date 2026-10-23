@@ -13,6 +13,8 @@ namespace TalentValley.Api.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class AuthController(AuthService auth, AccountTokenService accountTokens, IHostEnvironment environment) : ControllerBase
 {
+    private const string AccountUnavailable = "Account access is unavailable.";
+
     [AllowAnonymous]
     [HttpGet("csrf")]
     public ActionResult<CsrfResponse> Csrf([FromServices] IAntiforgery antiforgery) =>
@@ -28,7 +30,7 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
             return Problem(statusCode: result.Status, title: result.Status switch
             {
                 StatusCodes.Status423Locked => "Sign-in is temporarily locked. Try again later.",
-                StatusCodes.Status403Forbidden => "Account access is unavailable.",
+                StatusCodes.Status403Forbidden => AccountUnavailable,
                 _ => "Invalid email or password."
             });
 
@@ -36,15 +38,18 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
         return Ok(result.Response);
     }
 
+    // Stays available while the terms are pending: the frontend reads `termosPendentes` here.
     [Authorize]
+    [AllowPendingTerms]
     [HttpGet("me")]
     public async Task<ActionResult<UsuarioAutenticadoResponse>> Me()
     {
         var user = await auth.GetUserAsync(Guid.Parse(User.FindFirst("sub")!.Value));
-        return user is null ? Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.") : Ok(user);
+        return user is null ? Problem(statusCode: StatusCodes.Status403Forbidden, title: AccountUnavailable) : Ok(user);
     }
 
     [Authorize]
+    [AllowPendingTerms]
     [EnableRateLimiting(RateLimitPolicies.Anonymous)]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
@@ -64,11 +69,20 @@ public sealed class AuthController(AuthService auth, AccountTokenService account
                 return Problem(statusCode: result.Status, title: result.Status switch
                 {
                     StatusCodes.Status423Locked => "Sign-in is temporarily locked. Try again later.",
-                    StatusCodes.Status403Forbidden => "Account access is unavailable.",
+                    StatusCodes.Status403Forbidden => AccountUnavailable,
                     _ => "Authentication is required."
                 });
         }
     }
+
+    // LGPD: records acceptance of the current terms for the signed-in student or recruiter (identity-derived, no body).
+    [Authorize]
+    [AllowPendingTerms]
+    [HttpPost("aceitar-termos")]
+    public async Task<IActionResult> AcceptTerms([FromServices] TermsAcceptanceService terms, CancellationToken cancellationToken) =>
+        await terms.AcceptAsync(Guid.Parse(User.FindFirst("sub")!.Value), User.FindFirst("role")!.Value, cancellationToken)
+            ? NoContent()
+            : Problem(statusCode: StatusCodes.Status403Forbidden, title: AccountUnavailable);
 
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Anonymous)]

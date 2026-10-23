@@ -19,7 +19,7 @@ public sealed class AccountTokenService(
 
     public async Task<string> GenerateActivationLinkAsync(ApplicationUser user)
     {
-        if (user.EmailConfirmed || await users.HasPasswordAsync(user))
+        if (user.EhDemo || user.EmailConfirmed || await users.HasPasswordAsync(user))
             throw new InvalidOperationException("Account is already activated.");
         return BuildLink("/ativar-conta", user.Email!, await GenerateActivationTokenAsync(user));
     }
@@ -31,7 +31,7 @@ public sealed class AccountTokenService(
     public async Task ResendActivationAsync(string email)
     {
         var user = await users.FindByEmailAsync(email.Trim());
-        if (user is null || user.EmailConfirmed || await users.HasPasswordAsync(user)) return;
+        if (user is null || user.EhDemo || user.EmailConfirmed || await users.HasPasswordAsync(user)) return;
         var role = await access.GetRoleAsync(user);
         if (role is null || !await access.IsActiveAsync(user.Id, role)) return;
         try
@@ -47,7 +47,7 @@ public sealed class AccountTokenService(
     public async Task<bool> ActivateAsync(string email, string token, string password)
     {
         var user = await users.FindByEmailAsync(email.Trim());
-        if (user is null || user.EmailConfirmed || await users.HasPasswordAsync(user) ||
+        if (user is null || user.EhDemo || user.EmailConfirmed || await users.HasPasswordAsync(user) ||
             !await users.VerifyUserTokenAsync(user, TokenOptions.DefaultProvider, ActivationPurpose, token)) return false;
 
         // Password and confirmation must succeed together. Identity concurrency stamps reject competing activation attempts.
@@ -62,7 +62,7 @@ public sealed class AccountTokenService(
     public async Task ForgotPasswordAsync(string email)
     {
         var user = await users.FindByEmailAsync(email.Trim());
-        if (user is null || !user.EmailConfirmed || !await users.HasPasswordAsync(user)) return;
+        if (user is null || user.EhDemo || !user.EmailConfirmed || !await users.HasPasswordAsync(user)) return;
         var token = await users.GeneratePasswordResetTokenAsync(user);
         try
         {
@@ -77,7 +77,7 @@ public sealed class AccountTokenService(
     public async Task<bool> ResetPasswordAsync(string email, string token, string password)
     {
         var user = await users.FindByEmailAsync(email.Trim());
-        if (user is null || !user.EmailConfirmed || !await users.HasPasswordAsync(user)) return false;
+        if (user is null || user.EhDemo || !user.EmailConfirmed || !await users.HasPasswordAsync(user)) return false;
         return (await users.ResetPasswordAsync(user, token, password)).Succeeded;
     }
 

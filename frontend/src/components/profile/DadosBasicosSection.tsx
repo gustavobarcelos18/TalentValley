@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Stack, TextField, Typography } from "@mui/material";
+import { CityStateFields } from "@/components/registration/CityStateFields";
 import { getApiErrorMessage } from "@/lib/api";
 import {
-  BRAZILIAN_UFS,
   normalizeWhitespace,
   sanitizeCityName,
   sanitizePersonName,
@@ -67,8 +67,9 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
   const [nome, setNome] = useState(() =>
     sanitizePersonName(dados.nomeCompleto),
   );
+  // The city list depends on the UF, so a saved city without a UF starts empty.
   const [cidade, setCidade] = useState(() =>
-    sanitizeCityName(dados.cidade ?? ""),
+    dados.uf ? sanitizeCityName(dados.cidade ?? "") : "",
   );
   const [uf, setUf] = useState(dados.uf ?? "");
   const [saving, setSaving] = useState(false);
@@ -77,9 +78,9 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
   function validate(): string | null {
     const nameError = validatePersonName(nome);
     if (nameError) return nameError;
-    const cityError = validateCityName(cidade);
-    if (cityError) return cityError;
-    return validateUF(uf);
+    const ufError = validateUF(uf);
+    if (ufError) return ufError;
+    return validateCityName(cidade);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -137,40 +138,14 @@ function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
             "Use letras, espaços, hífen e apóstrofo."
           }
         />
-        <TextField
-          id="dados-cidade"
-          label="Cidade"
-          value={cidade}
-          onChange={(e) => setCidade(sanitizeCityName(e.target.value))}
-          required
-          fullWidth
+        <CityStateFields
+          idPrefix="dados"
+          cidade={cidade}
+          uf={uf}
+          onCidadeChange={setCidade}
+          onUfChange={setUf}
           disabled={saving}
-          slotProps={{
-            htmlInput: { maxLength: 120, onPaste: stripEmojiOnPaste },
-          }}
-          error={Boolean(validateCityName(cidade))}
-          helperText={
-            validateCityName(cidade) ??
-            "Use letras, espaços, hífen e apóstrofo."
-          }
         />
-        <TextField
-          id="dados-uf"
-          select
-          label="UF"
-          value={uf}
-          onChange={(e) => setUf(e.target.value)}
-          required
-          fullWidth
-          disabled={saving}
-          slotProps={{ htmlInput: { "aria-label": "UF" } }}
-        >
-          {BRAZILIAN_UFS.map((opcao) => (
-            <MenuItem key={opcao} value={opcao}>
-              {opcao}
-            </MenuItem>
-          ))}
-        </TextField>
       </Stack>
     </FormDialog>
   );

@@ -10,7 +10,8 @@ namespace TalentValley.Api.Controllers;
 [Route("api/admin/demo")]
 [Authorize(Policy = AppPolicies.RequireAdmin)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class AdminDemoController(DemoService demo) : ControllerBase
+public sealed class AdminDemoController(DemoService demo, DemoSessionService session, IHostEnvironment environment)
+    : ControllerBase
 {
     // Always answers, so the admin screen knows whether to offer the demonstration tools.
     [HttpGet("estado")]
@@ -21,6 +22,28 @@ public sealed class AdminDemoController(DemoService demo) : ControllerBase
 
     [HttpPost("restaurar")]
     public Task<ActionResult<DemoChangeResponse>> Restore() => RunAsync(demo.RestoreAsync);
+
+    // The administrator comes from the authenticated identity; the request only says which role to see the site as.
+    [HttpPost("entrar")]
+    public async Task<ActionResult<LoginResponse>> Enter(EnterDemoRequest request)
+    {
+        var result = await session.EnterAsync(User, request.Papel);
+        switch (result.Status)
+        {
+            case StatusCodes.Status200OK:
+                Response.Cookies.Append(AuthCookie.Name, result.Token!, AuthCookie.Options(environment, result.Expires));
+                return Ok(result.Response);
+            case StatusCodes.Status404NotFound:
+                return NotFound();
+            case StatusCodes.Status409Conflict:
+                return Problem(statusCode: StatusCodes.Status409Conflict,
+                    title: "A conta de demonstração não está disponível. Prepare a demonstração.");
+            case StatusCodes.Status400BadRequest:
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Papel inválido.");
+            default:
+                return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.");
+        }
+    }
 
     // With demonstration mode off the endpoints behave as if they did not exist.
     private async Task<ActionResult<DemoChangeResponse>> RunAsync(Func<Task<DemoChangeResponse>> action)

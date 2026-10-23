@@ -116,3 +116,17 @@ describe("PasswordField", () => {
     expect(input().value).toBe("Abcdefg1");
   });
 });
+
+describe("PasswordField length limit", () => {
+  it("limits the password to 1024 characters by default", () => {
+    renderField();
+
+    expect(input().maxLength).toBe(1024);
+  });
+
+  it("lets a screen override the limit", () => {
+    renderField({ maxLength: 64 });
+
+    expect(input().maxLength).toBe(64);
+  });
+});

@@ -82,7 +82,7 @@ describe("StudentRegistrationWizard", () => {
 
     await user.click(button(CONTINUE));
 
-    expect(alertText()).toBe("Informe uma instituição válido.");
+    expect(alertText()).toBe("Informe uma instituição válida.");
     expect(document.activeElement).toBe(textField(INSTITUTION_FIELD));
     expect(screen.getByText("Informe um curso válido.")).toBeTruthy();
     expect(screen.getByText("Selecione um tipo de formação válido.")).toBeTruthy();

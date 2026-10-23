@@ -15,7 +15,7 @@ import ContactPhoneOutlined from "@mui/icons-material/ContactPhoneOutlined";
 import LanguageOutlined from "@mui/icons-material/LanguageOutlined";
 import LinkedInOutlined from "@mui/icons-material/LinkedIn";
 import { getApiErrorMessage } from "@/lib/api";
-import { formatBrazilianPhone, maskPhoneChange, normalizeEmailInput, normalizeOptionalUrl, normalizePhone, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
+import { formatBrazilianPhone, maskPhoneChange, normalizeEmailInput, normalizeOptionalUrl, normalizePhone, stripEmoji, stripEmojiOnPaste, validateBrazilianPhone, validateEmail, validateHttpUrl, validateTypedLink, withHttpsScheme, OPTIONAL_LINK_HINT } from "@/lib/validation";
 import { updateContato } from "@/lib/student";
 import type { ContatoResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
@@ -168,9 +168,12 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const trimmedEmail = email.trim();
   const emailInvalid = Boolean(trimmedEmail) && Boolean(validateEmail(trimmedEmail));
-  const linkedinInvalid = Boolean(linkedin.trim()) && Boolean(validateHttpUrl(linkedin));
-  const githubInvalid = Boolean(github.trim()) && Boolean(validateHttpUrl(github));
-  const portfolioInvalid = Boolean(portfolio.trim()) && Boolean(validateHttpUrl(portfolio));
+  const linkedinError = validateTypedLink(linkedin, { domain: "linkedin.com", name: "LinkedIn" });
+  const githubError = validateTypedLink(github, { domain: "github.com", name: "GitHub" });
+  const portfolioError = validateTypedLink(portfolio);
+  const linkedinInvalid = Boolean(linkedinError);
+  const githubInvalid = Boolean(githubError);
+  const portfolioInvalid = Boolean(portfolioError);
   const phoneError = validateBrazilianPhone(telefone, false);
 
   async function handleSubmit(event: FormEvent) {
@@ -227,51 +230,54 @@ function ContatoForm({ contato, onClose, onSaved }: ContatoFormProps) {
           label="E-mail profissional"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value.slice(0, 254))}
+          onChange={(e) => setEmail(stripEmoji(e.target.value).slice(0, 254))}
           fullWidth
           disabled={saving}
           error={emailInvalid}
           helperText={emailInvalid ? "Informe um e-mail válido." : "Diferente do e-mail de login. Opcional."}
-          slotProps={{ htmlInput: { maxLength: 254, inputMode: "email", autoCapitalize: "none" } }}
+          slotProps={{ htmlInput: { maxLength: 254, inputMode: "email", autoCapitalize: "none", onPaste: stripEmojiOnPaste } }}
         />
         <TextField
           id="contato-linkedin"
           label="LinkedIn"
           value={linkedin}
-          onChange={(e) => setLinkedin(e.target.value.slice(0, 2048))}
+          onChange={(e) => setLinkedin(stripEmoji(e.target.value).slice(0, 2048))}
+          onBlur={() => setLinkedin(withHttpsScheme)}
           placeholder="https://www.linkedin.com/in/seu-perfil"
           fullWidth
           disabled={saving}
           type="url"
           error={linkedinInvalid}
-          helperText={linkedinInvalid ? "Informe uma URL completa iniciada por http:// ou https://." : "Opcional. Use uma URL HTTP ou HTTPS."}
-          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }}
+          helperText={linkedinError ?? OPTIONAL_LINK_HINT}
+          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url", onPaste: stripEmojiOnPaste } }}
         />
         <TextField
           id="contato-github"
           label="GitHub"
           value={github}
-          onChange={(e) => setGithub(e.target.value.slice(0, 2048))}
+          onChange={(e) => setGithub(stripEmoji(e.target.value).slice(0, 2048))}
+          onBlur={() => setGithub(withHttpsScheme)}
           placeholder="https://github.com/seu-usuario"
           fullWidth
           disabled={saving}
           type="url"
           error={githubInvalid}
-          helperText={githubInvalid ? "Informe uma URL completa iniciada por http:// ou https://." : "Opcional. Use uma URL HTTP ou HTTPS."}
-          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }}
+          helperText={githubError ?? OPTIONAL_LINK_HINT}
+          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url", onPaste: stripEmojiOnPaste } }}
         />
         <TextField
           id="contato-portfolio"
           label="Portfólio"
           value={portfolio}
-          onChange={(e) => setPortfolio(e.target.value.slice(0, 2048))}
+          onChange={(e) => setPortfolio(stripEmoji(e.target.value).slice(0, 2048))}
+          onBlur={() => setPortfolio(withHttpsScheme)}
           placeholder="https://seu-portfolio.com"
           fullWidth
           disabled={saving}
           type="url"
           error={portfolioInvalid}
-          helperText={portfolioInvalid ? "Informe uma URL completa iniciada por http:// ou https://." : "Opcional. Use uma URL HTTP ou HTTPS."}
-          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url" } }}
+          helperText={portfolioError ?? OPTIONAL_LINK_HINT}
+          slotProps={{ htmlInput: { maxLength: 2048, inputMode: "url", onPaste: stripEmojiOnPaste } }}
         />
       </Stack>
     </FormDialog>

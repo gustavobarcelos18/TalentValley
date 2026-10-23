@@ -22,6 +22,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ProjetoCompetencia> ProjetoCompetencias => Set<ProjetoCompetencia>();
     public DbSet<AlunoDisponibilidade> AlunoDisponibilidades => Set<AlunoDisponibilidade>();
     public DbSet<AlunoModalidade> AlunoModalidades => Set<AlunoModalidade>();
+    public DbSet<AlunoAreaInteresse> AlunoAreasInteresse => Set<AlunoAreaInteresse>();
+    public DbSet<AlunoCategoriaCnh> AlunoCategoriasCnh => Set<AlunoCategoriaCnh>();
+    public DbSet<AlunoTipoDeficiencia> AlunoTiposDeficiencia => Set<AlunoTipoDeficiencia>();
     public DbSet<Favorito> Favoritos => Set<Favorito>();
     public DbSet<Auditoria> Auditorias => Set<Auditoria>();
     public DbSet<SolicitacaoCadastro> SolicitacoesCadastro => Set<SolicitacaoCadastro>();

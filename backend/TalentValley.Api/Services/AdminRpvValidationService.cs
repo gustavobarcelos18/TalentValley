@@ -28,7 +28,7 @@ public sealed class AdminRpvValidationService(
         int page,
         CancellationToken cancellationToken)
     {
-        var query = database.Formacoes.AsNoTracking()
+        var query = database.Formacoes.AsNoTracking().ExcludingDemo()
             .Where(x => x.EhRioPombaValley && x.StatusValidacaoRpv == StatusValidacaoRpv.PENDENTE);
         var total = await query.CountAsync(cancellationToken);
         // AtualizadoEm is the existing timestamp for entry/re-entry into review.

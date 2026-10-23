@@ -9,6 +9,9 @@ namespace TalentValley.Api.Services;
 
 public sealed class AuditoriaService(AppDbContext database, IHttpContextAccessor httpContext)
 {
+    // Demonstration setup entries stay recorded but are not listed: the list describes the real platform.
+    private static readonly AcaoAuditoria[] DemoActions = [AcaoAuditoria.DEMO_PREPARADA, AcaoAuditoria.DEMO_RESTAURADA];
+
     // Stage the entry; the caller saves it inside the administrative operation's transaction.
     public async Task RecordAsync(AcaoAuditoria action, string entityType, Guid entityId, string description)
     {
@@ -16,7 +19,14 @@ public sealed class AuditoriaService(AppDbContext database, IHttpContextAccessor
         if (principal?.Identity?.IsAuthenticated != true || !principal.IsInRole(AppRoles.Admin) ||
             !Guid.TryParse(principal.FindFirst("sub")?.Value, out var adminId))
             throw new InvalidOperationException("An authenticated administrator is required for auditing.");
+        await RecordForAdminAsync(adminId, action, entityType, entityId, description);
+    }
 
+    // For the way back from a demonstration session: the caller is a demo account, so the administrator
+    // (already verified against the database by the caller) is named explicitly.
+    public async Task RecordForAdminAsync(Guid adminId, AcaoAuditoria action, string entityType, Guid entityId,
+        string description)
+    {
         var email = await database.Users.Where(x => x.Id == adminId).Select(x => x.Email).SingleAsync();
         database.Auditorias.Add(new Auditoria
         {
@@ -77,7 +87,7 @@ public sealed class AuditoriaService(AppDbContext database, IHttpContextAccessor
 
     public async Task<PaginatedResponse<AuditoriaListItem>> ListAsync(int page)
     {
-        var query = database.Auditorias.AsNoTracking();
+        var query = database.Auditorias.AsNoTracking().Where(x => !DemoActions.Contains(x.Acao));
         var total = await query.CountAsync();
         var items = await query.OrderByDescending(x => x.CriadoEm).ThenBy(x => x.Id)
             .Skip((page - 1) * 20).Take(20)

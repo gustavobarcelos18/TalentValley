@@ -181,6 +181,43 @@ describe("error parsing", () => {
   });
 });
 
+describe("terms pending handler", () => {
+  function pendingResponse() {
+    return jsonResponse({ title: "Aceite os termos.", status: 403, code: "TERMOS_PENDENTES" }, 403);
+  }
+
+  it("is notified only by the 403 that carries the terms-pending code", async () => {
+    const api = await loadApi();
+    const handler = vi.fn();
+    api.setTermsPendingHandler(handler);
+    fetchMock
+      .mockResolvedValueOnce(problemResponse(403, "Forbidden"))
+      .mockResolvedValueOnce(jsonResponse({ title: "Outro", status: 400, code: "TERMOS_PENDENTES" }, 400))
+      .mockResolvedValueOnce(pendingResponse());
+
+    await expect(api.apiGet(ITEMS_PATH)).rejects.toMatchObject({ status: 403 });
+    await expect(api.apiGet(ITEMS_PATH)).rejects.toMatchObject({ status: 400 });
+    expect(handler).not.toHaveBeenCalled();
+
+    await expect(api.apiGet(ITEMS_PATH)).rejects.toMatchObject({ status: 403 });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("also reacts to a blocked mutation, and stops once the handler is cleared", async () => {
+    const api = await loadApi();
+    const handler = vi.fn();
+    api.setTermsPendingHandler(handler);
+    fetchMock.mockResolvedValueOnce(pendingResponse()).mockResolvedValueOnce(pendingResponse());
+
+    await expect(api.apiMutation("POST", ITEMS_PATH, {})).rejects.toMatchObject({ status: 403 });
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    api.setTermsPendingHandler(null);
+    await expect(api.apiGet(ITEMS_PATH)).rejects.toMatchObject({ status: 403 });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("apiMutation", () => {
   it("sends a JSON body with the method and credentials", async () => {
     const api = await loadApi();

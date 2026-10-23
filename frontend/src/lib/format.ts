@@ -35,6 +35,14 @@ export function formatDateInput(iso: string | null): string {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
 }
 
+/** Applies the dd/mm/aaaa mask while the user types, keeping at most 8 digits. */
+export function maskDateInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length > 4) return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  if (digits.length > 2) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return digits;
+}
+
 export function parseDateInput(value: string): string | null {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
   if (!match) return null;

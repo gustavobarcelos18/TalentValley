@@ -51,7 +51,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
 
     public async Task<PaginatedResponse<AlunoListItem>> ListAsync(AdminListQuery request)
     {
-        var query = database.Alunos.AsNoTracking();
+        var query = database.Alunos.AsNoTracking().ExcludingDemo();
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = NameNormalizer.Normalize(request.Search);

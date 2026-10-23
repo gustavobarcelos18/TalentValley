@@ -76,6 +76,12 @@ export async function changePassword(request: ChangePasswordRequest): Promise<vo
   await refreshCsrfToken();
 }
 
+// Records acceptance of the current terms version for the signed-in student or recruiter (204, no body).
+export async function acceptTerms(): Promise<void> {
+  await ensureCsrfToken();
+  await apiMutation<void>("POST", "/api/auth/aceitar-termos");
+}
+
 export async function activateAccount(request: ActivateAccountRequest): Promise<void> {
   await ensureCsrfToken();
   await apiMutation<void>("POST", "/api/auth/activate-account", request);

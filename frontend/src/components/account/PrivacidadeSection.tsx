@@ -6,12 +6,16 @@ import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
 import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import { Reveal } from "@/components/common/Reveal";
 import { getApiErrorMessage } from "@/lib/api";
+import type { NewsletterResponse } from "@/types";
+import { NewsletterToggle } from "./NewsletterToggle";
 
 const FILE_NAME_PREFIX = "talent-valley-meus-dados";
 
 interface PrivacidadeSectionProps {
   // Loads the signed-in person's own data; the backend derives who it is from the session.
   fetchData: () => Promise<unknown>;
+  fetchNewsletter: () => Promise<NewsletterResponse>;
+  saveNewsletter: (aceita: boolean) => Promise<NewsletterResponse>;
 }
 
 function saveJsonFile(data: unknown, fileName: string) {
@@ -27,8 +31,8 @@ function saveJsonFile(data: unknown, fileName: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-// LGPD access/portability: the person downloads a copy of their own data as a JSON file.
-export function PrivacidadeSection({ fetchData }: PrivacidadeSectionProps) {
+// LGPD rights in one place: newsletter consent (give/withdraw) and a copy of the person's own data as JSON.
+export function PrivacidadeSection({ fetchData, fetchNewsletter, saveNewsletter }: PrivacidadeSectionProps) {
   const titleId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +64,7 @@ export function PrivacidadeSection({ fetchData }: PrivacidadeSectionProps) {
               Privacidade
             </Typography>
           </Stack>
+          <NewsletterToggle fetchNewsletter={fetchNewsletter} saveNewsletter={saveNewsletter} />
           <Typography variant="body2" color="text.secondary">
             Baixe uma cópia dos seus dados pessoais em um arquivo JSON. Fotos, currículos e
             certificados não vão no arquivo: ele informa apenas se você os enviou.

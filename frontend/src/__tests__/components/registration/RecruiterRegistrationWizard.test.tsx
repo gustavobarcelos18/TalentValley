@@ -72,7 +72,7 @@ describe("RecruiterRegistrationWizard", () => {
 
     await user.click(button(CONTINUE));
 
-    expect(alertText()).toBe("Informe uma empresa válido.");
+    expect(alertText()).toBe("Informe uma empresa válida.");
     expect(document.activeElement).toBe(textField(COMPANY_FIELD));
     expect(screen.getByText("Informe um cargo válido.")).toBeTruthy();
 
@@ -167,5 +167,36 @@ describe("RecruiterRegistrationWizard", () => {
 
     await screen.findByRole("heading", { name: SUCCESS_TITLE });
     expect(api.recruiter).toHaveBeenCalledWith(expect.objectContaining({ siteEmpresa: null }));
+  });
+});
+
+describe("RecruiterRegistrationWizard company site without scheme", () => {
+  it("completes the site with https:// when leaving the field and sends it complete", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<RecruiterRegistrationWizard />);
+    await goToDetails(user, COMPANY_HEADING);
+    fillCompany("talentvalley.example.com");
+
+    fireEvent.blur(textField(SITE_FIELD));
+    expect(textField(SITE_FIELD).value).toBe("https://talentvalley.example.com");
+
+    await user.click(button(CONTINUE));
+    await acceptTerms(user);
+    await user.click(button(SUBMIT_LABEL));
+
+    await screen.findByRole("heading", { name: SUCCESS_TITLE });
+    expect(api.recruiter).toHaveBeenCalledWith(expect.objectContaining({ siteEmpresa: "https://talentvalley.example.com" }));
+  });
+
+  it("keeps the error summary when the site field is only crossed without changes", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<RecruiterRegistrationWizard />);
+    await goToDetails(user, COMPANY_HEADING);
+
+    await user.click(button(CONTINUE));
+    expect(alertText()).toBe("Informe uma empresa válida.");
+    fireEvent.blur(textField(SITE_FIELD));
+
+    expect(alertText()).toBe("Informe uma empresa válida.");
   });
 });

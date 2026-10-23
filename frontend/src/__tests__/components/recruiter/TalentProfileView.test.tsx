@@ -5,6 +5,7 @@ import { TalentProfileView } from "@/components/recruiter/TalentProfileView";
 import { ApiError, apiDownload } from "@/lib/api";
 import { addFavorite, fetchTalent, removeFavorite } from "@/lib/recruiter";
 import type { TalentExperience, TalentProfile, TalentProject } from "@/types/recruiter";
+import { stubMotionMedia } from "../auth/motion/motionMedia";
 import { makeFormation, makeTalentProfile } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
@@ -209,6 +210,23 @@ describe("TalentProfileView", () => {
       expect(trajectory.getByText("01/02/2018 — 15/12/2021")).toBeTruthy();
       expect(trajectory.getByText("120 horas")).toBeTruthy();
       expect(trajectory.getByText("Verificado pelo Rio Pomba Valley")).toBeTruthy();
+    });
+
+    it("highlights the header with a badge when the main formation is verified", async () => {
+      stubMotionMedia("pointer");
+      await renderProfile({ formacoes: [makeFormation({ rpvVerificado: true })] });
+
+      const header = screen.getByRole("heading", { level: 1, name: NAME }).closest("header") as HTMLElement;
+      expect(within(header).getByTestId("rpv-shine")).toBeTruthy();
+      expect(within(header).getByText("Verificado pelo Rio Pomba Valley")).toBeTruthy();
+    });
+
+    it("does not highlight the header without a verified formation", async () => {
+      stubMotionMedia("pointer");
+      await renderProfile({ formacoes: [makeFormation({ rpvVerificado: false })] });
+
+      expect(screen.queryByTestId("rpv-shine")).toBeNull();
+      expect(screen.queryByText("Verificado pelo Rio Pomba Valley")).toBeNull();
     });
 
     it("marks an in-progress formation as current", async () => {

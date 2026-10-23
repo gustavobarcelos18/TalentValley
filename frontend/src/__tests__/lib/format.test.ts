@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatDateInput, formatUpdatedAt, initialsOf, parseDateInput } from "@/lib/format";
+import { formatDate, formatDateInput, formatUpdatedAt, initialsOf, maskDateInput, parseDateInput } from "@/lib/format";
 
 const ISO_DATE = "2026-03-05";
 const BR_DATE = "05/03/2026";
@@ -39,5 +39,16 @@ describe("date formatting", () => {
     expect(parseDateInput("31/04/2026")).toBeNull();
     expect(parseDateInput(ISO_DATE)).toBeNull();
     expect(parseDateInput("")).toBeNull();
+  });
+
+  it("maskDateInput applies dd/mm/aaaa while typing and keeps at most 8 digits", () => {
+    expect(maskDateInput("")).toBe("");
+    expect(maskDateInput("1")).toBe("1");
+    expect(maskDateInput("123")).toBe("12/3");
+    expect(maskDateInput("12/03")).toBe("12/03");
+    expect(maskDateInput("1203202")).toBe("12/03/202");
+    expect(maskDateInput("12032024")).toBe("12/03/2024");
+    expect(maskDateInput("12/03/2024999")).toBe("12/03/2024");
+    expect(maskDateInput("ab12-03.20x24")).toBe("12/03/2024");
   });
 });

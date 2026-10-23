@@ -19,13 +19,16 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
     public async Task<LoginResult> LoginAsync(LoginRequest request)
     {
         var user = await users.FindByEmailAsync(request.Email.Trim());
-        if (user is null) return new(StatusCodes.Status401Unauthorized);
+        // Demonstration accounts never sign in with a password; the answer is the same as for an unknown account.
+        if (user is null || user.EhDemo) return new(StatusCodes.Status401Unauthorized);
         var result = await signIn.CheckPasswordSignInAsync(user, request.Senha, lockoutOnFailure: true);
         if (result.IsLockedOut) return new(StatusCodes.Status423Locked);
         if (!result.Succeeded) return new(StatusCodes.Status401Unauthorized);
 
         var role = await access.GetRoleAsync(user);
-        if (role is null || !await access.IsActiveAsync(user.Id, role)) return new(StatusCodes.Status403Forbidden);
+        if (role is null) return new(StatusCodes.Status403Forbidden);
+        var state = await access.GetStateAsync(user.Id, role);
+        if (!state.Active) return new(StatusCodes.Status403Forbidden);
 
         user.LoginAnteriorEm = user.UltimoLoginEm;
         user.UltimoLoginEm = DateTimeOffset.UtcNow;
@@ -33,15 +36,16 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
             return new(StatusCodes.Status401Unauthorized);
 
         var (token, expires) = tokens.Create(user, role, await users.GetSecurityStampAsync(user));
-        var destination = role switch
-        {
-            AppRoles.Student => "/meu-perfil",
-            AppRoles.Recruiter => "/recrutador",
-            AppRoles.Admin => "/admin",
-            _ => throw new InvalidOperationException("Unsupported application role.")
-        };
-        return new(StatusCodes.Status200OK, new(Map(user, role), destination), token, expires);
+        return new(StatusCodes.Status200OK, new(Map(user, role, state), DestinationFor(role)), token, expires);
     }
+
+    public static string DestinationFor(string role) => role switch
+    {
+        AppRoles.Student => "/meu-perfil",
+        AppRoles.Recruiter => "/recrutador",
+        AppRoles.Admin => "/admin",
+        _ => throw new InvalidOperationException("Unsupported application role.")
+    };
 
     // Identity rotates the security stamp on a password change, which revokes every JWT issued so far,
     // including the caller's. A fresh token is returned so the current session keeps working.
@@ -49,6 +53,7 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
     {
         var user = await users.FindByIdAsync(id.ToString());
         if (user is null) return new(StatusCodes.Status401Unauthorized);
+        if (user.EhDemo) return new(StatusCodes.Status403Forbidden);
         var role = await access.GetRoleAsync(user);
         if (role is null || !await access.IsActiveAsync(user.Id, role)) return new(StatusCodes.Status403Forbidden);
 
@@ -68,9 +73,9 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
         var user = await users.FindByIdAsync(id.ToString());
         if (user is null) return null;
         var role = await access.GetRoleAsync(user);
-        return role is null ? null : Map(user, role);
+        return role is null ? null : Map(user, role, await access.GetStateAsync(id, role));
     }
 
-    private static UsuarioAutenticadoResponse Map(ApplicationUser user, string role) =>
-        new(user.Id, user.NomeCompleto, user.Email!, role);
+    private static UsuarioAutenticadoResponse Map(ApplicationUser user, string role, AccountState state) =>
+        new(user.Id, user.NomeCompleto, user.Email!, role, AccountAccess.HasPendingTerms(user, role, state), user.EhDemo);
 }

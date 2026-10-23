@@ -6,24 +6,29 @@ namespace TalentValley.Api.Services;
 
 public sealed class TalentFileService(AppDbContext database, IFileStorage storage)
 {
-    public async Task<ProtectedFile?> OpenPhotoAsync(string slug, CancellationToken cancellationToken)
+    public async Task<ProtectedFile?> OpenPhotoAsync(
+        Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var key = await database.Alunos.AsNoTracking().VisibleToRecruiters().Where(x => x.Slug == slug)
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var key = await database.Alunos.AsNoTracking().VisibleToRecruiters(demo).Where(x => x.Slug == slug)
             .Select(x => x.FotoStorageKey).SingleOrDefaultAsync(cancellationToken);
         return await OpenAsync(FileCategory.Photo, key, cancellationToken);
     }
 
-    public async Task<ProtectedFile?> OpenCurriculumAsync(string slug, CancellationToken cancellationToken)
+    public async Task<ProtectedFile?> OpenCurriculumAsync(
+        Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var key = await database.Alunos.AsNoTracking().VisibleToRecruiters().Where(x => x.Slug == slug)
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var key = await database.Alunos.AsNoTracking().VisibleToRecruiters(demo).Where(x => x.Slug == slug)
             .Select(x => x.CurriculoStorageKey).SingleOrDefaultAsync(cancellationToken);
         return await OpenAsync(FileCategory.Curriculum, key, cancellationToken);
     }
 
     public async Task<ProtectedFile?> OpenCertificateAsync(
-        string slug, Guid formationId, CancellationToken cancellationToken)
+        Guid recruiterId, string slug, Guid formationId, CancellationToken cancellationToken)
     {
-        var key = await database.Alunos.AsNoTracking().VisibleToRecruiters().Where(x => x.Slug == slug)
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var key = await database.Alunos.AsNoTracking().VisibleToRecruiters(demo).Where(x => x.Slug == slug)
             .SelectMany(x => x.Formacoes).Where(x => x.Id == formationId)
             .Select(x => x.CertificadoStorageKey).SingleOrDefaultAsync(cancellationToken);
         return await OpenAsync(FileCategory.Certificate, key, cancellationToken);

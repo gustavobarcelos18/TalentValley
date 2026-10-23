@@ -99,6 +99,13 @@ public sealed class DataExportTests : IDisposable
         Assert.StartsWith("Inglês Export", Assert.Single(export.Idiomas).Nome);
         Assert.Equal(TipoDisponibilidade.ESTAGIO, Assert.Single(export.Disponibilidades));
         Assert.Equal(ModalidadeTrabalho.REMOTO, Assert.Single(export.Modalidades));
+        Assert.Equal(StatusBusca.ABERTO_A_PROPOSTAS, export.Busca.Status);
+        Assert.Equal("Objetivo Export", export.Busca.Objetivo);
+        Assert.Equal(AreaInteresse.Redes, Assert.Single(export.Busca.AreasInteresse));
+        Assert.Equal(CategoriaCnh.B, Assert.Single(export.Busca.CategoriasCnh));
+        Assert.True(export.Busca.Pcd.SouPcd);
+        Assert.Equal(TipoDeficiencia.VISUAL, Assert.Single(export.Busca.Pcd.Tipos));
+        Assert.NotNull(export.Busca.Pcd.ConsentimentoEm);
         Assert.True(Assert.Single(export.Formacoes).PossuiCertificado);
         Assert.Equal("Empresa Export", Assert.Single(export.Experiencias).Empresa);
         Assert.Equal(OwnProject, Assert.Single(export.Projetos).Nome);
@@ -117,7 +124,8 @@ public sealed class DataExportTests : IDisposable
     [Fact]
     public async Task Student_without_files_exports_files_as_absent()
     {
-        await factory.CreateUserAsync(StudentEmail);
+        // Never accepted any terms: the export is one of the endpoints that stays available in that state.
+        await factory.CreateUserAsync(StudentEmail, termsVersion: null);
         using var client = await LoggedInAsync(StudentEmail);
 
         var export = (await client.GetFromJsonAsync<ExportacaoAlunoResponse>(
@@ -243,6 +251,14 @@ public sealed class DataExportTests : IDisposable
             db.AlunoIdiomas.Add(new AlunoIdioma { AlunoId = id, IdiomaId = languageId, Nivel = NivelIdioma.AVANCADO });
             db.AlunoDisponibilidades.Add(new AlunoDisponibilidade { AlunoId = id, Tipo = TipoDisponibilidade.ESTAGIO });
             db.AlunoModalidades.Add(new AlunoModalidade { AlunoId = id, Modalidade = ModalidadeTrabalho.REMOTO });
+            aluno.StatusBusca = StatusBusca.ABERTO_A_PROPOSTAS;
+            aluno.StatusBuscaConfirmadoEm = now;
+            aluno.ObjetivoProfissional = "Objetivo Export";
+            aluno.SouPcd = true;
+            aluno.ConsentimentoPcdEm = now;
+            db.AlunoAreasInteresse.Add(new AlunoAreaInteresse { AlunoId = id, Area = AreaInteresse.Redes });
+            db.AlunoCategoriasCnh.Add(new AlunoCategoriaCnh { AlunoId = id, Categoria = CategoriaCnh.B });
+            db.AlunoTiposDeficiencia.Add(new AlunoTipoDeficiencia { AlunoId = id, Tipo = TipoDeficiencia.VISUAL });
             db.Formacoes.Add(new Formacao
             {
                 Id = Guid.NewGuid(), AlunoId = id, Tipo = TipoFormacao.TECNICO, Nome = "Curso Export",

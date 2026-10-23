@@ -11,7 +11,8 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
 
     public async Task<bool> AddAsync(Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var studentId = await database.Alunos.AsNoTracking().VisibleToRecruiters()
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var studentId = await database.Alunos.AsNoTracking().VisibleToRecruiters(demo)
             .Where(x => x.Slug == slug)
             .Select(x => (Guid?)x.UserId)
             .SingleOrDefaultAsync(cancellationToken);
@@ -24,17 +25,19 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
             SELECT {recruiterId}, a."UserId", {DateTimeOffset.UtcNow}
             FROM "Alunos" AS a
             INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
-            WHERE a."UserId" = {studentId.Value} AND a."Ativo" AND u."EmailConfirmed" -- TalentVisibility
+            WHERE a."UserId" = {studentId.Value} AND a."Ativo" AND u."EmailConfirmed"
+                AND u."EhDemo" = {demo} -- TalentVisibility
             ON CONFLICT ("RecrutadorId", "AlunoId") DO NOTHING
             """, cancellationToken);
         if (inserted > 0) return true;
-        return await database.Alunos.AsNoTracking().VisibleToRecruiters()
+        return await database.Alunos.AsNoTracking().VisibleToRecruiters(demo)
             .AnyAsync(x => x.UserId == studentId.Value, cancellationToken);
     }
 
     public async Task<bool> RemoveAsync(Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var studentId = await database.Alunos.AsNoTracking().VisibleToRecruiters()
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var studentId = await database.Alunos.AsNoTracking().VisibleToRecruiters(demo)
             .Where(x => x.Slug == slug)
             .Select(x => (Guid?)x.UserId)
             .SingleOrDefaultAsync(cancellationToken);
@@ -49,22 +52,24 @@ public sealed class FavoriteService(AppDbContext database, TalentDiscoveryServic
     public async Task<PaginatedResponse<FavoriteTalentResponse>> ListAsync(
         Guid recruiterId, int page, CancellationToken cancellationToken)
     {
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
         var visible = database.Favoritos.AsNoTracking()
-            .Where(x => x.RecrutadorId == recruiterId).Select(x => x.Aluno).VisibleToRecruiters();
+            .Where(x => x.RecrutadorId == recruiterId).Select(x => x.Aluno).VisibleToRecruiters(demo);
         var total = await visible.CountAsync(cancellationToken);
-        var items = await LoadRecentAsync(recruiterId, PageSize, (page - 1) * PageSize, cancellationToken);
+        var items = await LoadRecentAsync(recruiterId, demo, PageSize, (page - 1) * PageSize, cancellationToken);
         return new(items, page, PageSize, total, (int)Math.Ceiling(total / (double)PageSize));
     }
 
     public async Task<IReadOnlyCollection<FavoriteTalentResponse>> LoadRecentAsync(
-        Guid recruiterId, int limit, int offset, CancellationToken cancellationToken)
+        Guid recruiterId, bool recruiterIsDemo, int limit, int offset, CancellationToken cancellationToken)
     {
         var ids = await database.Database.SqlQuery<Guid>($"""
             SELECT f."AlunoId" AS "Value"
             FROM "Favoritos" AS f
             INNER JOIN "Alunos" AS a ON a."UserId" = f."AlunoId"
             INNER JOIN "AspNetUsers" AS u ON u."Id" = a."UserId"
-            WHERE f."RecrutadorId" = {recruiterId} AND a."Ativo" AND u."EmailConfirmed" -- TalentVisibility
+            WHERE f."RecrutadorId" = {recruiterId} AND a."Ativo" AND u."EmailConfirmed"
+                AND u."EhDemo" = {recruiterIsDemo} -- TalentVisibility
             ORDER BY f."CriadoEm" DESC, u."NomeBusca" ASC, a."UserId" ASC
             LIMIT {limit} OFFSET {offset}
             """).ToListAsync(cancellationToken);

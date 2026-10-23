@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
 import type { FormEvent } from "react";
@@ -118,5 +118,32 @@ describe("FormDialog", () => {
     const save = screen.getByRole("button", { name: "Salvar" }) as HTMLButtonElement;
     expect(save.disabled).toBe(false);
     expect(save.querySelector(".MuiCircularProgress-root")).toBeNull();
+  });
+
+  it("moves focus to the first invalid field after submitting when focusFirstInvalid is on", async () => {
+    render(
+      <FormDialog title={TITLE} onClose={vi.fn()} onSubmit={vi.fn()} saving={false} error={null} focusFirstInvalid>
+        <input aria-label="ok" aria-invalid="false" />
+        <input aria-label="ruim" aria-invalid="true" />
+        <input aria-label="hidden" aria-invalid="true" aria-hidden="true" />
+      </FormDialog>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("ruim")));
+  });
+
+  it("does not move focus after submitting by default", async () => {
+    render(
+      <FormDialog title={TITLE} onClose={vi.fn()} onSubmit={vi.fn()} saving={false} error={null}>
+        <input aria-label="ruim" aria-invalid="true" />
+      </FormDialog>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    expect(document.activeElement).not.toBe(screen.getByLabelText("ruim"));
   });
 });

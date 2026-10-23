@@ -20,14 +20,15 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         var normalized = Normalize(request);
         await ValidateCompetenciesAsync(normalized.CompetencyIds, cancellationToken);
 
-        var query = ApplyFilters(database.Alunos.AsNoTracking().VisibleToRecruiters(), normalized);
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var query = ApplyFilters(database.Alunos.AsNoTracking().VisibleToRecruiters(demo), normalized);
         var totalItems = await query.CountAsync(cancellationToken);
         var sort = normalized.Sort ?? (normalized.HasFilters ? TalentSort.RELEVANCIA : TalentSort.RECENTES);
         var offset = checked((normalized.Page - 1) * PageSize);
 
         // The complete ordered page selection (including the relevance score) stays in parameterized
         // SQL; only those ten IDs are then enriched through EF.
-        var pageIds = await LoadOrderedPageIdsAsync(normalized, sort, offset, cancellationToken);
+        var pageIds = await LoadOrderedPageIdsAsync(normalized, demo, sort, offset, cancellationToken);
         if (pageIds.Count == 0)
             return new([], normalized.Page, PageSize, totalItems, TotalPages(totalItems));
 
@@ -44,7 +45,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
     public async Task<TalentProfileResponse?> GetBySlugAsync(
         Guid recruiterId, string slug, CancellationToken cancellationToken)
     {
-        var student = await FullQuery().VisibleToRecruiters()
+        var demo = await TalentVisibility.IsDemoRecruiterAsync(database, recruiterId, cancellationToken);
+        var student = await FullQuery().VisibleToRecruiters(demo)
             .SingleOrDefaultAsync(x => x.Slug == slug, cancellationToken);
         if (student is null) return null;
         var favorite = await database.Favoritos.AsNoTracking()
@@ -104,7 +106,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
     }
 
     private async Task<List<Guid>> LoadOrderedPageIdsAsync(
-        NormalizedQuery request, TalentSort sort, int offset, CancellationToken cancellationToken)
+        NormalizedQuery request, bool recruiterIsDemo, TalentSort sort, int offset,
+        CancellationToken cancellationToken)
     {
         var connection = database.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
@@ -112,7 +115,6 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         try
         {
             await using var command = connection.CreateCommand();
-            var conditions = new List<string> { TalentVisibility.Sql };
             var parameterIndex = 0;
 
             string AddParameter(object value)
@@ -127,6 +129,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
 
             string InParameters<T>(IEnumerable<T> values) =>
                 string.Join(", ", values.Select(value => AddParameter(value!)));
+
+            var conditions = new List<string> { TalentVisibility.Sql(AddParameter(recruiterIsDemo)) };
 
             if (request.Name is not null)
                 conditions.Add($"strpos(u.\"NomeBusca\", {AddParameter(request.Name)}) > 0");

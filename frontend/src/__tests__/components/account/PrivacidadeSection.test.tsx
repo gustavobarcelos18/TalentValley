@@ -8,6 +8,17 @@ import { PrivacidadeSection } from "@/components/account/PrivacidadeSection";
 const DOWNLOAD_BUTTON = "Baixar meus dados";
 const FALLBACK_ERROR = "Não foi possível baixar seus dados. Tente novamente.";
 const DATA = { conta: { email: "pessoa@example.test" }, slug: "abc" };
+const NEWSLETTER = { aceita: false, atualizadaEm: null };
+
+function renderSection(fetchData: () => Promise<unknown> = vi.fn()) {
+  return render(
+    <PrivacidadeSection
+      fetchData={fetchData}
+      fetchNewsletter={vi.fn().mockResolvedValue(NEWSLETTER)}
+      saveNewsletter={vi.fn().mockResolvedValue(NEWSLETTER)}
+    />
+  );
+}
 
 const createObjectURL = vi.fn<(blob: Blob) => string>();
 const revokeObjectURL = vi.fn<(url: string) => void>();
@@ -30,16 +41,23 @@ afterEach(() => {
 
 describe("PrivacidadeSection", () => {
   it("explains what is downloaded and offers the download button", () => {
-    render(<PrivacidadeSection fetchData={vi.fn()} />);
+    renderSection();
 
     expect(screen.getByRole("heading", { name: "Privacidade" })).toBeTruthy();
     expect(screen.getByText(/ele informa apenas se você os enviou/)).toBeTruthy();
     expect(screen.getByRole("button", { name: DOWNLOAD_BUTTON })).toBeTruthy();
   });
 
+  it("offers the newsletter switch in the same section", async () => {
+    renderSection();
+
+    const toggle = screen.getByRole("switch", { name: "Receber novidades por e-mail" }) as HTMLInputElement;
+    await waitFor(() => expect(toggle.disabled).toBe(false));
+  });
+
   it("downloads the loaded data as a dated JSON file and releases the temporary link", async () => {
     const fetchData = vi.fn().mockResolvedValue(DATA);
-    render(<PrivacidadeSection fetchData={fetchData} />);
+    renderSection(fetchData);
 
     await userEvent.click(screen.getByRole("button", { name: DOWNLOAD_BUTTON }));
 
@@ -58,7 +76,7 @@ describe("PrivacidadeSection", () => {
   it("disables the button while the data is loading", async () => {
     let resolve: (value: unknown) => void = () => undefined;
     const fetchData = vi.fn().mockReturnValue(new Promise((done) => (resolve = done)));
-    render(<PrivacidadeSection fetchData={fetchData} />);
+    renderSection(fetchData);
 
     await userEvent.click(screen.getByRole("button", { name: DOWNLOAD_BUTTON }));
 
@@ -70,7 +88,7 @@ describe("PrivacidadeSection", () => {
 
   it("shows the fallback message and downloads nothing when the request fails", async () => {
     const fetchData = vi.fn().mockRejectedValue("falha desconhecida");
-    render(<PrivacidadeSection fetchData={fetchData} />);
+    renderSection(fetchData);
 
     await userEvent.click(screen.getByRole("button", { name: DOWNLOAD_BUTTON }));
 
@@ -81,7 +99,7 @@ describe("PrivacidadeSection", () => {
 
   it("shows the server message when the API explains the failure", async () => {
     const fetchData = vi.fn().mockRejectedValue(new ApiError(403, "Account access is unavailable."));
-    render(<PrivacidadeSection fetchData={fetchData} />);
+    renderSection(fetchData);
 
     await userEvent.click(screen.getByRole("button", { name: DOWNLOAD_BUTTON }));
 
@@ -91,7 +109,7 @@ describe("PrivacidadeSection", () => {
 
   it("clears the previous error when the download is tried again", async () => {
     const fetchData = vi.fn().mockRejectedValueOnce(new Error("rede")).mockResolvedValueOnce(DATA);
-    render(<PrivacidadeSection fetchData={fetchData} />);
+    renderSection(fetchData);
 
     await userEvent.click(screen.getByRole("button", { name: DOWNLOAD_BUTTON }));
     await screen.findByRole("alert");

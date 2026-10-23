@@ -25,6 +25,8 @@ builder.Services.AddScoped<SolicitacaoCadastroService>();
 builder.Services.AddScoped<SlugService>();
 builder.Services.AddScoped<AlunoService>();
 builder.Services.AddScoped<DataExportService>();
+builder.Services.AddScoped<NewsletterService>();
+builder.Services.AddScoped<TermsAcceptanceService>();
 builder.Services.AddScoped<StudentFileService>();
 builder.Services.AddSingleton<FileUploadValidator>();
 builder.Services.AddFileStorage(builder.Configuration, builder.Environment);
@@ -40,6 +42,7 @@ builder.Services.AddScoped<RecruiterDashboardService>();
 builder.Services.AddScoped<CatalogSeedService>();
 builder.Services.AddOptions<DemoOptions>().Bind(builder.Configuration.GetSection("Demo"));
 builder.Services.AddScoped<DemoService>();
+builder.Services.AddScoped<DemoSessionService>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
 builder.Services.AddOpenApi();
