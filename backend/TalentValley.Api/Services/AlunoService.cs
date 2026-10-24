@@ -22,6 +22,9 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
     // Business limit: a student picks at most this many behavioral (soft) competencies.
     public const int MaxCompetenciasComportamentais = 6;
 
+    // Reuses the endpoint validation so the service never trusts the caller.
+    private static readonly LattesUrlAttribute LattesValidator = new();
+
     // LGPD self-deletion: the student confirms with the current password; failures count toward lockout.
     public async Task<AlunoSelfDeleteResult> DeleteOwnAsync(Guid userId, string password, CancellationToken cancellationToken)
     {
@@ -106,6 +109,27 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
         aluno.LinkedInUrl = request.LinkedInUrl;
         aluno.GitHubUrl = request.GitHubUrl;
         aluno.PortfolioUrl = request.PortfolioUrl;
+        Touch(aluno);
+        await database.SaveChangesAsync();
+    }
+
+    public async Task UpdateLattesAsync(Guid userId, UpdateLattesRequest request)
+    {
+        var lattesUrl = request.LattesUrl;
+        if (lattesUrl is not null && !LattesValidator.IsValid(lattesUrl))
+            throw new InvalidUrlException("LattesUrl must be a valid lattes.cnpq.br or buscatextual.cnpq.br URL.");
+        var aluno = await LoadAsync(userId);
+        if (aluno.LattesUrl == lattesUrl) return;
+        aluno.LattesUrl = lattesUrl;
+        Touch(aluno);
+        await database.SaveChangesAsync();
+    }
+
+    public async Task DeleteLattesAsync(Guid userId)
+    {
+        var aluno = await LoadAsync(userId);
+        if (aluno.LattesUrl is null) return;
+        aluno.LattesUrl = null;
         Touch(aluno);
         await database.SaveChangesAsync();
     }
@@ -277,6 +301,6 @@ public sealed class AlunoService(AppDbContext database, SignInManager<Applicatio
             .Select(TrajetoriaMapping.Map).ToList(),
         aluno.Projetos.OrderBy(x => x.Ordem)
             .Select(TrajetoriaMapping.Map).ToList(),
-        new(aluno.CurriculoStorageKey is not null, null),
+        new(aluno.CurriculoStorageKey is not null, null, aluno.LattesUrl),
         aluno.AtualizadoEm);
 }

@@ -13,6 +13,12 @@ public static partial class InputValidation
         "SP", "SE", "TO"
     };
 
+    // Decision D5: only the official CNPq Lattes hosts are accepted for LattesUrl.
+    private static readonly HashSet<string> LattesHosts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "lattes.cnpq.br", "buscatextual.cnpq.br"
+    };
+
     [GeneratedRegex(@"^[\p{L}][\p{L}\p{M}'’ -]*$")]
     private static partial Regex PersonOrCityRegex();
 
@@ -41,6 +47,10 @@ public static partial class InputValidation
         !HasControlCharacters(value) && Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && !string.IsNullOrWhiteSpace(uri.Host);
 
+    public static bool IsLattesUrl(string value) =>
+        !value.Any(char.IsWhiteSpace) && IsSafeHttpUrl(value) &&
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) && LattesHosts.Contains(RemoveWwwPrefix(uri.Host));
+
     public static bool IsSafeEmail(string value) =>
         !string.IsNullOrWhiteSpace(value) && !value.Any(char.IsWhiteSpace) &&
         new EmailAddressAttribute().IsValid(value);
@@ -49,6 +59,9 @@ public static partial class InputValidation
         !HasControlCharacters(value) && value.Any(char.IsLetterOrDigit);
 
     public static bool HasControlCharacters(string value) => value.Any(char.IsControl);
+
+    private static string RemoveWwwPrefix(string host) =>
+        host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
 
     public static string NormalizePhone(string? value)
     {
@@ -95,6 +108,17 @@ public sealed class SafeHttpUrlAttribute : ValidationAttribute
 {
     public SafeHttpUrlAttribute() => ErrorMessage = "Informe uma URL começando com http:// ou https://.";
     public override bool IsValid(object? value) => value is null || value is string text && InputValidation.IsSafeHttpUrl(text);
+}
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
+public sealed class LattesUrlAttribute : ValidationAttribute
+{
+    private static readonly NoEmojiAttribute NoEmoji = new();
+
+    public LattesUrlAttribute() =>
+        ErrorMessage = "Informe um link do currículo Lattes (lattes.cnpq.br ou buscatextual.cnpq.br).";
+    public override bool IsValid(object? value) =>
+        value is null || value is string text && InputValidation.IsLattesUrl(text) && NoEmoji.IsValid(text);
 }
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]

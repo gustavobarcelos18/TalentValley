@@ -148,6 +148,38 @@ public sealed class AlunosController(AlunoService alunoService, TrajetoriaServic
         return NoContent();
     }
 
+    [HttpPut("me/curriculo/lattes")]
+    public async Task<IActionResult> UpdateCurriculumLattes(UpdateLattesRequest request)
+    {
+        try
+        {
+            await alunoService.UpdateLattesAsync(CurrentUserId, request);
+            return NoContent();
+        }
+        catch (AlunoProfileNotFoundException)
+        {
+            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.");
+        }
+        catch (InvalidUrlException ex)
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ex.Message);
+        }
+    }
+
+    [HttpDelete("me/curriculo/lattes")]
+    public async Task<IActionResult> DeleteCurriculumLattes()
+    {
+        try
+        {
+            await alunoService.DeleteLattesAsync(CurrentUserId);
+            return NoContent();
+        }
+        catch (AlunoProfileNotFoundException)
+        {
+            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Account access is unavailable.");
+        }
+    }
+
     [HttpPut("me/dados-basicos")]
     public async Task<IActionResult> UpdateDadosBasicos(UpdateDadosBasicosRequest request)
     {

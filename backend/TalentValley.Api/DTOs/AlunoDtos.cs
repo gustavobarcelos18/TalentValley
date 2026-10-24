@@ -28,7 +28,7 @@ public sealed record MeResponse(
 public sealed record DadosBasicosResponse(string NomeCompleto, string? FotoUrl, string? Cidade, string? Uf);
 public sealed record SobreResponse(string? Bio);
 public sealed record ContatoResponse(string? Telefone, string? EmailProfissional, string? LinkedInUrl, string? GitHubUrl, string? PortfolioUrl);
-public sealed record CurriculoResponse(bool PossuiCurriculo, string? NomeArquivo);
+public sealed record CurriculoResponse(bool PossuiCurriculo, string? NomeArquivo, string? LattesUrl);
 
 // "O que eu busco". StatusDesatualizado is computed by the backend (status not confirmed for over 30 days).
 public sealed record BuscaResponse(
@@ -159,4 +159,12 @@ public sealed class UpdateDisponibilidadeRequest : IValidatableObject
         if (values.Distinct().Count() != values.Count)
             yield return new($"{label}: há itens repetidos.", [member]);
     }
+}
+
+// PUT /api/alunos/me/curriculo/lattes (an empty value removes the saved link)
+public sealed class UpdateLattesRequest
+{
+    private string? lattesUrl;
+    [StringLength(2048), LattesUrl]
+    public string? LattesUrl { get => lattesUrl; init => lattesUrl = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
 }
