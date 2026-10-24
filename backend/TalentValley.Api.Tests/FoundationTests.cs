@@ -355,8 +355,8 @@ public sealed class FoundationTests
             Assert.EndsWith("_AddCompetenciaCategoria", migrations[3]);
             Assert.EndsWith("_AddRecrutadorConsentAndNewsletter", migrations[4]);
             Assert.EndsWith("_RemoveNamesFromErasedPersonAudit", migrations[5]);
-            Assert.EndsWith("_AddLattesUrl", migrations[6]);
-            Assert.EndsWith("_AddAlunoBusca", migrations[7]);
+            Assert.EndsWith("_AddAlunoBusca", migrations[6]);
+            Assert.EndsWith("_AddLattesUrl", migrations[7]);
             Assert.True(db.Database.IsNpgsql());
         });
     }

@@ -228,11 +228,12 @@ namespace TalentValley.Api.Data.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
+                    b.Property<bool>("InteresseVagaPcd")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LattesUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
-                    b.Property<bool>("InteresseVagaPcd")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("LinkedInUrl")
                         .HasMaxLength(2048)
