@@ -5,7 +5,9 @@ description: Use when an implementation plan is in progress (a plan.md with stat
 
 # Talent Valley Project Brain
 
-The project brain is a **local-only** folder (`.agents/brain/`, listed in `.gitignore`, never committed or pushed). It keeps what must survive a context reset, so a fresh session can continue a plan without searching.
+The project brain is the `.agents/brain/` folder. It keeps what must survive a context reset, so a fresh session can continue a plan without searching.
+
+**Every plan is versioned on GitHub.** Everything under `.agents/brain/plans/` (each `plan.md` and its `reports/`) is committed and pushed, never left only on one machine. The rest of the brain (`solved/`, drafts, samples) is local-only: it is ignored by `.gitignore` and must never be committed or pushed. Because plans go to GitHub, never write real personal data, secrets, local user paths or sample files in them.
 
 Write brain files in the user's language.
 
@@ -28,7 +30,7 @@ Create folders/files on demand. Never store secrets, tokens, passwords or person
 Must contain, in this order:
 
 1. **Header:** title, `status: em-andamento | concluido`, date, total phases.
-2. **Phase table:** phase, name, branch, status (`pendente | em-execucao | aprovada`), commit hash (when approved).
+2. **Phase table:** phase, name, branch, PR group (only when phases share one pull request; phases of a group show the same branch), status (`pendente | em-execucao | aprovada`), commit hash (when approved). In a PR group, a phase approved before the group's pull request is open is marked `aprovada (PR do grupo pendente)`.
 3. **Per phase** (format from `talent-valley-phased-delivery`: where / what / checks) plus a **Refs** block with direct pointers so the executor goes straight to the solution without searching:
    - source files to open, with the relevant function/section or line range;
    - skills to load (smallest set) and the exact reference files inside them;

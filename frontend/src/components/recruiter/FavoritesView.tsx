@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Container, Pagination, Stack } from "@mui/material";
+import { Alert, Button, Container, Pagination, Stack, Typography } from "@mui/material";
 import FavoriteBorderOutlined from "@mui/icons-material/FavoriteBorderOutlined";
 import { EmptyState } from "@/components/common/EmptyState";
 import { CONTENT_MAX_WIDTH } from "@/components/layout/contentWidth";
@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Reveal } from "@/components/common/Reveal";
 import { getApiErrorMessage } from "@/lib/api";
 import { fetchFavorites } from "@/lib/recruiter";
+import { AVISO_PCD } from "@/lib/talent-busca";
 import type { FavoriteTalent, PaginatedResponse, TalentListItem } from "@/types/recruiter";
 import { TalentCard } from "./TalentCard";
 import { ComparisonBar } from "./ComparisonBar";
@@ -59,6 +60,7 @@ export function FavoritesView() {
   const items = data?.items ?? [];
   return <Container maxWidth={false} sx={{ maxWidth: CONTENT_MAX_WIDTH, py: { xs: 3, md: 4 } }}><Stack spacing={2.5}>
     <PageHeader title="Favoritos" description="Perfis que você salvou para consultar depois." />
+    <Typography variant="caption" color="text.secondary">{AVISO_PCD}</Typography>
     <ComparisonBar selected={selected} message={selectionMessage} />
     {error && <Alert severity="error" action={<Button color="inherit" onClick={retry}>Tentar novamente</Button>}>{error}</Alert>}
     {unavailableMessage && <Alert severity="info" onClose={() => setUnavailableMessage(null)}>{unavailableMessage}</Alert>}

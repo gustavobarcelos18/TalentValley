@@ -53,7 +53,7 @@ function SidebarNavItem({ item, pathname, compact, idPrefix, onNavigate }: Sideb
         justifyContent: compact ? "center" : "flex-start",
         overflow: "hidden",
         color: "text.secondary",
-        "&.Mui-selected, &.Mui-selected:hover": { color: (theme.vars ?? theme).palette.primary.main },
+        "&.Mui-selected, &.Mui-selected:hover": { color: (theme.vars ?? theme).palette.text.primary },
       })}
     >
       {active && (
@@ -68,7 +68,7 @@ function SidebarNavItem({ item, pathname, compact, idPrefix, onNavigate }: Sideb
             bottom: 10,
             width: 3,
             borderRadius: 3,
-            background: "var(--mui-palette-primary-main)",
+            background: "var(--mui-palette-vivid-main)",
           }}
         />
       )}

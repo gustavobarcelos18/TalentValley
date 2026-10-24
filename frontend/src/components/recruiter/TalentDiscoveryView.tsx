@@ -15,9 +15,9 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Reveal } from "@/components/common/Reveal";
 import { CONTENT_MAX_WIDTH } from "@/components/layout/contentWidth";
 import { fetchRecruiterCompetencies, fetchTalents, talentSearchParams } from "@/lib/recruiter";
-import { hasTalentFilters, parseTalentSearch } from "@/lib/recruiter-search";
+import { activeFilterLabels, hasTalentFilters, parseTalentSearch } from "@/lib/recruiter-search";
 import { getApiErrorMessage } from "@/lib/api";
-import { DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, STATUS_FORMACAO_LABELS, TIPO_FORMACAO_LABELS } from "@/lib/labels";
+import { AVISO_PCD } from "@/lib/talent-busca";
 import type { CatalogoCompetenciaResponse } from "@/types/student";
 import type { PaginatedResponse, TalentListItem, TalentSearchFilters, TalentSort } from "@/types/recruiter";
 import { TalentCard } from "./TalentCard";
@@ -73,19 +73,10 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
   const retryResults = () => { setLoading(true); setError(null); setResultVersion((value) => value + 1); };
   const retryCatalog = () => { setCatalogError(null); setCatalogVersion((value) => value + 1); };
   const filterCount = [initial.nome, initial.cidade, initial.uf, initial.competenciaIds.length, initial.tiposFormacao.length,
-    initial.formacaoNome, initial.statusFormacao.length, initial.rpvVerificado, initial.disponibilidades.length, initial.modalidades.length].filter(Boolean).length;
-  const activeLabels = [
-    initial.nome && `Nome: ${initial.nome}`,
-    initial.cidade && `Cidade: ${initial.cidade}`,
-    initial.uf && `UF: ${initial.uf}`,
-    ...initial.competenciaIds.map((id) => competencies.find((item) => item.id === id)?.nome ?? `Competência #${id}`),
-    ...initial.tiposFormacao.map((item) => TIPO_FORMACAO_LABELS[item]),
-    initial.formacaoNome && `Formação: ${initial.formacaoNome}`,
-    ...initial.statusFormacao.map((item) => STATUS_FORMACAO_LABELS[item]),
-    initial.rpvVerificado && "RPV verificado",
-    ...initial.disponibilidades.map((item) => DISPONIBILIDADE_LABELS[item]),
-    ...initial.modalidades.map((item) => MODALIDADE_LABELS[item]),
-  ].filter((label): label is string => Boolean(label));
+    initial.formacaoNome, initial.statusFormacao.length, initial.rpvVerificado, initial.disponibilidades.length, initial.modalidades.length,
+    initial.statusBusca.length, initial.areasInteresse.length, initial.aceitaViajar, initial.aceitaMudarDeCidade, initial.categoriasCnh.length,
+    initial.interesseVagaPcd].filter(Boolean).length;
+  const activeLabels = activeFilterLabels(initial, (id) => competencies.find((item) => item.id === id)?.nome ?? `Competência #${id}`);
   const filters = <TalentFilters value={draft} onChange={setDraft} onApply={apply} onClear={clear} competencies={competencies}
     catalogError={catalogError} retryCatalog={retryCatalog} />;
   function updateFavorite(id: string, favorite: boolean) {
@@ -119,6 +110,7 @@ function TalentDiscoveryState({ initial }: { initial: TalentSearchFilters }) {
 
   return <Container maxWidth={false} sx={{ maxWidth: CONTENT_MAX_WIDTH, py: { xs: 3, md: 4 } }}><Stack spacing={2.5}>
     <PageHeader title="Explorar talentos" description="Encontre perfis profissionais usando os critérios disponíveis." />
+    <Typography variant="caption" color="text.secondary">{AVISO_PCD}</Typography>
     <Card sx={{ p: 1.5 }}><Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }} useFlexGap>
       <Button variant="outlined" startIcon={<FilterListOutlined />} onClick={() => setMobileOpen(true)} sx={{ display: { md: "none" } }}>Filtros{filterCount ? ` (${filterCount})` : ""}</Button>
       <Button variant="outlined" startIcon={<FilterListOutlined />} onClick={() => setDesktopOpen(true)} sx={{ display: { xs: "none", md: "inline-flex" } }}>Filtros{filterCount ? ` (${filterCount})` : ""}</Button>

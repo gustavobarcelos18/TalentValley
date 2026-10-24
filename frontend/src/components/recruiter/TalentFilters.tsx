@@ -21,14 +21,25 @@ import {
   MODALITIES,
 } from "@/lib/recruiter-search";
 import {
+  AREA_INTERESSE_GRUPOS,
+  AREA_INTERESSE_LABELS,
+  AREA_INTERESSE_OPCOES,
+  CATEGORIA_CNH_LABELS,
+  CATEGORIA_CNH_OPCOES,
   DISPONIBILIDADE_LABELS,
   MODALIDADE_LABELS,
+  STATUS_BUSCA_OPCOES,
   STATUS_FORMACAO_LABELS,
   TIPO_FORMACAO_LABELS,
 } from "@/lib/labels";
+import { AVISO_PCD, STATUS_BUSCA_RECRUTADOR_LABELS } from "@/lib/talent-busca";
 import { BRAZILIAN_UFS, stripEmoji, stripEmojiOnPaste, validateSearchTerm, validateUF } from "@/lib/validation";
-import type { CatalogoCompetenciaResponse } from "@/types/student";
+import type { AreaInteresse, CatalogoCompetenciaResponse } from "@/types/student";
 import type { TalentSearchFilters } from "@/types/recruiter";
+
+const AREA_GRUPO = new Map<AreaInteresse, string>(
+  AREA_INTERESSE_GRUPOS.flatMap((grupo) => grupo.areas.map((area) => [area, grupo.titulo] as const)),
+);
 
 interface TalentFiltersProps {
   value: TalentSearchFilters;
@@ -58,7 +69,7 @@ export function TalentFilters({
   }
   function toggle<T extends string>(
     key:
-      "tiposFormacao" | "statusFormacao" | "disponibilidades" | "modalidades",
+      "tiposFormacao" | "statusFormacao" | "disponibilidades" | "modalidades" | "statusBusca" | "categoriasCnh",
     item: T,
   ) {
     const current = value[key] as string[];
@@ -258,6 +269,84 @@ export function TalentFilters({
           />
         ))}
       </CheckSection>
+      <CheckSection label="Situação de busca">
+        {STATUS_BUSCA_OPCOES.map((item) => (
+          <FormControlLabel
+            key={item}
+            control={
+              <Checkbox
+                size="small"
+                checked={value.statusBusca.includes(item)}
+                onChange={() => toggle("statusBusca", item)}
+              />
+            }
+            label={STATUS_BUSCA_RECRUTADOR_LABELS[item]}
+          />
+        ))}
+      </CheckSection>
+      <Autocomplete
+        multiple
+        options={AREA_INTERESSE_OPCOES}
+        groupBy={(option) => AREA_GRUPO.get(option) ?? ""}
+        value={value.areasInteresse}
+        getOptionLabel={(option) => AREA_INTERESSE_LABELS[option]}
+        onChange={(_, selected) => set("areasInteresse", selected)}
+        renderInput={(params) => (
+          <TextField {...params} label="Áreas de interesse" placeholder="Selecione" />
+        )}
+      />
+      <CheckSection label="Mobilidade">
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={value.aceitaViajar}
+              onChange={(event) => set("aceitaViajar", event.target.checked)}
+            />
+          }
+          label="Aceita viajar a trabalho"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={value.aceitaMudarDeCidade}
+              onChange={(event) => set("aceitaMudarDeCidade", event.target.checked)}
+            />
+          }
+          label="Aceita mudar de cidade"
+        />
+      </CheckSection>
+      <CheckSection label="Categoria de CNH (informada pelo aluno)">
+        {CATEGORIA_CNH_OPCOES.map((item) => (
+          <FormControlLabel
+            key={item}
+            control={
+              <Checkbox
+                size="small"
+                checked={value.categoriasCnh.includes(item)}
+                onChange={() => toggle("categoriasCnh", item)}
+              />
+            }
+            label={CATEGORIA_CNH_LABELS[item]}
+          />
+        ))}
+      </CheckSection>
+      <Box>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={value.interesseVagaPcd}
+              onChange={(event) => set("interesseVagaPcd", event.target.checked)}
+              slotProps={{ input: { "aria-describedby": "filtro-pcd-aviso" } }}
+            />
+          }
+          label="Interessado em vagas para PCD"
+        />
+        <Typography id="filtro-pcd-aviso" variant="caption" color="text.secondary" sx={{ display: "block" }}>
+          {AVISO_PCD}
+        </Typography>
+      </Box>
       <Stack
         direction="row"
         spacing={1}

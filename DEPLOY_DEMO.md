@@ -123,6 +123,21 @@ Email behavior depends on the environment:
 
 Account activation and password reset require working email delivery in production. When Brevo is not fully configured, those emails are not sent. The account still persists, and the admin UI reports the delivery failure and offers "Reenviar ativação". Once the bootstrap account exists, `BootstrapAdmin__Enabled` can be turned off without affecting it.
 
+## Demonstration mode (admin views as student or recruiter)
+
+Meant for presentations (for example to investors): the admin switches with one click to a **fictitious** student or recruiter account, so no real data is shown. It is **off by default**, also in production.
+
+1. In Render, set `Demo__Enabled=true` and restart the service. Set it back to `false` (or remove it) after the presentation. While it is off, preparing, restoring and switching (`/api/admin/demo/preparar`, `/restaurar`, `/entrar`) answer `404`, the state route still answers (`habilitado: false`), "Voltar ao Admin" still works for a session already open, and the "Demonstração" card does not appear in `/admin`.
+2. Sign in as admin, open `/admin` and use the **Demonstração** card:
+   - **Preparar demonstração** (shown while the demonstration is not prepared) creates what is missing: 6 fictitious students (one with a full profile) and 1 fictitious recruiter, all with `@demo.invalid` emails. If a real account already uses one of those emails, nothing is changed and the card reports the conflict.
+   - Once prepared, the card shows **Ver como Aluno** and **Ver como Recrutador**, which switch the session; the banner **Voltar ao Admin** goes back.
+   - **Restaurar demonstração** (also shown once prepared) deletes **only** the fictitious accounts and creates them again, undoing anything done while viewing as them. Real accounts are never touched. An open demonstration session ends and goes back to the login page.
+3. Fictitious accounts **never have a password**: they cannot sign in through the login form, and password reset, activation and email links are blocked for them. They are only reachable through the switch of a signed-in admin.
+4. The demonstration session keeps the admin's original expiry (it never extends the session time, 8 hours by default). Turning the flag off during a session does not end it; "Voltar ao Admin" still works.
+5. Real recruiters never see fictitious students, and the admin lists, dashboard numbers and RPV validations do not count them. The audit screen shows `DEMO_ENTROU` and `DEMO_VOLTOU`; preparing and restoring are audited but hidden from that screen.
+
+The terms of use and privacy notice do not change: no real user data is added.
+
 ## Migrating data from the Railway deployment
 
 The previous deployment ran on Railway with SQLite and a `/data` volume. The one-off tool in `backend/tools/SqliteToPostgresMigrator` copies the database and the private files into Neon and R2; see its `README.md` for the exact steps. Summary:

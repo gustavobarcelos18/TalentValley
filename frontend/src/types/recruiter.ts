@@ -1,8 +1,13 @@
 import type {
+  AreaInteresse,
+  CargaHorariaSemanal,
+  CategoriaCnh,
   ModalidadeTrabalho,
   NivelIdioma,
+  StatusBusca,
   StatusFormacao,
   TipoCompetencia,
+  TipoDeficiencia,
   TipoDisponibilidade,
   TipoExperiencia,
   TipoFormacao,
@@ -31,6 +36,30 @@ export interface TalentFormationPreview {
   rpvVerificado: boolean;
 }
 
+// PCD information; the backend only sends it (pcd !== null) when the student gave consent.
+export interface TalentPcd {
+  souPcd: boolean;
+  interesseVagaPcd: boolean;
+  tipos: TipoDeficiencia[];
+}
+
+// "O que eu busco" as recruiters and admins see it. statusDesatualizado is computed by the backend.
+export interface TalentBusca {
+  status: StatusBusca | null;
+  statusConfirmadoEm: string | null;
+  statusDesatualizado: boolean;
+  objetivo: string | null;
+  areasInteresse: AreaInteresse[];
+  disponivelImediatamente: boolean;
+  disponivelAPartirDe: string | null;
+  cargaHoraria: CargaHorariaSemanal | null;
+  aceitaViajar: boolean;
+  aceitaMudarDeCidade: boolean;
+  categoriasCnh: CategoriaCnh[];
+  possuiVeiculoProprio: boolean;
+  pcd: TalentPcd | null;
+}
+
 export interface TalentListItem {
   id: string;
   slug: string;
@@ -43,8 +72,10 @@ export interface TalentListItem {
   formacaoPrincipal: TalentFormationPreview | null;
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
+  busca: TalentBusca;
   favorito: boolean;
   atualizadoEm: string;
+  rpvVerificado: boolean;
 }
 
 export interface TalentContact {
@@ -113,6 +144,7 @@ export interface TalentProfile {
   idiomas: TalentLanguage[];
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
+  busca: TalentBusca;
   formacoes: TalentFormation[];
   experiencias: TalentExperience[];
   projetos: TalentProject[];
@@ -130,6 +162,8 @@ export interface TalentCommon {
   competencias: TalentCompetency[];
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
+  areasInteresse: AreaInteresse[];
+  categoriasCnh: CategoriaCnh[];
 }
 
 export interface TalentComparison {
@@ -160,5 +194,11 @@ export interface TalentSearchFilters {
   rpvVerificado: boolean;
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
+  statusBusca: StatusBusca[];
+  areasInteresse: AreaInteresse[];
+  aceitaViajar: boolean;
+  aceitaMudarDeCidade: boolean;
+  categoriasCnh: CategoriaCnh[];
+  interesseVagaPcd: boolean;
   ordenacao: TalentSort | null;
 }

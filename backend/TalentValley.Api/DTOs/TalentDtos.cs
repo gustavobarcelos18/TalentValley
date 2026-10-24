@@ -24,6 +24,12 @@ public sealed class TalentSearchQuery : IValidatableObject
     public bool? RpvVerificado { get; init; }
     public TipoDisponibilidade[] Disponibilidades { get; init; } = [];
     public ModalidadeTrabalho[] Modalidades { get; init; } = [];
+    public StatusBusca[] StatusBusca { get; init; } = [];
+    public AreaInteresse[] AreasInteresse { get; init; } = [];
+    public bool? AceitaViajar { get; init; }
+    public bool? AceitaMudarDeCidade { get; init; }
+    public CategoriaCnh[] CategoriasCnh { get; init; } = [];
+    public bool? InteresseVagaPcd { get; init; }
     public TalentSort? Ordenacao { get; init; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -38,11 +44,38 @@ public sealed class TalentSearchQuery : IValidatableObject
             yield return new ValidationResult("Invalid availability.", [nameof(Disponibilidades)]);
         if (Modalidades.Any(x => !Enum.IsDefined(x)))
             yield return new ValidationResult("Invalid modality.", [nameof(Modalidades)]);
+        if (StatusBusca.Any(x => !Enum.IsDefined(x)))
+            yield return new ValidationResult("Invalid search status.", [nameof(StatusBusca)]);
+        if (AreasInteresse.Any(x => !Enum.IsDefined(x)))
+            yield return new ValidationResult("Invalid area of interest.", [nameof(AreasInteresse)]);
+        if (CategoriasCnh.Any(x => !Enum.IsDefined(x)))
+            yield return new ValidationResult("Invalid license category.", [nameof(CategoriasCnh)]);
     }
 }
 
 public sealed record TalentCompetencyResponse(int Id, string Nome, TipoCompetencia Tipo);
 public sealed record TalentFormationPreview(TipoFormacao Tipo, string Nome, string Instituicao, bool RpvVerificado);
+
+// "O que eu busco" as recruiters see it. Pcd is null unless the student gave the PCD sharing consent.
+public sealed record TalentBuscaResponse(
+    StatusBusca? Status,
+    DateTimeOffset? StatusConfirmadoEm,
+    bool StatusDesatualizado,
+    string? Objetivo,
+    IReadOnlyCollection<AreaInteresse> AreasInteresse,
+    bool DisponivelImediatamente,
+    DateOnly? DisponivelAPartirDe,
+    CargaHorariaSemanal? CargaHoraria,
+    bool AceitaViajar,
+    bool AceitaMudarDeCidade,
+    IReadOnlyCollection<CategoriaCnh> CategoriasCnh,
+    bool PossuiVeiculoProprio,
+    TalentPcdResponse? Pcd);
+
+public sealed record TalentPcdResponse(
+    bool SouPcd,
+    bool InteresseVagaPcd,
+    IReadOnlyCollection<TipoDeficiencia> Tipos);
 
 public sealed record TalentListItem(
     Guid Id,
@@ -56,8 +89,10 @@ public sealed record TalentListItem(
     TalentFormationPreview? FormacaoPrincipal,
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
     IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
+    TalentBuscaResponse Busca,
     bool Favorito,
-    DateTimeOffset AtualizadoEm);
+    DateTimeOffset AtualizadoEm,
+    bool RpvVerificado);
 
 public sealed record TalentContactResponse(
     string? Telefone,
@@ -119,6 +154,7 @@ public sealed record TalentProfileResponse(
     IReadOnlyCollection<TalentLanguageResponse> Idiomas,
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
     IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
+    TalentBuscaResponse Busca,
     IReadOnlyCollection<TalentFormationResponse> Formacoes,
     IReadOnlyCollection<TalentExperienceResponse> Experiencias,
     IReadOnlyCollection<TalentProjectResponse> Projetos,
@@ -131,7 +167,9 @@ public sealed record FavoriteTalentResponse(DateTimeOffset FavoritadoEm, TalentL
 public sealed record TalentCommonResponse(
     IReadOnlyCollection<TalentCompetencyResponse> Competencias,
     IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
-    IReadOnlyCollection<ModalidadeTrabalho> Modalidades);
+    IReadOnlyCollection<ModalidadeTrabalho> Modalidades,
+    IReadOnlyCollection<AreaInteresse> AreasInteresse,
+    IReadOnlyCollection<CategoriaCnh> CategoriasCnh);
 
 public sealed record TalentComparisonResponse(
     TalentProfileResponse TalentoA,

@@ -1,6 +1,26 @@
 import { vi } from "vitest";
 import type { SectionProps } from "@/components/profile/sectionProps";
-import type { MeResponse } from "@/types/student";
+import type { BuscaResponse, MeResponse } from "@/types/student";
+
+/** "O que eu busco" with nothing informed, as an existing student has before filling it. */
+export function makeBusca(overrides: Partial<BuscaResponse> = {}): BuscaResponse {
+  return {
+    status: null,
+    statusConfirmadoEm: null,
+    statusDesatualizado: false,
+    objetivo: null,
+    areasInteresse: [],
+    disponivelImediatamente: false,
+    disponivelAPartirDe: null,
+    cargaHoraria: null,
+    aceitaViajar: false,
+    aceitaMudarDeCidade: false,
+    categoriasCnh: [],
+    possuiVeiculoProprio: false,
+    pcd: { souPcd: false, interesseVagaPcd: false, tipos: [], consentimentoEm: null },
+    ...overrides,
+  };
+}
 
 /** Fully populated profile; pass `overrides` for the fields a test cares about. */
 export function makeProfile(overrides: Partial<MeResponse> = {}): MeResponse {
@@ -20,6 +40,7 @@ export function makeProfile(overrides: Partial<MeResponse> = {}): MeResponse {
     idiomas: [{ idiomaId: 1, nome: "Inglês", nivel: "INTERMEDIARIO" }],
     disponibilidades: ["ESTAGIO"],
     modalidades: ["REMOTO"],
+    busca: makeBusca(),
     formacoes: [],
     experiencias: [],
     projetos: [],

@@ -20,6 +20,7 @@ import PhotoCameraOutlined from "@mui/icons-material/PhotoCameraOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import { Reveal } from "@/components/common/Reveal";
 import { brandWash } from "@/components/common/surfaceGradient";
+import { RpvShine, hasVerifiedFormation, rpvHighlightSx } from "@/components/recruiter/RpvHighlight";
 import { useProtectedFile } from "@/hooks/useProtectedFile";
 import { getApiErrorMessage } from "@/lib/api";
 import { formatUpdatedAt, initialsOf } from "@/lib/format";
@@ -143,13 +144,15 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
   }
 
   const busy = uploading || removing;
+  const rpvVerified = hasVerifiedFormation(profile.formacoes);
 
   return (
     <Reveal>
     <Card
       component="section"
-      sx={(theme) => ({ p: { xs: 2.5, sm: 3.5 }, backgroundImage: brandWash(theme) })}
+      sx={(theme) => ({ p: { xs: 2.5, sm: 3.5 }, backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}
     >
+      {rpvVerified && <RpvShine />}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={{ xs: 2, sm: 3 }}

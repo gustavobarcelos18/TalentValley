@@ -1,5 +1,5 @@
 import { apiGet, apiMutation, ensureCsrfToken } from "@/lib/api";
-import type { AdminDashboard, AdminRecruiter, AdminRecruiterCreated, AdminRecruiterDetail, AdminStudentCreated, AdminStudentDetail, AdminStudentListItem, AdminRegistrationRequest, AdminRegistrationRequestDetail, AuditItem, PaginatedResponse, RegistrationApprovalResult, RegistrationRequestStatus, RegistrationRequestType, RpvValidation, RpvValidationDetail } from "@/types/admin";
+import type { AdminDashboard, AdminRecruiter, AdminRecruiterCreated, AdminRecruiterDetail, AdminStudentCreated, AdminStudentDetail, AdminStudentListItem, AdminRegistrationRequest, AdminRegistrationRequestDetail, AuditItem, DemoChange, DemoState, PaginatedResponse, RegistrationApprovalResult, RegistrationRequestStatus, RegistrationRequestType, RpvValidation, RpvValidationDetail } from "@/types/admin";
 import type { RecruiterRegistrationRequest, RegistrationCreated, StudentRegistrationRequest } from "@/types/registration";
 
 const query = (values: Record<string, string | number | undefined>) => { const p = new URLSearchParams(); Object.entries(values).forEach(([k, v]) => { if (v !== undefined && v !== "" && v !== 1) p.set(k, String(v)); }); const result = p.toString(); return result ? `?${result}` : ""; };
@@ -23,6 +23,9 @@ export const adminApi = {
   validation: (id: string) => apiGet<RpvValidationDetail>(`/api/admin/validacoes-rpv/${id}`),
   validationAction: (id: string, action: "aprovar" | "rejeitar" | "remover-validacao") => apiMutation<void>("POST", `/api/admin/validacoes-rpv/${id}/${action}`),
   audit: (page: number) => apiGet<PaginatedResponse<AuditItem>>(`/api/admin/auditoria?page=${page}`),
+  demoState: () => apiGet<DemoState>("/api/admin/demo/estado"),
+  prepareDemo: () => apiMutation<DemoChange>("POST", "/api/admin/demo/preparar"),
+  restoreDemo: () => apiMutation<DemoChange>("POST", "/api/admin/demo/restaurar"),
 };
 
 export const registrationApi = {

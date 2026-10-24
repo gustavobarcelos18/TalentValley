@@ -5,7 +5,7 @@ import { TalentComparisonView } from "@/components/recruiter/TalentComparisonVie
 import { ApiError, apiDownload } from "@/lib/api";
 import { fetchTalentComparison } from "@/lib/recruiter";
 import type { TalentComparison } from "@/types/recruiter";
-import { makeTalentProfile } from "./recruiterFixtures";
+import { makeTalentBusca, makeTalentProfile } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
 vi.setConfig({ testTimeout: 15_000 });
@@ -42,7 +42,7 @@ const ANGULAR = { id: 3, nome: "Angular", tipo: "TECNICA" as const };
 function makeComparison(overrides: Partial<TalentComparison> = {}): TalentComparison {
   return {
     talentoA: makeTalentProfile({ slug: SLUG_A, nomeCompleto: "Ana Lima", competencias: [REACT, VUE] }),
-    emComum: { competencias: [REACT], disponibilidades: ["ESTAGIO"], modalidades: ["REMOTO"] },
+    emComum: { competencias: [REACT], disponibilidades: ["ESTAGIO"], modalidades: ["REMOTO"], areasInteresse: ["DevOps"], categoriasCnh: ["B"] },
     talentoB: makeTalentProfile({ id: "talento-2", slug: SLUG_B, nomeCompleto: "Bruno Reis", competencias: [REACT, ANGULAR] }),
     ...overrides,
   };
@@ -214,16 +214,18 @@ describe("TalentComparisonView", () => {
       expect(sectionOf(common, "Competências gerais").getByText("React")).toBeTruthy();
       expect(sectionOf(common, "Disponibilidade").getByText("Estágio")).toBeTruthy();
       expect(sectionOf(common, "Modalidades").getByText("Remoto")).toBeTruthy();
+      expect(sectionOf(common, "Áreas de interesse").getByText("DevOps")).toBeTruthy();
+      expect(sectionOf(common, "Categorias de CNH").getByText("B")).toBeTruthy();
     });
 
     it("shows the empty message for each empty common category", async () => {
-      await renderComparison(makeComparison({ emComum: { competencias: [], disponibilidades: [], modalidades: [] } }));
+      await renderComparison(makeComparison({ emComum: { competencias: [], disponibilidades: [], modalidades: [], areasInteresse: [], categoriasCnh: [] } }));
 
       const common = within(screen.getByRole("heading", { name: "Em comum" }).closest("section") as HTMLElement);
-      expect(common.getAllByText(NO_COMMON)).toHaveLength(3);
+      expect(common.getAllByText(NO_COMMON)).toHaveLength(5);
     });
 
-    it("lists languages, availability and modalities of each talent", async () => {
+    it("lists languages and what each talent is looking for", async () => {
       await renderComparison(
         makeComparison({
           talentoA: makeTalentProfile({
@@ -237,12 +239,35 @@ describe("TalentComparisonView", () => {
       );
 
       expect(sectionOf(side(0), "Idiomas").getByText("Inglês · Fluente")).toBeTruthy();
-      expect(sectionOf(side(0), "Disponibilidade").getByText("CLT")).toBeTruthy();
-      expect(sectionOf(side(0), "Disponibilidade").getByText("PJ")).toBeTruthy();
-      expect(sectionOf(side(0), "Modalidades").getByText("Presencial")).toBeTruthy();
-      for (const title of ["Idiomas", "Disponibilidade", "Modalidades"]) {
-        expect(sectionOf(side(1), title).getByText(NO_INFO)).toBeTruthy();
-      }
+      expect(sectionOf(side(0), "O que busca").getByText("CLT")).toBeTruthy();
+      expect(sectionOf(side(0), "O que busca").getByText("PJ")).toBeTruthy();
+      expect(sectionOf(side(0), "O que busca").getByText("Presencial")).toBeTruthy();
+      expect(sectionOf(side(1), "Idiomas").getByText(NO_INFO)).toBeTruthy();
+      expect(sectionOf(side(1), "O que busca").getByText("Este talento ainda não informou o que busca.")).toBeTruthy();
+    });
+
+    it("shows the search status, objective and PCD labels of each talent without ranking", async () => {
+      await renderComparison(
+        makeComparison({
+          talentoA: makeTalentProfile({
+            nomeCompleto: "Ana Lima",
+            busca: makeTalentBusca({
+              status: "BUSCANDO_ATIVAMENTE",
+              objetivo: "Primeiro estágio em dados",
+              pcd: { souPcd: true, interesseVagaPcd: false, tipos: ["VISUAL"] },
+            }),
+          }),
+          talentoB: makeTalentProfile({ nomeCompleto: "Bruno Reis", busca: makeTalentBusca({ status: "NAO_BUSCANDO", statusDesatualizado: true }) }),
+        }),
+      );
+
+      const a = sectionOf(side(0), "O que busca");
+      expect(a.getByText("Buscando ativamente")).toBeTruthy();
+      expect(a.getByText("Primeiro estágio em dados")).toBeTruthy();
+      expect(a.getByText("Pessoa com deficiência · visual")).toBeTruthy();
+      const b = sectionOf(side(1), "O que busca");
+      expect(b.getByText("Não está buscando agora")).toBeTruthy();
+      expect(b.getByText("Status não confirmado há mais de 30 dias")).toBeTruthy();
     });
 
     it("summarizes formations, experiences and projects", async () => {

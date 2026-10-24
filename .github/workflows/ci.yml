@@ -70,7 +70,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Instalar dependências do frontend (npm ci)
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Auditoria de dependências
         run: npm audit --omit=dev --audit-level=high

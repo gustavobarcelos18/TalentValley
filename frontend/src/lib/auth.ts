@@ -4,6 +4,7 @@ import {
   ensureCsrfToken,
   refreshCsrfToken,
 } from "./api";
+import { clearProtectedFiles } from "./protectedFileCache";
 import type {
   ForgotPasswordResponse,
   LoginResponse,
@@ -30,6 +31,7 @@ export interface ResetPasswordRequest {
 export async function login(request: LoginRequest): Promise<LoginResponse> {
   await ensureCsrfToken();
   const response = await apiMutation<LoginResponse>("POST", "/api/auth/login", request);
+  clearProtectedFiles();
   // The antiforgery pair must be re-generated now that the user is authenticated.
   await refreshCsrfToken();
   return response;
@@ -38,8 +40,30 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
 export async function logout(): Promise<void> {
   await ensureCsrfToken();
   await apiMutation<void>("POST", "/api/auth/logout");
+  clearProtectedFiles();
   // After logout the browser is anonymous again; rebind the antiforgery pair.
   await refreshCsrfToken();
+}
+
+export type DemoRole = "ALUNO" | "RECRUTADOR";
+
+// The administrator views the site as the fictitious student or recruiter account.
+export async function enterDemo(papel: DemoRole): Promise<LoginResponse> {
+  await ensureCsrfToken();
+  const response = await apiMutation<LoginResponse>("POST", "/api/admin/demo/entrar", { papel });
+  clearProtectedFiles();
+  // The session cookie changed; rebind the antiforgery pair like after login.
+  await refreshCsrfToken();
+  return response;
+}
+
+// Leaves the demonstration account and signs the administrator back in.
+export async function leaveDemo(): Promise<LoginResponse> {
+  await ensureCsrfToken();
+  const response = await apiMutation<LoginResponse>("POST", "/api/demo/voltar");
+  clearProtectedFiles();
+  await refreshCsrfToken();
+  return response;
 }
 
 export async function fetchCurrentUser(): Promise<UsuarioAutenticado> {

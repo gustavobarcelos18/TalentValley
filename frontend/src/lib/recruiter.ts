@@ -28,6 +28,12 @@ export function talentSearchParams(filters: TalentSearchFilters): URLSearchParam
   if (filters.rpvVerificado) params.set("rpvVerificado", "true");
   appendAll(params, "disponibilidades", filters.disponibilidades);
   appendAll(params, "modalidades", filters.modalidades);
+  appendAll(params, "statusBusca", filters.statusBusca);
+  appendAll(params, "areasInteresse", filters.areasInteresse);
+  if (filters.aceitaViajar) params.set("aceitaViajar", "true");
+  if (filters.aceitaMudarDeCidade) params.set("aceitaMudarDeCidade", "true");
+  appendAll(params, "categoriasCnh", filters.categoriasCnh);
+  if (filters.interesseVagaPcd) params.set("interesseVagaPcd", "true");
   if (filters.ordenacao) params.set("ordenacao", filters.ordenacao.toLowerCase());
   return params;
 }

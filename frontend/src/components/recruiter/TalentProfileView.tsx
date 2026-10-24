@@ -27,10 +27,10 @@ import { fetchTalent } from "@/lib/recruiter";
 import { formatDate, formatUpdatedAt } from "@/lib/format";
 import { normalizePhone, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
 import {
-  DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, NIVEL_IDIOMA_LABELS, STATUS_FORMACAO_LABELS,
-  TIPO_EXPERIENCIA_LABELS, TIPO_FORMACAO_LABELS,
+  NIVEL_IDIOMA_LABELS, STATUS_FORMACAO_LABELS, TIPO_EXPERIENCIA_LABELS, TIPO_FORMACAO_LABELS,
 } from "@/lib/labels";
 import type { TalentExperience, TalentFormation, TalentProfile } from "@/types/recruiter";
+import { BuscaDetails } from "./TalentBusca";
 import { ProtectedFileButton } from "./ProtectedFileButton";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { FavoriteButton } from "./FavoriteButton";
@@ -73,10 +73,7 @@ export function TalentProfileView({ slug }: { slug: string }) {
     </Stack> : <Empty />}</Section>
     <Section title="Idiomas" index={5}>{profile.idiomas.length ? <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{profile.idiomas.map((item) => <Chip key={item.idiomaId} label={`${item.nome} · ${NIVEL_IDIOMA_LABELS[item.nivel]}`} variant="outlined" />)}</Stack> : <Empty />}</Section>
     <ContactSection profile={profile} />
-    <Section title="Disponibilidade e modalidades" index={7}><Stack spacing={1.5}>
-      <Box><Typography variant="subtitle2" gutterBottom>Disponibilidade</Typography>{profile.disponibilidades.length ? <Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>{profile.disponibilidades.map((item) => <Chip key={item} color="primary" variant="outlined" label={DISPONIBILIDADE_LABELS[item]} />)}</Stack> : <Empty />}</Box>
-      <Box><Typography variant="subtitle2" gutterBottom>Modalidades</Typography>{profile.modalidades.length ? <Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>{profile.modalidades.map((item) => <Chip key={item} label={MODALIDADE_LABELS[item]} />)}</Stack> : <Empty />}</Box>
-    </Stack></Section>
+    <Section title="O que busca" index={7}><BuscaDetails busca={profile.busca} disponibilidades={profile.disponibilidades} modalidades={profile.modalidades} /></Section>
     <Section title="Currículo" index={8}>{profile.curriculo.possuiCurriculo && profile.curriculo.url
       ? <ProtectedFileButton path={profile.curriculo.url} label={`Abrir currículo de ${profile.nomeCompleto}`} onError={setFileError} />
       : <Empty text="Currículo não informado." />}</Section>
@@ -84,8 +81,7 @@ export function TalentProfileView({ slug }: { slug: string }) {
 }
 
 function ProfileHeader({ profile, onFileError, onFavoriteChange, onUnavailable }: { profile: TalentProfile; onFileError: (message: string) => void; onFavoriteChange: (favorite: boolean) => void; onUnavailable: () => void }) {
-  const mainFormation = profile.formacoes.find((item) => item.principal) ?? profile.formacoes[0] ?? null;
-  const rpvVerified = Boolean(mainFormation?.rpvVerificado);
+  const rpvVerified = profile.formacoes.some((item) => item.rpvVerificado);
   return <Reveal><Card component="header" sx={(theme) => ({ p: { xs: 2.5, sm: 3.5 }, backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}>
     {rpvVerified && <RpvShine />}
     <Stack direction={{ xs: "column", sm: "row" }} spacing={3} sx={{ alignItems: { xs: "center", sm: "flex-start" } }}>
@@ -173,4 +169,4 @@ function period(start: string, end: string | null, current: boolean): string {
 }
 
 function StatePage({ title }: { title: string }) { return <Container maxWidth="sm" sx={{ py: 8 }}><EmptyState icon={<PersonSearchOutlined />} title={title} titleAs="h1" action={<Button component={Link} href="/recrutador/talentos" startIcon={<ArrowBackOutlined />}>Voltar para talentos</Button>} /></Container>; }
-function ProfileLoading() { return <Container maxWidth={false} sx={{ maxWidth: CONTENT_MAX_WIDTH, py: 4 }}><Stack spacing={2}>{[150, 140, 180, 260].map((height) => <Skeleton key={height} variant="rounded" height={height} sx={{ borderRadius: "16px" }} />)}</Stack></Container>; }
+function ProfileLoading() { return <Container maxWidth={false} sx={{ maxWidth: CONTENT_MAX_WIDTH, py: 4 }}><Stack spacing={2}>{[150, 140, 180, 260].map((height) => <Skeleton key={height} variant="rounded" height={height} sx={{ borderRadius: "4px" }} />)}</Stack></Container>; }

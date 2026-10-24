@@ -25,6 +25,7 @@ import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyPhoto } from "@/hooks/useMyPhoto";
 import { BrandLink } from "@/components/brand/BrandLink";
+import { DemoBanner } from "@/components/demo/DemoBanner";
 import { AuthMotionConfig } from "@/components/auth/motion/AuthMotionConfig";
 import { ROLE_LABELS } from "@/lib/labels";
 import { CHANGE_PASSWORD_HREF, NAV_BY_ROLE, PRIVACY_HREF } from "./navigation";
@@ -123,26 +124,30 @@ export function AppShell({ children }: AppShellProps) {
         </Box>
 
         <Box sx={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <AppBar
-            position="sticky"
-            elevation={0}
-            sx={{
-              display: { xs: "block", lg: "none" },
-              bgcolor: "background.paper",
-              color: "text.primary",
-              borderBottom: 1,
-              borderColor: "divider",
-            }}
-          >
-            <Toolbar disableGutters sx={{ px: { xs: 2, sm: 3 }, minHeight: 64, gap: 1.5 }}>
-              {user && (
-                <IconButton aria-label="Abrir menu" edge="start" onClick={() => setMenuOpen(true)}>
-                  <MenuIcon />
-                </IconButton>
-              )}
-              <BrandLink />
-            </Toolbar>
-          </AppBar>
+          {/* The demonstration notice and the phone's top bar stick together, so neither covers the other. */}
+          <Box sx={{ position: "sticky", top: 0, zIndex: (theme) => theme.zIndex.appBar }}>
+            <DemoBanner />
+            <AppBar
+              position="static"
+              elevation={0}
+              sx={{
+                display: { xs: "block", lg: "none" },
+                bgcolor: "background.paper",
+                color: "text.primary",
+                borderBottom: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Toolbar disableGutters sx={{ px: { xs: 2, sm: 3 }, minHeight: 64, gap: 1.5 }}>
+                {user && (
+                  <IconButton aria-label="Abrir menu" edge="start" onClick={() => setMenuOpen(true)}>
+                    <MenuIcon />
+                  </IconButton>
+                )}
+                <BrandLink />
+              </Toolbar>
+            </AppBar>
+          </Box>
 
           <Box component="main" sx={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
             {children}
@@ -179,17 +184,19 @@ export function AppShell({ children }: AppShellProps) {
           transformOrigin={{ vertical: "bottom", horizontal: "left" }}
           slotProps={{ list: { "aria-labelledby": accountAnchor?.id } }}
         >
-          <MenuItem
-            component={Link}
-            href={CHANGE_PASSWORD_HREF}
-            selected={pathname === CHANGE_PASSWORD_HREF}
-            onClick={closeAccountMenu}
-          >
-            <ListItemIcon>
-              <LockOutlined fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Alterar senha</ListItemText>
-          </MenuItem>
+          {!user.modoDemonstracao && (
+            <MenuItem
+              component={Link}
+              href={CHANGE_PASSWORD_HREF}
+              selected={pathname === CHANGE_PASSWORD_HREF}
+              onClick={closeAccountMenu}
+            >
+              <ListItemIcon>
+                <LockOutlined fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Alterar senha</ListItemText>
+            </MenuItem>
+          )}
           {user.role === "RECRUTADOR" && (
             <MenuItem
               component={Link}

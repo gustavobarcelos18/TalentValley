@@ -29,7 +29,7 @@ const REDIRECT_DELAY_MS = 2000;
 // and removes the account; the UI only collects the confirmation.
 export function ExclusaoSection() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const titleId = useId();
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -77,6 +77,9 @@ export function ExclusaoSection() {
       setBusy(false);
     }
   }
+
+  // A demonstration account cannot be deleted (the server refuses it too).
+  if (user?.modoDemonstracao) return null;
 
   return (
     <Reveal>

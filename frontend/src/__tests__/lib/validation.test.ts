@@ -14,6 +14,7 @@ import {
   normalizeUF,
   normalizeWhitespace,
   sanitizeBio,
+  sanitizeObjetivo,
   sanitizeCityName,
   sanitizeIntegerInput,
   sanitizePersonName,
@@ -261,6 +262,13 @@ describe("normalizers and sanitizers", () => {
     expect(sanitizeIntegerInput("123456", 2)).toBe("12");
     expect(sanitizeBio("bio 😀")).toBe("bio ");
     expect(sanitizeBio("a".repeat(2000))).toHaveLength(1500);
+  });
+
+  it("sanitizes the professional goal: no emoji, no line breaks, at most 280 characters", () => {
+    expect(sanitizeObjetivo("meta 😀")).toBe("meta ");
+    expect(sanitizeObjetivo("linha 1\r\nlinha 2\tfim")).toBe("linha 1 linha 2 fim");
+    expect(sanitizeObjetivo("a\u0000b\u007Fc\u0085d")).toBe("a b c d");
+    expect(sanitizeObjetivo("a".repeat(400))).toHaveLength(280);
   });
 });
 

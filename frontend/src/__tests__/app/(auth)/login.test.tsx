@@ -39,7 +39,7 @@ const SECRET = "Segredo123";
 const UNAUTHORIZED = "Unauthorized";
 const HOME = "/aluno";
 const RESPONSE: LoginResponse = {
-  usuario: { id: "1", nome: "Ana", email: NORMALIZED_EMAIL, role: "ALUNO", termosPendentes: false },
+  usuario: { id: "1", nome: "Ana", email: NORMALIZED_EMAIL, role: "ALUNO", termosPendentes: false, modoDemonstracao: false },
   destinoInicial: HOME,
 };
 const PAUSE_MS = 700;
@@ -131,6 +131,11 @@ describe("login page", () => {
     it("tells the user when the session expired", () => {
       renderLogin("sessao=expirada");
       expect(screen.getByRole("alert").textContent).toBe("Sua sessão expirou. Entre novamente para continuar.");
+    });
+
+    it("tells the user when a demonstration session ended", () => {
+      renderLogin("sessao=demo");
+      expect(screen.getByRole("alert").textContent).toBe("A sessão de demonstração terminou. Entre novamente como Admin.");
     });
 
     it("does not show the expiry notice for other values of the param", () => {

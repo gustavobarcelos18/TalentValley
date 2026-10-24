@@ -59,6 +59,9 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         .Include(x => x.Competencias).ThenInclude(x => x.Competencia)
         .Include(x => x.Disponibilidades)
         .Include(x => x.Modalidades)
+        .Include(x => x.AreasInteresse)
+        .Include(x => x.CategoriasCnh)
+        .Include(x => x.TiposDeficiencia)
         .Include(x => x.Formacoes);
 
     // AsSplitQuery is repeated here so the extra collection includes are visibly split.
@@ -92,6 +95,24 @@ public sealed class TalentDiscoveryService(AppDbContext database)
             query = query.Where(x => x.Disponibilidades.Any(d => request.Availabilities.Contains(d.Tipo)));
         if (request.Modalities.Length > 0)
             query = query.Where(x => x.Modalidades.Any(m => request.Modalities.Contains(m.Modalidade)));
+        return ApplyBuscaFilters(query, request);
+    }
+
+    // "O que eu busco" filters. PCD interest only counts when the student gave the sharing consent.
+    private static IQueryable<Aluno> ApplyBuscaFilters(IQueryable<Aluno> query, NormalizedQuery request)
+    {
+        if (request.SearchStatuses.Length > 0)
+            query = query.Where(x => x.StatusBusca != null && request.SearchStatuses.Contains(x.StatusBusca.Value));
+        if (request.Areas.Length > 0)
+            query = query.Where(x => x.AreasInteresse.Any(a => request.Areas.Contains(a.Area)));
+        if (request.AcceptsTravel)
+            query = query.Where(x => x.AceitaViajar);
+        if (request.AcceptsRelocation)
+            query = query.Where(x => x.AceitaMudarDeCidade);
+        if (request.LicenseCategories.Length > 0)
+            query = query.Where(x => x.CategoriasCnh.Any(c => request.LicenseCategories.Contains(c.Categoria)));
+        if (request.PcdInterest)
+            query = query.Where(x => x.InteresseVagaPcd && x.ConsentimentoPcdEm != null);
         return query;
     }
 
@@ -178,6 +199,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
                         WHERE m."AlunoId" = a."UserId" AND m."Modalidade" IN ({InParameters(request.Modalities.Select(x => x.ToString()))}))
                     """);
 
+            AddBuscaConditions(conditions, request, AddParameter, values => InParameters(values));
+
             string orderBy;
             if (sort == TalentSort.RELEVANCIA)
             {
@@ -227,6 +250,30 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         }
     }
 
+    // Raw-SQL twin of ApplyBuscaFilters: same rules, values always bound as parameters.
+    private static void AddBuscaConditions(List<string> conditions, NormalizedQuery request,
+        Func<object, string> addParameter, Func<IEnumerable<string>, string> inParameters)
+    {
+        if (request.SearchStatuses.Length > 0)
+            conditions.Add($"a.\"StatusBusca\" IN ({inParameters(request.SearchStatuses.Select(x => x.ToString()))})");
+        if (request.Areas.Length > 0)
+            conditions.Add($"""
+                EXISTS (SELECT 1 FROM "AlunoAreasInteresse" ai
+                    WHERE ai."AlunoId" = a."UserId" AND ai."Area" IN ({inParameters(request.Areas.Select(x => x.ToString()))}))
+                """);
+        if (request.AcceptsTravel)
+            conditions.Add("a.\"AceitaViajar\"");
+        if (request.AcceptsRelocation)
+            conditions.Add("a.\"AceitaMudarDeCidade\"");
+        if (request.LicenseCategories.Length > 0)
+            conditions.Add($"""
+                EXISTS (SELECT 1 FROM "AlunoCategoriasCnh" cc
+                    WHERE cc."AlunoId" = a."UserId" AND cc."Categoria" IN ({inParameters(request.LicenseCategories.Select(x => x.ToString()))}))
+                """);
+        if (request.PcdInterest)
+            conditions.Add("a.\"InteresseVagaPcd\" AND a.\"ConsentimentoPcdEm\" IS NOT NULL");
+    }
+
     private static NormalizedQuery Normalize(TalentSearchQuery request) => new(
         request.Page,
         NormalizeText(request.Nome, true),
@@ -239,6 +286,12 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         request.RpvVerificado == true,
         request.Disponibilidades.Distinct().ToArray(),
         request.Modalidades.Distinct().ToArray(),
+        request.StatusBusca.Distinct().ToArray(),
+        request.AreasInteresse.Distinct().ToArray(),
+        request.AceitaViajar == true,
+        request.AceitaMudarDeCidade == true,
+        request.CategoriasCnh.Distinct().ToArray(),
+        request.InteresseVagaPcd == true,
         request.Ordenacao);
 
     private static string? NormalizeText(string? value, bool searchNormalized)
@@ -267,8 +320,10 @@ public sealed class TalentDiscoveryService(AppDbContext database)
             principal is null ? null : new(principal.Tipo, principal.Nome, principal.Instituicao, IsVerified(principal)),
             x.Disponibilidades.OrderBy(d => d.Tipo).Select(d => d.Tipo).ToList(),
             x.Modalidades.OrderBy(m => m.Modalidade).Select(m => m.Modalidade).ToList(),
+            BuscaMapping.MapForRecruiter(x, DateTimeOffset.UtcNow),
             favorite,
-            x.AtualizadoEm);
+            x.AtualizadoEm,
+            x.Formacoes.Any(IsVerified));
     }
 
     internal static TalentProfileResponse MapProfile(Aluno x, bool favorite) => new(
@@ -282,6 +337,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
             .Select(i => new TalentLanguageResponse(i.IdiomaId, i.Idioma.Nome, i.Nivel)).ToList(),
         x.Disponibilidades.OrderBy(d => d.Tipo).Select(d => d.Tipo).ToList(),
         x.Modalidades.OrderBy(m => m.Modalidade).Select(m => m.Modalidade).ToList(),
+        BuscaMapping.MapForRecruiter(x, DateTimeOffset.UtcNow),
         x.Formacoes.OrderByDescending(f => f.Principal).ThenByDescending(f => f.DataInicio).ThenBy(f => f.Id)
             .Select(f => new TalentFormationResponse(f.Id, f.Tipo, f.Nome, f.Instituicao,
                 f.DataInicio, f.DataFim, f.CargaHoraria, f.Status, f.Principal, IsVerified(f),
@@ -303,7 +359,8 @@ public sealed class TalentDiscoveryService(AppDbContext database)
         int Page, string? Name, string? City, string? Uf, int[] CompetencyIds,
         TipoFormacao[] FormationTypes, string? FormationName, StatusFormacao[] FormationStatuses,
         bool RpvVerified, TipoDisponibilidade[] Availabilities, ModalidadeTrabalho[] Modalities,
-        TalentSort? Sort)
+        StatusBusca[] SearchStatuses, AreaInteresse[] Areas, bool AcceptsTravel, bool AcceptsRelocation,
+        CategoriaCnh[] LicenseCategories, bool PcdInterest, TalentSort? Sort)
     {
         public bool HasEducationFilters => FormationTypes.Length > 0 || FormationName is not null ||
             FormationStatuses.Length > 0 || RpvVerified;
@@ -311,7 +368,11 @@ public sealed class TalentDiscoveryService(AppDbContext database)
             (Name is null ? 0 : 1) + (City is null ? 0 : 1) + (Uf is null ? 0 : 1) +
             (FormationTypes.Length == 0 ? 0 : 1) + (FormationName is null ? 0 : 1) +
             (FormationStatuses.Length == 0 ? 0 : 1) + (RpvVerified ? 1 : 0) +
-            (Availabilities.Length == 0 ? 0 : 1) + (Modalities.Length == 0 ? 0 : 1);
+            (Availabilities.Length == 0 ? 0 : 1) + (Modalities.Length == 0 ? 0 : 1) + BuscaFilterCount;
+        private int BuscaFilterCount =>
+            (SearchStatuses.Length == 0 ? 0 : 1) + (Areas.Length == 0 ? 0 : 1) +
+            (AcceptsTravel ? 1 : 0) + (AcceptsRelocation ? 1 : 0) +
+            (LicenseCategories.Length == 0 ? 0 : 1) + (PcdInterest ? 1 : 0);
         public bool HasFilters => NonCompetencyFilterCount > 0 || CompetencyIds.Length > 0;
     }
 }

@@ -283,6 +283,7 @@ Configuration uses standard ASP.NET Core sources (`appsettings*.json`, user-secr
 | `Deployment:ForwardedHeaders:Enabled`, `IpRanges`, `ForwardLimit` | Trust `X-Forwarded-*` only from listed proxy CIDR ranges |
 | `RateLimiting:PermitLimit` | Requests per minute per IP/endpoint on anonymous endpoints (default 5) |
 | `BootstrapAdmin:Enabled`, `Email`, `Name`, `Password` | First-admin bootstrap |
+| `Demo:Enabled` | Demonstration mode: lets the admin view the app as a fictitious student/recruiter (off by default; see [DEPLOY_DEMO.md](DEPLOY_DEMO.md)) |
 | `NEXT_PUBLIC_API_BASE_URL` (frontend) | Local development only: the browser calls the API directly |
 | `BACKEND_API_URL` (frontend, server-side) | Deployed frontend: `/api/*` is rewritten to this API URL |
 | `NEXT_PUBLIC_SITE_URL` (frontend) | Public site URL for absolute Open Graph links; must be set before `next build` |
@@ -640,6 +641,7 @@ A configuração usa as fontes padrão do ASP.NET Core (`appsettings*.json`, use
 | `Deployment:ForwardedHeaders:Enabled`, `IpRanges`, `ForwardLimit` | Confiar em `X-Forwarded-*` só de proxies nas faixas CIDR listadas |
 | `RateLimiting:PermitLimit` | Requisições por minuto por IP/endpoint nos endpoints anônimos (padrão 5) |
 | `BootstrapAdmin:Enabled`, `Email`, `Name`, `Password` | Criação do primeiro admin |
+| `Demo:Enabled` | Modo demonstração: o admin vê o sistema como aluno/recrutador fictício (desligado por padrão; veja [DEPLOY_DEMO.md](DEPLOY_DEMO.md)) |
 | `NEXT_PUBLIC_API_BASE_URL` (frontend) | Só desenvolvimento local: o navegador chama a API diretamente |
 | `BACKEND_API_URL` (frontend, lado servidor) | Frontend publicado: `/api/*` é reescrito para essa URL da API |
 | `NEXT_PUBLIC_SITE_URL` (frontend) | URL pública do site para links absolutos do Open Graph; deve ser definida antes do `next build` |

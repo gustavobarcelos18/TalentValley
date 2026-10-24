@@ -27,6 +27,12 @@ const EMPTY: TalentSearchFilters = {
   rpvVerificado: false,
   disponibilidades: [],
   modalidades: [],
+  statusBusca: [],
+  areasInteresse: [],
+  aceitaViajar: false,
+  aceitaMudarDeCidade: false,
+  categoriasCnh: [],
+  interesseVagaPcd: false,
   ordenacao: null,
 };
 
@@ -55,6 +61,12 @@ describe("talentSearchParams", () => {
       rpvVerificado: true,
       disponibilidades: ["CLT", "PJ"],
       modalidades: ["REMOTO"],
+      statusBusca: ["BUSCANDO_ATIVAMENTE", "ABERTO_A_PROPOSTAS"],
+      areasInteresse: ["DevOps", "DadosAnalytics"],
+      aceitaViajar: true,
+      aceitaMudarDeCidade: true,
+      categoriasCnh: ["A", "B"],
+      interesseVagaPcd: true,
       ordenacao: "RECENTES",
     });
 
@@ -69,6 +81,12 @@ describe("talentSearchParams", () => {
     expect(params.get("rpvVerificado")).toBe("true");
     expect(params.getAll("disponibilidades")).toEqual(["CLT", "PJ"]);
     expect(params.getAll("modalidades")).toEqual(["REMOTO"]);
+    expect(params.getAll("statusBusca")).toEqual(["BUSCANDO_ATIVAMENTE", "ABERTO_A_PROPOSTAS"]);
+    expect(params.getAll("areasInteresse")).toEqual(["DevOps", "DadosAnalytics"]);
+    expect(params.get("aceitaViajar")).toBe("true");
+    expect(params.get("aceitaMudarDeCidade")).toBe("true");
+    expect(params.getAll("categoriasCnh")).toEqual(["A", "B"]);
+    expect(params.get("interesseVagaPcd")).toBe("true");
     expect(params.get("ordenacao")).toBe("recentes");
   });
 });

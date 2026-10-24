@@ -21,7 +21,7 @@ export function UserAvatar({ name, photoPath = null, size = 32, reloadKey = 0 }:
     <Avatar
       src={url ?? undefined}
       alt={url ? `Foto de ${name}` : undefined}
-      sx={{ width: size, height: size, bgcolor: "primary.main", fontWeight: 600 }}
+      sx={{ width: size, height: size, bgcolor: "vivid.main", color: "vivid.contrastText", fontWeight: 600 }}
     >
       {initialsOf(name)}
     </Avatar>

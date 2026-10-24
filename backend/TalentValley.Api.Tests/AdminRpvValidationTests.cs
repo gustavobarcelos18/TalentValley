@@ -64,6 +64,37 @@ public sealed class AdminRpvValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task Student_list_marks_students_with_any_RPV_verified_formation()
+    {
+        using var admin = await LoginAsync("admin@example.test", AppRoles.Admin);
+        var verifiedId = await factory.CreateUserAsync("verified@example.test");
+        var otherFormationId = await factory.CreateUserAsync("other@example.test");
+        var pendingId = await factory.CreateUserAsync("pending@example.test");
+        await SetStudentAsync(verifiedId, "Ana Verificada", "ana verificada", "ana-verificada", true, "Rio Pomba", "MG");
+        await SetStudentAsync(otherFormationId, "Bruno Outra", "bruno outra", "bruno-outra", true, "Rio Pomba", "MG");
+        await SetStudentAsync(pendingId, "Caio Pendente", "caio pendente", "caio-pendente", true, "Rio Pomba", "MG");
+        await factory.InScopeAsync(async provider =>
+        {
+            var db = provider.GetRequiredService<AppDbContext>();
+            var verifiedMain = Formation(Guid.NewGuid(), verifiedId, StatusValidacaoRpv.VERIFICADO);
+            verifiedMain.Principal = true;
+            var pendingMain = Formation(Guid.NewGuid(), otherFormationId, StatusValidacaoRpv.PENDENTE);
+            pendingMain.Principal = true;
+            var onlyPending = Formation(Guid.NewGuid(), pendingId, StatusValidacaoRpv.PENDENTE);
+            onlyPending.Principal = true;
+            db.Formacoes.AddRange(verifiedMain, pendingMain, onlyPending,
+                Formation(Guid.NewGuid(), otherFormationId, StatusValidacaoRpv.VERIFICADO));
+            await db.SaveChangesAsync();
+        });
+
+        var page = await admin.GetFromJsonAsync<PaginatedResponse<AlunoListItem>>("/api/admin/alunos", ApiFactory.JsonOptions);
+
+        Assert.True(page!.Items.Single(x => x.Id == verifiedId).RpvVerificado);
+        Assert.True(page.Items.Single(x => x.Id == otherFormationId).RpvVerificado);
+        Assert.False(page.Items.Single(x => x.Id == pendingId).RpvVerificado);
+    }
+
+    [Fact]
     public async Task Detail_supports_every_RPV_state_and_hides_non_RPV_or_unknown_formations()
     {
         using var admin = await LoginAsync("admin@example.test", AppRoles.Admin);

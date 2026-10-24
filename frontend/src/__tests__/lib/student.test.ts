@@ -40,6 +40,7 @@ describe("student mutations", () => {
     ["updateCompetencias", () => student.updateCompetencias(request), "PUT", `${ME}/competencias`, request],
     ["updateIdiomas", () => student.updateIdiomas(request), "PUT", `${ME}/idiomas`, request],
     ["updateDisponibilidade", () => student.updateDisponibilidade(request), "PUT", `${ME}/disponibilidade`, request],
+    ["confirmBusca", () => student.confirmBusca(), "POST", `${ME}/busca/confirmar`, undefined],
     ["deleteStudentPhoto", () => student.deleteStudentPhoto(), "DELETE", `${ME}/foto`, undefined],
     ["deleteStudentCurriculum", () => student.deleteStudentCurriculum(), "DELETE", `${ME}/curriculo`, undefined],
     ["createFormacao", () => student.createFormacao(request), "POST", FORMACOES, request],

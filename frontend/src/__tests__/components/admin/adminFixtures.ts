@@ -35,6 +35,7 @@ export function makeStudentListItem(overrides: Partial<AdminStudentListItem> = {
     uf: "MG",
     ativo: true,
     atualizadoEm: "2026-09-01T12:00:00Z",
+    rpvVerificado: false,
     ...overrides,
   };
 }

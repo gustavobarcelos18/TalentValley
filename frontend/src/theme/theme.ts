@@ -1,4 +1,4 @@
-import { createTheme, type Shadows, type Theme } from "@mui/material/styles";
+import { createTheme, type PaletteOptions, type Shadows, type Theme } from "@mui/material/styles";
 
 interface BrandGradients {
   /** Primary call to action of the public landing and entry screens. */
@@ -20,14 +20,25 @@ interface SurfaceTokens {
   hover: string;
 }
 
+interface VividColor {
+  main: string;
+  /** Hover of a vivid fill. */
+  dark: string;
+  /** Text and icons placed on top of a vivid fill. */
+  contrastText: string;
+}
+
 declare module "@mui/material/styles" {
   interface Palette {
     gradient: BrandGradients;
     surface: SurfaceTokens;
+    /** Bright brand green for solid fills (buttons, chips, icon tiles). It is the same in both schemes. */
+    vivid: VividColor;
   }
   interface PaletteOptions {
     gradient?: BrandGradients;
     surface?: SurfaceTokens;
+    vivid?: VividColor;
   }
 }
 
@@ -45,6 +56,17 @@ const actionGradients = {
 
 /** Titles use Manrope (`--font-display`, loaded in the root layout); body text keeps Inter. */
 const displayFont = "var(--font-display), var(--font-inter), system-ui, -apple-system, sans-serif";
+
+/** Deep black of the dark scheme: page, panels, text, dividers and the surface tokens. */
+const darkNeutrals = {
+  background: { default: "#0A0B0C", paper: "#131517" },
+  text: { primary: "#F4F7F6", secondary: "#8F9A96" },
+  divider: "#2A2E31",
+  surface: { raised: "#131517", sunken: "#050606", border: "#6F7A76", hover: "#1C1F22" },
+} satisfies PaletteOptions;
+
+/** Solid brand green with dark text, used on buttons, chips and icon tiles in both schemes. */
+const vivid = { main: "#3DDC84", dark: "#2FC472", contrastText: "#03210F" } satisfies VividColor;
 
 const baseShadows = createTheme().shadows;
 
@@ -95,19 +117,20 @@ export const talentValleyTheme = createTheme({
         divider: "#D5DDD4",
         surface: { raised: "#ffffff", sunken: "#EBF0E8", border: "#8A978C", hover: "#EFF4EC" },
         gradient: { ...actionGradients, accent: "linear-gradient(100deg, #008652, #52832e)" },
+        vivid,
       },
     },
     dark: {
       palette: {
         primary: {
-          main: "#A0D060",
-          light: "#C0E394",
-          dark: "#007D32",
-          contrastText: "#15201D",
+          main: "#3DDC84",
+          light: "#7BE8AB",
+          dark: "#2FC472",
+          contrastText: "#03210F",
         },
         secondary: {
           main: "#20C8C0",
-          light: "#A0D060",
+          light: "#7BE8AB",
           dark: "#007D73",
           contrastText: "#15201D",
         },
@@ -117,17 +140,9 @@ export const talentValleyTheme = createTheme({
           dark: "#D97706",
           contrastText: "#1A1203",
         },
-        background: {
-          default: "#0D1114",
-          paper: "#12171B",
-        },
-        text: {
-          primary: "#F4F7F6",
-          secondary: "#A8B2B0",
-        },
-        divider: "#273238",
-        surface: { raised: "#171E23", sunken: "#0A0D10", border: "#5C6D76", hover: "#232E35" },
+        ...darkNeutrals,
         gradient: { ...actionGradients, accent: "linear-gradient(100deg, #35dc90, #8cba53)" },
+        vivid,
       },
     },
   },
@@ -145,7 +160,7 @@ export const talentValleyTheme = createTheme({
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 1,
   },
   shadows,
   // Native MUI keyboard focus ring (2px, primary color); it moves inside menu items and tabs so it is not clipped.
@@ -157,18 +172,32 @@ export const talentValleyTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 4,
           padding: "10px 20px",
         },
       },
       // Opt-in look for the public landing and entry screens; internal screens keep the default buttons.
       variants: [
+        // Solid primary buttons use the vivid green with dark text (the plain primary is kept for text, borders and focus).
+        {
+          props: { variant: "contained", color: "primary" },
+          style: ({ theme }) => {
+            const { vivid: fill } = palette(theme);
+            return {
+              "&:not(.Mui-disabled)": {
+                backgroundColor: fill.main,
+                color: fill.contrastText,
+                "&:hover": { backgroundColor: fill.dark },
+              },
+            };
+          },
+        },
         {
           props: { variant: "brand" },
           style: ({ theme }) => {
             const { gradient } = palette(theme);
             return {
-              borderRadius: 30,
+              borderRadius: 4,
               background: gradient.action,
               // Doubled selector: the button is usually a link, and plain `a { color: inherit }` rules would win.
               "&&": { color: gradient.actionContrastText },
@@ -181,10 +210,26 @@ export const talentValleyTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 4,
           fontWeight: 600,
         },
       },
+      // Primary chips (filled or outlined) are solid vivid green with dark text.
+      variants: [
+        {
+          props: { color: "primary" },
+          style: ({ theme }) => {
+            const { vivid: fill } = palette(theme);
+            return {
+              backgroundColor: fill.main,
+              color: fill.contrastText,
+              borderColor: fill.main,
+              "& .MuiChip-icon": { color: "inherit" },
+              "&.MuiChip-clickable:hover": { backgroundColor: fill.dark },
+            };
+          },
+        },
+      ],
     },
     MuiTextField: {
       defaultProps: {
@@ -195,7 +240,7 @@ export const talentValleyTheme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: 10,
+          borderRadius: 4,
           "& .MuiOutlinedInput-notchedOutline": {
             borderColor: palette(theme).surface.border,
           },
@@ -208,7 +253,7 @@ export const talentValleyTheme = createTheme({
       },
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: 16,
+          borderRadius: 4,
           border: `1px solid ${palette(theme).divider}`,
           backgroundColor: palette(theme).surface.raised,
           boxShadow: theme.shadows[1],
@@ -218,7 +263,7 @@ export const talentValleyTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: ({ theme }) => ({
-          borderRadius: 20,
+          borderRadius: 4,
           border: `1px solid ${palette(theme).divider}`,
           boxShadow: theme.shadows[4],
         }),
@@ -236,9 +281,9 @@ export const talentValleyTheme = createTheme({
     MuiListItemButton: {
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: 10,
+          borderRadius: 4,
           transition: theme.transitions.create(["background-color", "color"], { duration: 150 }),
-          "&:hover": { backgroundColor: palette(theme).surface.hover },
+          "&:hover, &.Mui-selected, &.Mui-selected:hover": { backgroundColor: palette(theme).surface.hover },
         }),
       },
     },

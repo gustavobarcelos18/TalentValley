@@ -13,7 +13,7 @@ describe("useAuth", () => {
 
   it("returns the value provided by the AuthProvider context", () => {
     const value: AuthValue = {
-      user: { id: "1", nome: "Ana", email: "ana@example.com", role: "ALUNO", termosPendentes: false },
+      user: { id: "1", nome: "Ana", email: "ana@example.com", role: "ALUNO", termosPendentes: false, modoDemonstracao: false },
       loading: false,
       error: null,
       loginCompleted: vi.fn(),

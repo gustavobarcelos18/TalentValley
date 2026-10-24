@@ -113,6 +113,7 @@ Replaces the old "Disponibilidade e modalidade" section. Saved as one form by `P
 - Recruiters and admins see the three PCD fields, but PCD data is only exposed when `ConsentimentoPcdEm` exists. Only `InteresseVagaPcd` is a search filter. The recruiter screen shows a fixed notice: PCD information may only be used to find and contact students.
 - The license is shown as "informado pelo aluno".
 - Recruiter search gets these new filters: search status, area of interest, mobility (travel / move city), license category and interest in PCD jobs. Start date, workload, own vehicle and disability type are shown but never filter.
+- Comparison: the "in common" block also lists the areas of interest and license categories both students share. Search status, mobility, workload and PCD are never crossed.
 - The landing page texts that mention "disponibilidade" are not changed.
 - The LGPD export includes all of this, and account deletion removes all of it.
 
@@ -278,6 +279,15 @@ Audit is chronological/read-only in MVP.
 No audit filters required.
 
 Audit survives deletion of the target entity.
+
+## Demonstration mode
+
+Fictitious accounts (`EhDemo`) exist only for presentations and are isolated from real data:
+- the admin can view the app as one fictitious student or recruiter (off by default, `Demo:Enabled`);
+- a real recruiter never sees, favorites, compares or downloads a demo student; the demo recruiter sees only demo students (the check lives in `TalentVisibility`);
+- admin lists, dashboard numbers and RPV validations do not include demo accounts;
+- demo accounts are created without files and without a password (an upload made while the admin acts as a demo student is removed by "Restaurar demonstração");
+- the admin may act normally while viewing as a demo account; "Restaurar demonstração" undoes it and never touches real accounts.
 
 ## Data retention
 

@@ -32,6 +32,8 @@ public sealed class TalentComparisonService(AppDbContext database, TalentDiscove
             .OrderBy(x => NameNormalizer.Normalize(x.Nome)).ThenBy(x => x.Id).ToList();
         var availabilities = profileA.Disponibilidades.Intersect(profileB.Disponibilidades).Order().ToList();
         var modalities = profileA.Modalidades.Intersect(profileB.Modalidades).Order().ToList();
-        return new(profileA, new(competencies, availabilities, modalities), profileB);
+        var areas = profileA.Busca.AreasInteresse.Intersect(profileB.Busca.AreasInteresse).Order().ToList();
+        var licenses = profileA.Busca.CategoriasCnh.Intersect(profileB.Busca.CategoriasCnh).Order().ToList();
+        return new(profileA, new(competencies, availabilities, modalities, areas, licenses), profileB);
     }
 }

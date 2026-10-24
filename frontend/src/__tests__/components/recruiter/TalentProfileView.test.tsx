@@ -6,7 +6,7 @@ import { ApiError, apiDownload } from "@/lib/api";
 import { addFavorite, fetchTalent, removeFavorite } from "@/lib/recruiter";
 import type { TalentExperience, TalentProfile, TalentProject } from "@/types/recruiter";
 import { stubMotionMedia } from "../auth/motion/motionMedia";
-import { makeFormation, makeTalentProfile } from "./recruiterFixtures";
+import { makeFormation, makeTalentBusca, makeTalentProfile } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
 vi.setConfig({ testTimeout: 15_000 });
@@ -128,7 +128,7 @@ describe("TalentProfileView", () => {
     expect(skills.getByText("React")).toBeTruthy();
     expect(skills.getByText("SQL")).toBeTruthy();
     expect(within(section("Idiomas")).getByText("Inglês · Avançado")).toBeTruthy();
-    const availability = within(section("Disponibilidade e modalidades"));
+    const availability = within(section("O que busca"));
     expect(availability.getByText("Estágio")).toBeTruthy();
     expect(availability.getByText("CLT")).toBeTruthy();
     expect(availability.getByText("Remoto")).toBeTruthy();
@@ -146,9 +146,50 @@ describe("TalentProfileView", () => {
       "Projetos",
       "Idiomas",
       "Contato",
-      "Disponibilidade e modalidades",
+      "O que busca",
       "Currículo",
     ]);
+  });
+
+  it("does not call the student a person with disability when only the interest in PCD jobs was shared", async () => {
+    await renderProfile({ busca: makeTalentBusca({ pcd: { souPcd: false, interesseVagaPcd: true, tipos: [] } }) });
+
+    const busca = within(section("O que busca"));
+    expect(busca.getByText("Informações PCD")).toBeTruthy();
+    expect(busca.getByText("Interesse em vaga PCD")).toBeTruthy();
+    expect(busca.queryByText(/Pessoa com deficiência/)).toBeNull();
+  });
+
+  it("shows what the student is looking for, with the status warnings, license and PCD", async () => {
+    await renderProfile({
+      busca: makeTalentBusca({
+        status: "NAO_BUSCANDO",
+        statusDesatualizado: true,
+        objetivo: "Voltar ao mercado em 2027",
+        areasInteresse: ["DadosAnalytics", "Inovacao"],
+        disponivelAPartirDe: "2999-03-10",
+        cargaHoraria: "ATE_40H",
+        aceitaMudarDeCidade: true,
+        categoriasCnh: ["A", "B"],
+        possuiVeiculoProprio: true,
+        pcd: { souPcd: true, interesseVagaPcd: true, tipos: ["TEA", "OUTRA"] },
+      }),
+    });
+
+    const busca = within(section("O que busca"));
+    expect(busca.getByText("Não está buscando agora")).toBeTruthy();
+    expect(busca.getByText("Status não confirmado há mais de 30 dias")).toBeTruthy();
+    expect(busca.getByText("Voltar ao mercado em 2027")).toBeTruthy();
+    expect(busca.getByText("Dados e analytics")).toBeTruthy();
+    expect(busca.getByText("Inovação")).toBeTruthy();
+    expect(busca.getByText("A partir de 10/03/2999")).toBeTruthy();
+    expect(busca.getByText("Até 40 horas por semana (integral)")).toBeTruthy();
+    expect(busca.getByText("Aceita mudar de cidade")).toBeTruthy();
+    expect(busca.getByText("CNH A, B · veículo próprio")).toBeTruthy();
+    expect(busca.getByText("Informado pelo aluno.")).toBeTruthy();
+    expect(busca.getByText("Pessoa com deficiência · transtorno do espectro autista (TEA) · outra")).toBeTruthy();
+    expect(busca.getByText("Interesse em vaga PCD")).toBeTruthy();
+    expect(busca.getByText(/Use-a somente para encontrar e contatar alunos/)).toBeTruthy();
   });
 
   it("shows empty-state text for every empty section", async () => {
@@ -169,7 +210,7 @@ describe("TalentProfileView", () => {
     for (const title of ["Competências gerais", "Trajetória", "Projetos", "Idiomas"]) {
       expect(within(section(title)).getByText(NO_INFO)).toBeTruthy();
     }
-    expect(within(section("Disponibilidade e modalidades")).getAllByText(NO_INFO)).toHaveLength(2);
+    expect(within(section("O que busca")).getByText("Este talento ainda não informou o que busca.")).toBeTruthy();
     expect(within(section("Contato")).getByText("Contato profissional não informado.")).toBeTruthy();
     expect(within(section("Currículo")).getByText("Currículo não informado.")).toBeTruthy();
   });
@@ -219,6 +260,14 @@ describe("TalentProfileView", () => {
       const header = screen.getByRole("heading", { level: 1, name: NAME }).closest("header") as HTMLElement;
       expect(within(header).getByTestId("rpv-shine")).toBeTruthy();
       expect(within(header).getByText("Verificado pelo Rio Pomba Valley")).toBeTruthy();
+    });
+
+    it("highlights the header when a formation that is not the main one is verified", async () => {
+      stubMotionMedia("pointer");
+      await renderProfile({ formacoes: [makeFormation(), makeFormation({ id: "f-2", principal: false, rpvVerificado: true })] });
+
+      const header = screen.getByRole("heading", { level: 1, name: NAME }).closest("header") as HTMLElement;
+      expect(within(header).getByTestId("rpv-shine")).toBeTruthy();
     });
 
     it("does not highlight the header without a verified formation", async () => {

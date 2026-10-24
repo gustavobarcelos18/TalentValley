@@ -1,189 +1,172 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Autocomplete, Checkbox, Chip, Stack, TextField, Typography } from "@mui/material";
-import EventAvailableOutlined from "@mui/icons-material/EventAvailableOutlined";
+import { useState, type ReactNode } from "react";
+import { Alert, Button, Chip, Stack, Typography } from "@mui/material";
+import TravelExploreOutlined from "@mui/icons-material/TravelExploreOutlined";
 import { getApiErrorMessage } from "@/lib/api";
 import {
+  avisoStatusBusca,
+  buscaEstaVazia,
+  disponivelAgora,
+  resumoHabilitacao,
+  resumoMobilidade,
+  resumoPcd,
+} from "@/lib/busca";
+import { formatDate } from "@/lib/format";
+import {
+  AREA_INTERESSE_LABELS,
+  CARGA_HORARIA_LABELS,
   DISPONIBILIDADE_LABELS,
-  DISPONIBILIDADE_OPCOES,
   MODALIDADE_LABELS,
-  MODALIDADE_OPCOES,
+  STATUS_BUSCA_LABELS,
 } from "@/lib/labels";
-import { updateDisponibilidade } from "@/lib/student";
-import type {
-  ModalidadeTrabalho,
-  TipoDisponibilidade,
-} from "@/types/student";
-import { FormDialog } from "./FormDialog";
+import { confirmBusca } from "@/lib/student";
+import type { BuscaResponse, StatusBusca } from "@/types/student";
+import { BuscaForm } from "./BuscaForm";
 import { SectionCard } from "./SectionCard";
 import type { SectionProps } from "./sectionProps";
 
-export function DisponibilidadeSection({ profile, onChanged, notify }: SectionProps) {
+function Row({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
+  return (
+    <Stack spacing={0.75}>
+      <Typography variant="subtitle2" color="text.secondary">
+        {label}
+      </Typography>
+      {children}
+    </Stack>
+  );
+}
+
+function Chips({ labels, color }: Readonly<{ labels: string[]; color?: "primary" }>) {
+  return (
+    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+      {labels.map((label) => (
+        <Chip key={label} label={label} color={color} variant="outlined" size="small" />
+      ))}
+    </Stack>
+  );
+}
+
+// A row with chips that is left out when there is nothing to show.
+function ChipsRow({ label, labels, color }: Readonly<{ label: string; labels: string[]; color?: "primary" }>) {
+  if (labels.length === 0) return null;
+  return (
+    <Row label={label}>
+      <Chips labels={labels} color={color} />
+    </Row>
+  );
+}
+
+function TextRow({ label, text }: Readonly<{ label: string; text: string | null }>) {
+  if (!text) return null;
+  return (
+    <Row label={label}>
+      <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+        {text}
+      </Typography>
+    </Row>
+  );
+}
+
+interface StatusBlockProps {
+  status: StatusBusca;
+  aviso: string | null;
+  onChanged: () => void;
+  notify: (message: string) => void;
+}
+
+// Search status with its warnings and the reconfirmation action.
+function StatusBlock({ status, aviso, onChanged, notify }: Readonly<StatusBlockProps>) {
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleConfirm() {
+    setError(null);
+    setConfirming(true);
+    try {
+      await confirmBusca();
+      onChanged();
+      notify("Situação de busca confirmada.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Não foi possível confirmar agora. Tente novamente."));
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <Stack spacing={1}>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+        <Chip label={STATUS_BUSCA_LABELS[status]} color="primary" size="small" />
+        <Button size="small" onClick={() => void handleConfirm()} disabled={confirming}>
+          {confirming ? "Confirmando..." : "Confirmar que continuo assim"}
+        </Button>
+      </Stack>
+      {status === "NAO_BUSCANDO" && (
+        <Alert severity="info" role="status">
+          Você marcou que não está buscando agora. Seu perfil continua aparecendo para recrutadores, com este aviso.
+        </Alert>
+      )}
+      {aviso && (
+        <Alert severity="warning" role="status">
+          {aviso}
+        </Alert>
+      )}
+      {error && <Alert severity="error">{error}</Alert>}
+    </Stack>
+  );
+}
+
+function inicioTexto(busca: BuscaResponse): string | null {
+  if (disponivelAgora(busca)) return "Imediato";
+  return busca.disponivelAPartirDe ? formatDate(busca.disponivelAPartirDe) : null;
+}
+
+// "O que eu busco": status, goal, areas, job types, work modes, start date, hours, mobility,
+// driver's license and the optional PCD block. Editing happens in one dialog (BuscaForm).
+export function DisponibilidadeSection({ profile, onChanged, notify }: Readonly<SectionProps>) {
   const [open, setOpen] = useState(false);
-  const { disponibilidades, modalidades } = profile;
-  const isEmpty = disponibilidades.length === 0 && modalidades.length === 0;
+  const { busca, disponibilidades, modalidades } = profile;
 
   return (
     <SectionCard
-      title="Disponibilidade e modalidade"
-      editLabel="Editar disponibilidade e modalidade"
+      title="O que eu busco"
+      editLabel="Editar o que eu busco"
       onEdit={() => setOpen(true)}
-      isEmpty={isEmpty}
-      emptyMessage="Informe os tipos de vaga que você busca e como prefere trabalhar."
-      emptyActionLabel="Informar disponibilidade"
-      emptyIcon={<EventAvailableOutlined />}
+      isEmpty={buscaEstaVazia(busca, disponibilidades, modalidades)}
+      emptyMessage="Conte o que você busca: situação, objetivo, áreas, tipos de vaga e como prefere trabalhar."
+      emptyActionLabel="Informar o que eu busco"
+      emptyIcon={<TravelExploreOutlined />}
     >
       <Stack spacing={2}>
-        <Stack spacing={1}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Disponibilidade
-          </Typography>
-          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-            {disponibilidades.map((item) => (
-              <Chip
-                key={item}
-                label={DISPONIBILIDADE_LABELS[item]}
-                color="primary"
-                variant="outlined"
-                size="small"
-              />
-            ))}
-          </Stack>
-        </Stack>
-        <Stack spacing={1}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Modalidade de trabalho
-          </Typography>
-          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-            {modalidades.map((item) => (
-              <Chip
-                key={item}
-                label={MODALIDADE_LABELS[item]}
-                variant="outlined"
-                size="small"
-              />
-            ))}
-          </Stack>
-        </Stack>
+        {busca.status !== null && (
+          <StatusBlock status={busca.status} aviso={avisoStatusBusca(busca)} onChanged={onChanged} notify={notify} />
+        )}
+        <TextRow label="Objetivo profissional" text={busca.objetivo} />
+        <ChipsRow label="Áreas de interesse" labels={busca.areasInteresse.map((area) => AREA_INTERESSE_LABELS[area])} />
+        <ChipsRow
+          label="Tipos de vaga"
+          labels={disponibilidades.map((item) => DISPONIBILIDADE_LABELS[item])}
+          color="primary"
+        />
+        <ChipsRow label="Modalidade de trabalho" labels={modalidades.map((item) => MODALIDADE_LABELS[item])} />
+        <TextRow label="Disponível a partir de" text={inicioTexto(busca)} />
+        <TextRow label="Carga horária semanal" text={busca.cargaHoraria ? CARGA_HORARIA_LABELS[busca.cargaHoraria] : null} />
+        <ChipsRow label="Mobilidade" labels={resumoMobilidade(busca)} />
+        <ChipsRow label="Habilitação" labels={resumoHabilitacao(busca)} />
+        <ChipsRow label="Pessoa com deficiência (PCD)" labels={resumoPcd(busca)} />
       </Stack>
       {open && (
-        <DisponibilidadeForm
-          disponibilidades={disponibilidades}
-          modalidades={modalidades}
+        <BuscaForm
+          profile={profile}
           onClose={() => setOpen(false)}
           onSaved={() => {
             setOpen(false);
             onChanged();
-            notify("Disponibilidade atualizada.");
+            notify("O que você busca foi atualizado.");
           }}
         />
       )}
     </SectionCard>
   );
-}
-interface DisponibilidadeFormProps {
-  disponibilidades: TipoDisponibilidade[];
-  modalidades: ModalidadeTrabalho[];
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function DisponibilidadeForm({ disponibilidades, modalidades, onClose, onSaved }: DisponibilidadeFormProps) {
-  const [dispSelecionadas, setDispSelecionadas] = useState<TipoDisponibilidade[]>(disponibilidades);
-  const [modSelecionadas, setModSelecionadas] = useState<ModalidadeTrabalho[]>(modalidades);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setSaving(true);
-    try {
-      // Backend enum values unchanged; labels are only for display here.
-      await updateDisponibilidade({
-        disponibilidades: dispSelecionadas,
-        modalidades: modSelecionadas,
-      });
-      onSaved();
-    } catch (err) {
-      setError(
-        getApiErrorMessage(
-          err,
-          "Não foi possível salvar a disponibilidade. Tente novamente."
-        )
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <FormDialog
-      title="Editar disponibilidade e modalidade"
-      onClose={onClose}
-      onSubmit={handleSubmit}
-      saving={saving}
-      error={error}
-    >
-      <Stack spacing={3}>
-        <Autocomplete
-          multiple
-          disableCloseOnSelect
-          options={DISPONIBILIDADE_OPCOES}
-          value={dispSelecionadas}
-          onChange={(_, value) => setDispSelecionadas(value)}
-          getOptionLabel={(option) => DISPONIBILIDADE_LABELS[option]}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Disponibilidade"
-              placeholder="Tipos de vaga"
-            />
-          )}
-          renderOption={(props, option) => {
-            const { key, ...rest } = props;
-            return (
-              <li key={key} {...rest}>
-                <Checkbox
-                  checked={dispSelecionadas.includes(option)}
-                  size="small"
-                  sx={{ mr: 1 }}
-                />
-                {DISPONIBILIDADE_LABELS[option]}
-              </li>
-            );
-          }}
-        />
-        <Autocomplete
-          multiple
-          disableCloseOnSelect
-          options={MODALIDADE_OPCOES}
-          value={modSelecionadas}
-          onChange={(_, value) => setModSelecionadas(value)}
-          getOptionLabel={(option) => MODALIDADE_LABELS[option]}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Modalidade de trabalho"
-              placeholder="Presencial, híbrido ou remoto"
-            />
-          )}
-          renderOption={(props, option) => {
-            const { key, ...rest } = props;
-            return (
-              <li key={key} {...rest}>
-                <Checkbox
-                  checked={modSelecionadas.includes(option)}
-                  size="small"
-                  sx={{ mr: 1 }}
-                />
-                {MODALIDADE_LABELS[option]}
-              </li>
-            );
-          }}
-        />
-      </Stack>
-    </FormDialog>
-      );
 }

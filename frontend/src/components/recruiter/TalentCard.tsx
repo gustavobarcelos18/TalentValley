@@ -1,18 +1,19 @@
 "use client";
 
-import { Button, Card, Checkbox, Chip, Divider, FormControlLabel, Stack, Typography } from "@mui/material";
+import { Button, Card, Checkbox, Divider, FormControlLabel, Stack, Typography } from "@mui/material";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import { CompetencyGroups } from "@/components/common/CompetencyGroups";
-import { DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, TIPO_FORMACAO_LABELS } from "@/lib/labels";
+import { TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import type { TalentListItem } from "@/types/recruiter";
+import { BuscaCardSummary } from "./TalentBusca";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { FavoriteButton } from "./FavoriteButton";
 import { RpvShine, RpvVerifiedBadge, rpvHighlightSx } from "./RpvHighlight";
 
 export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparisonSelected, onComparisonChange, onPreview }: { talent: TalentListItem; onFavoriteChange?: (favorite: boolean) => void; onUnavailable?: () => void; comparisonSelected?: boolean; onComparisonChange?: (selected: boolean) => void; onPreview?: () => void }) {
-  const rpvVerified = Boolean(talent.formacaoPrincipal?.rpvVerificado);
+  const rpvVerified = talent.rpvVerificado;
 
   return (
     <Card
@@ -45,10 +46,7 @@ export function TalentCard({ talent, onFavoriteChange, onUnavailable, comparison
               {rpvVerified && <RpvVerifiedBadge />}
             </Stack>}
             <CompetencyGroups competencias={talent.competencias} variant="outlined" limit={6} />
-            <Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>
-              {talent.disponibilidades.map((item) => <Chip key={item} label={DISPONIBILIDADE_LABELS[item]} size="small" color="primary" variant="outlined" />)}
-              {talent.modalidades.map((item) => <Chip key={item} label={MODALIDADE_LABELS[item]} size="small" />)}
-            </Stack>
+            <BuscaCardSummary busca={talent.busca} disponibilidades={talent.disponibilidades} modalidades={talent.modalidades} />
           </Stack>
         </Stack>
         <Divider flexItem orientation="vertical" sx={{ display: { xs: "none", sm: "block" } }} />

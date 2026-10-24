@@ -6,6 +6,8 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { notifyPhotoChange } from "@/lib/photoSync";
 import { deleteStudentPhoto, uploadStudentPhoto } from "@/lib/student";
 import { makeSectionProps } from "./profileFixtures";
+import { stubMotionMedia } from "../auth/motion/motionMedia";
+import type { FormacaoResponse } from "@/types/student";
 
 interface ProtectedFileResult {
   url: string | null;
@@ -405,5 +407,45 @@ describe("ProfileHeader", () => {
 
       expect((await screen.findByRole("alert")).textContent).toBe(REMOVE_FALLBACK);
     });
+  });
+});
+
+describe("ProfileHeader RPV highlight", () => {
+  const verifiedMain: FormacaoResponse = {
+    id: "f-1",
+    tipo: "TECNICO",
+    nome: "Informática",
+    instituicao: "Colégio Técnico",
+    dataInicio: "2024-02-01",
+    dataFim: null,
+    cargaHoraria: null,
+    status: "EM_ANDAMENTO",
+    principal: true,
+    ehRioPombaValley: true,
+    statusValidacaoRpv: "VERIFICADO",
+    possuiCertificado: false,
+    criadoEm: "2026-09-01T12:00:00Z",
+    atualizadoEm: "2026-09-01T12:00:00Z",
+  };
+
+  it("shows the light sweep when the main formation is verified", () => {
+    stubMotionMedia("pointer");
+    renderHeader({ formacoes: [verifiedMain] });
+
+    expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("shows the light sweep when only a formation that is not the main one is verified", () => {
+    stubMotionMedia("pointer");
+    renderHeader({ formacoes: [{ ...verifiedMain, statusValidacaoRpv: "PENDENTE" }, { ...verifiedMain, id: "f-2", principal: false }] });
+
+    expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("does not highlight a student whose formations are only pending or rejected", () => {
+    stubMotionMedia("pointer");
+    renderHeader({ formacoes: [{ ...verifiedMain, statusValidacaoRpv: "PENDENTE" }, { ...verifiedMain, id: "f-2", principal: false, statusValidacaoRpv: "REJEITADO" }] });
+
+    expect(screen.queryByTestId("rpv-shine")).toBeNull();
   });
 });

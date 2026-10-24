@@ -4,6 +4,7 @@ import type {
   AdminRegistrationRequestDetail,
   AdminStudentDetail,
 } from "@/types/admin";
+import { makeTalentBusca } from "../recruiter/recruiterFixtures";
 
 /** Fully populated admin student detail; pass `overrides` for the fields a test cares about. */
 export function makeAdminStudentDetail(
@@ -29,6 +30,7 @@ export function makeAdminStudentDetail(
     idiomas: [{ idiomaId: 1, nome: "Inglês", nivel: "INTERMEDIARIO" }],
     disponibilidades: ["ESTAGIO"],
     modalidades: ["REMOTO"],
+    busca: makeTalentBusca(),
     formacoes: [],
     experiencias: [],
     projetos: [],

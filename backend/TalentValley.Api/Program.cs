@@ -29,6 +29,8 @@ builder.Services.AddScoped<NewsletterService>();
 builder.Services.AddScoped<TermsAcceptanceService>();
 builder.Services.AddScoped<StudentFileService>();
 builder.Services.AddSingleton<FileUploadValidator>();
+builder.Services.AddSingleton<LinkedInExportReader>();
+builder.Services.AddScoped<LinkedInImportPreviewService>();
 builder.Services.AddFileStorage(builder.Configuration, builder.Environment);
 builder.Services.AddScoped<FormacaoService>();
 builder.Services.AddScoped<ExperienciaService>();

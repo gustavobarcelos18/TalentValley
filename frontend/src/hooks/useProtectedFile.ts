@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useState } from "react";
-import { ApiError, apiDownload } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { downloadProtectedFile, forgetProtectedFile } from "@/lib/protectedFileCache";
 
 interface ProtectedFileState {
   url: string | null;
@@ -58,7 +59,7 @@ export function useProtectedFile(path: string | null, reloadKey = 0) {
 
     dispatch({ type: "start" });
 
-    apiDownload(path)
+    downloadProtectedFile(path, reloadKey)
       .then((blob) => {
         if (!active) return;
         objectUrl = URL.createObjectURL(blob);
@@ -81,7 +82,11 @@ export function useProtectedFile(path: string | null, reloadKey = 0) {
     };
   }, [path, version, reloadKey]);
 
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
+  // The file changed on the server (upload or removal), so the kept copy must not be reused.
+  const reload = useCallback(() => {
+    if (path) forgetProtectedFile(path);
+    setVersion((v) => v + 1);
+  }, [path]);
 
   // Without a path there is no file to represent: the effect above exits early
   // and cleanup has already revoked any previous object URL. Derive an empty

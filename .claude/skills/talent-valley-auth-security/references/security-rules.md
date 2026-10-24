@@ -76,6 +76,20 @@ Suggested lockout:
 - 5 invalid attempts;
 - 15 minutes.
 
+## Demonstration mode (admin views as a demo account)
+
+Off unless `Demo:Enabled=true`; when off, `preparar`, `restaurar` and `entrar` answer 404, `estado` still answers (`habilitado: false`) and `voltar` keeps working for an open session.
+
+- Demo accounts (`EhDemo = true`) have no password and an `@demo.invalid` email. They never sign in through the login form (same 401 as an unknown account), and password change, password reset, activation, resend and self-deletion are blocked for them.
+- Only a signed-in real ADMIN may switch (`POST /api/admin/demo/entrar`). The server loads the demo account of the requested role from the database; an id from the browser is never used. It issues a new `tv_access` cookie whose `role` is the demo account's role (ALUNO or RECRUTADOR), so admin endpoints are not reachable from a demo session.
+- Two extra claims, signed with the rest of the token: `demo_admin` (id of the original admin) and `demo_admin_stamp` (hash of that admin's security stamp). They exist only in demo sessions.
+- `OnTokenValidated` requires `EhDemo == token has demo_admin`, and on every request of a demo session re-checks in the database that the admin still exists, is still ADMIN and the stamp matches.
+- `POST /api/demo/voltar` re-checks the same and issues a new ADMIN cookie. Any failure answers 403.
+- The demo session **inherits the original expiry** of the admin's token: switching in and out never renews the session time (8 hours by default).
+- After every switch the antiforgery pair must be fetched again (the cookie changed), as after login.
+- Audit: `DEMO_ENTROU`, `DEMO_VOLTOU` (visible), `DEMO_PREPARADA`, `DEMO_RESTAURADA` (hidden from the audit screen).
+- Restoring recreates the demo accounts with new ids, which ends open demo sessions (401).
+
 ## Files
 
 Photos, CVs and certificates are private project data.

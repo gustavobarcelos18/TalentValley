@@ -50,6 +50,11 @@ export function updateDisponibilidade(request: UpdateDisponibilidadeRequest): Pr
   return apiMutation<void>("PUT", "/api/alunos/me/disponibilidade", request);
 }
 
+// Reconfirms the search status ("Confirmar que continuo assim"); the backend refuses it without a status.
+export function confirmBusca(): Promise<void> {
+  return apiMutation<void>("POST", "/api/alunos/me/busca/confirmar");
+}
+
 export function fetchCompetenciaCatalog(): Promise<CatalogoCompetenciaResponse[]> {
   return apiGet<CatalogoCompetenciaResponse[]>("/api/competencias");
 }

@@ -5,7 +5,7 @@ import { TalentCard } from "@/components/recruiter/TalentCard";
 import { ApiError } from "@/lib/api";
 import { addFavorite, removeFavorite } from "@/lib/recruiter";
 import { stubMotionMedia } from "../auth/motion/motionMedia";
-import { makeTalentListItem } from "./recruiterFixtures";
+import { makeTalentBusca, makeTalentListItem } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
 vi.mock("@/hooks/useProtectedFile", () => ({
@@ -38,30 +38,77 @@ describe("TalentCard", () => {
     expect(within(card).getByText("Graduação:")).toBeTruthy();
     expect(within(card).getByText(/Sistemas de Informação · IF Sudeste MG/)).toBeTruthy();
     expect(within(card).getByText("React")).toBeTruthy();
-    expect(within(card).getByText("Estágio")).toBeTruthy();
-    expect(within(card).getByText("Remoto")).toBeTruthy();
+    expect(within(card).getByText("Estágio · Remoto")).toBeTruthy();
     expect(within(card).queryByText(VERIFIED_LABEL)).toBeNull();
   });
 
-  it("shows the verified badge for an RPV verified main formation", () => {
+  describe("what the student is looking for", () => {
+    it("shows the status, the start date, the license and the PCD labels", () => {
+      const busca = makeTalentBusca({
+        status: "BUSCANDO_ATIVAMENTE",
+        disponivelAPartirDe: "2999-01-15",
+        categoriasCnh: ["B"],
+        possuiVeiculoProprio: true,
+        pcd: { souPcd: true, interesseVagaPcd: true, tipos: ["VISUAL"] },
+      });
+      render(<TalentCard talent={makeTalentListItem({ modalidades: ["HIBRIDO"], busca })} />);
+
+      const card = screen.getByRole("article");
+      expect(within(card).getByText("Buscando ativamente")).toBeTruthy();
+      expect(within(card).getByText("Estágio · Híbrido · a partir de jan/2999")).toBeTruthy();
+      expect(within(card).getByText("CNH B · veículo próprio")).toBeTruthy();
+      expect(within(card).getByText("(informado pelo aluno)")).toBeTruthy();
+      expect(within(card).getByText("Pessoa com deficiência · visual")).toBeTruthy();
+      expect(within(card).getByText("Interesse em vaga PCD")).toBeTruthy();
+    });
+
+    it("shows the not-looking status and the outdated warning without hiding the student", () => {
+      const busca = makeTalentBusca({ status: "NAO_BUSCANDO", statusDesatualizado: true });
+      render(<TalentCard talent={makeTalentListItem({ busca })} />);
+
+      const card = screen.getByRole("article");
+      expect(within(card).getByText("Não está buscando agora")).toBeTruthy();
+      expect(within(card).getByText("Status não confirmado há mais de 30 dias")).toBeTruthy();
+    });
+
+    it("shows an immediate start for a past date and no PCD label when the answer was no", () => {
+      const busca = makeTalentBusca({ disponivelAPartirDe: "2000-01-01", pcd: { souPcd: false, interesseVagaPcd: false, tipos: [] } });
+      render(<TalentCard talent={makeTalentListItem({ busca })} />);
+
+      const card = screen.getByRole("article");
+      expect(within(card).getByText("Estágio · Remoto · início imediato")).toBeTruthy();
+      expect(within(card).queryByText(/deficiência/i)).toBeNull();
+      expect(within(card).queryByText(/Habilitação/)).toBeNull();
+    });
+  });
+
+  it("shows the verified badge for an RPV verified student", () => {
     const formacaoPrincipal = {
       tipo: "TECNICO" as const,
       nome: "Informática",
       instituicao: "Colégio Técnico",
       rpvVerificado: true,
     };
-    render(<TalentCard talent={makeTalentListItem({ formacaoPrincipal })} />);
+    render(<TalentCard talent={makeTalentListItem({ formacaoPrincipal, rpvVerificado: true })} />);
 
     expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
     expect(screen.getByText("Técnico:")).toBeTruthy();
   });
 
   describe("RPV highlight", () => {
-    const verified = makeTalentListItem({ formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "Colégio Técnico", rpvVerificado: true } });
+    const verified = makeTalentListItem({ formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "Colégio Técnico", rpvVerificado: true }, rpvVerificado: true });
 
-    it("plays a single light sweep for a verified main formation", () => {
+    it("plays the repeating light sweep for a verified student", () => {
       stubMotionMedia("pointer");
       render(<TalentCard talent={verified} />);
+
+      expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+      expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();
+    });
+
+    it("highlights a student whose verified formation is not the main one", () => {
+      stubMotionMedia("pointer");
+      render(<TalentCard talent={makeTalentListItem({ rpvVerificado: true })} />);
 
       expect(screen.getByTestId("rpv-shine")).toBeTruthy();
       expect(screen.getByText(VERIFIED_LABEL)).toBeTruthy();

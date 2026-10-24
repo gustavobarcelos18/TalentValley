@@ -8,6 +8,7 @@ import { adminApi } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
 import type { AdminStudentCreated, AdminStudentListItem, PaginatedResponse } from "@/types/admin";
 import { deferred, makePaginated, makeStudentCreated, makeStudentListItem } from "./adminFixtures";
+import { stubMotionMedia } from "../auth/motion/motionMedia";
 
 vi.setConfig({ testTimeout: 15_000 });
 
@@ -737,5 +738,14 @@ describe("AdminStudentsView create access", () => {
     pending.resolve(makeStudentCreated());
     await closed();
     expect(await screen.findByText(CREATED_NOTICE)).toBeTruthy();
+  });
+});
+
+describe("AdminStudentsView RPV highlight", () => {
+  it("highlights only the students with an RPV verified formation", async () => {
+    stubMotionMedia("pointer");
+    await renderLoaded([makeStudentListItem({ rpvVerificado: true }), BRUNO]);
+
+    expect(screen.getAllByTestId("rpv-shine")).toHaveLength(1);
   });
 });

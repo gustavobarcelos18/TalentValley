@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProtectedFile } from "@/hooks/useProtectedFile";
 import { ApiError, apiDownload } from "@/lib/api";
+import { clearProtectedFiles } from "@/lib/protectedFileCache";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -15,6 +16,7 @@ const revokeObjectURL = vi.fn();
 
 beforeEach(() => {
   vi.resetAllMocks();
+  clearProtectedFiles();
   let counter = 0;
   createObjectURL.mockImplementation(() => `blob:${++counter}`);
   URL.createObjectURL = createObjectURL;
@@ -134,5 +136,41 @@ describe("useProtectedFile", () => {
     await waitFor(() => expect(result.current.url).toBe("blob:3"));
 
     expect(apiDownload).toHaveBeenCalledTimes(3);
+  });
+
+  it("downloads once for two components that show the same file", async () => {
+    vi.mocked(apiDownload).mockResolvedValue(new Blob(["x"]));
+
+    const first = renderHook(() => useProtectedFile(PHOTO));
+    const second = renderHook(() => useProtectedFile(PHOTO));
+
+    await waitFor(() => expect(first.result.current.url).not.toBeNull());
+    await waitFor(() => expect(second.result.current.url).not.toBeNull());
+    expect(apiDownload).toHaveBeenCalledTimes(1);
+    expect(first.result.current.url).not.toBe(second.result.current.url);
+  });
+
+  it("reuses the file when the component shows it again later", async () => {
+    vi.mocked(apiDownload).mockResolvedValue(new Blob(["x"]));
+    const first = renderHook(() => useProtectedFile(PHOTO));
+    await waitFor(() => expect(first.result.current.url).not.toBeNull());
+    first.unmount();
+
+    const again = renderHook(() => useProtectedFile(PHOTO));
+
+    await waitFor(() => expect(again.result.current.url).not.toBeNull());
+    expect(apiDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reuse a failed download", async () => {
+    vi.mocked(apiDownload).mockRejectedValueOnce(new ApiError(500, "boom")).mockResolvedValueOnce(new Blob(["x"]));
+    const first = renderHook(() => useProtectedFile(PHOTO));
+    await waitFor(() => expect(first.result.current.error).toBe(LOAD_ERROR));
+    first.unmount();
+
+    const again = renderHook(() => useProtectedFile(PHOTO));
+
+    await waitFor(() => expect(again.result.current.url).not.toBeNull());
+    expect(apiDownload).toHaveBeenCalledTimes(2);
   });
 });

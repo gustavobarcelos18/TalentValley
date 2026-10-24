@@ -133,6 +133,55 @@ describe("TalentFilters", () => {
     });
   });
 
+  describe("what the student is looking for", () => {
+    it("lists the search status, mobility and license options and the PCD notice", () => {
+      renderFilters();
+      expect(group("Situação de busca").getAllByRole("checkbox").map((box) => box.closest("label")?.textContent)).toEqual([
+        "Buscando ativamente", "Aberto a propostas", "Não está buscando agora",
+      ]);
+      expect(group("Mobilidade").getAllByRole("checkbox").map((box) => box.closest("label")?.textContent)).toEqual([
+        "Aceita viajar a trabalho", "Aceita mudar de cidade",
+      ]);
+      expect(group("Categoria de CNH (informada pelo aluno)").getAllByRole("checkbox").map((box) => box.closest("label")?.textContent)).toEqual([
+        "A", "B", "C", "D", "E",
+      ]);
+      expect(screen.getByRole("checkbox", { name: "Interessado em vagas para PCD" })).toBeTruthy();
+      expect(screen.getByText(/Use-a somente para encontrar e contatar alunos/)).toBeTruthy();
+    });
+
+    it("reflects the selected values", () => {
+      renderFilters({
+        statusBusca: ["ABERTO_A_PROPOSTAS"],
+        aceitaViajar: true,
+        categoriasCnh: ["B"],
+        interesseVagaPcd: true,
+        areasInteresse: ["DevOps"],
+      });
+      expect((group("Situação de busca").getByRole("checkbox", { name: "Aberto a propostas" }) as HTMLInputElement).checked).toBe(true);
+      expect((group("Mobilidade").getByRole("checkbox", { name: "Aceita viajar a trabalho" }) as HTMLInputElement).checked).toBe(true);
+      expect((group("Mobilidade").getByRole("checkbox", { name: "Aceita mudar de cidade" }) as HTMLInputElement).checked).toBe(false);
+      expect((screen.getByRole("checkbox", { name: "Interessado em vagas para PCD" }) as HTMLInputElement).checked).toBe(true);
+      expect(screen.getByRole("button", { name: "DevOps" })).toBeTruthy();
+    });
+
+    it("reports each toggle and area without touching the other criteria", async () => {
+      const user = userEvent.setup({ delay: null });
+      const setup = renderFilters();
+      await user.click(group("Situação de busca").getByRole("checkbox", { name: "Buscando ativamente" }));
+      expect(lastChange(setup)).toEqual(makeFilters({ statusBusca: ["BUSCANDO_ATIVAMENTE"] }));
+      await user.click(group("Mobilidade").getByRole("checkbox", { name: "Aceita mudar de cidade" }));
+      await user.click(group("Categoria de CNH (informada pelo aluno)").getByRole("checkbox", { name: "C" }));
+      await user.click(screen.getByRole("checkbox", { name: "Interessado em vagas para PCD" }));
+      expect(lastChange(setup)).toEqual(makeFilters({
+        statusBusca: ["BUSCANDO_ATIVAMENTE"], aceitaMudarDeCidade: true, categoriasCnh: ["C"], interesseVagaPcd: true,
+      }));
+
+      await user.click(screen.getByLabelText("Áreas de interesse"));
+      await user.click(await screen.findByRole("option", { name: "Agilidade" }));
+      expect(lastChange(setup).areasInteresse).toEqual(["Agilidade"]);
+    });
+  });
+
   describe("editing the criteria", () => {
     it("reports every typed character of the name as the new value", async () => {
       const user = userEvent.setup({ delay: null });

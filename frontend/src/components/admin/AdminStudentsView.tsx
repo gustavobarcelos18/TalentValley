@@ -118,7 +118,7 @@ export function AdminStudentsView() {
         <>
           <Stack spacing={1.5}>
             {state.data.items.map((x, index) => (
-              <AdminRow key={x.id} index={index}>
+              <AdminRow key={x.id} index={index} rpvVerified={x.rpvVerificado}>
                 <Stack
                   direction={{ xs: "column", md: "row" }}
                   spacing={2}

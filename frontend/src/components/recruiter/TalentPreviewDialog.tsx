@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography,
+  Alert, Box, Button, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography,
 } from "@mui/material";
 import ArrowForwardOutlined from "@mui/icons-material/ArrowForwardOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
@@ -12,8 +12,9 @@ import { CompetencyGroups } from "@/components/common/CompetencyGroups";
 import { brandWash } from "@/components/common/surfaceGradient";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { fetchTalent } from "@/lib/recruiter";
-import { DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, TIPO_FORMACAO_LABELS } from "@/lib/labels";
+import { TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import type { TalentProfile } from "@/types/recruiter";
+import { BuscaDetails } from "./TalentBusca";
 import { FavoriteButton } from "./FavoriteButton";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { RpvShine, RpvVerifiedBadge, rpvHighlightSx } from "./RpvHighlight";
@@ -98,11 +99,11 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
 
   const mainFormation = profile.formacoes.find((item) => item.principal) ?? profile.formacoes[0] ?? null;
 
-  const rpvVerified = Boolean(mainFormation?.rpvVerificado);
+  const rpvVerified = profile.formacoes.some((item) => item.rpvVerificado);
 
   return (
     <Stack spacing={2.5}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5} useFlexGap sx={(theme) => ({ alignItems: { xs: "center", sm: "flex-start" }, p: 2.5, borderRadius: "16px", position: "relative", backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5} useFlexGap sx={(theme) => ({ alignItems: { xs: "center", sm: "flex-start" }, p: 2.5, borderRadius: "4px", position: "relative", backgroundImage: brandWash(theme), ...(rpvVerified && rpvHighlightSx(theme)) })}>
         {rpvVerified && <RpvShine />}
         <ProtectedTalentPhoto path={profile.fotoUrl} name={profile.nomeCompleto} size={96} />
         <Stack spacing={1} sx={{ minWidth: 0, flex: 1, alignItems: { xs: "center", sm: "flex-start" }, textAlign: { xs: "center", sm: "left" } }}>
@@ -126,11 +127,8 @@ function TalentPreviewContent({ slug, onClose, onFavoriteChange, onUnavailable }
       <Box><Typography variant="subtitle2" color="text.secondary" gutterBottom>Competências</Typography>
         {profile.competencias.length ? <CompetencyGroups competencias={profile.competencias} variant="outlined" limit={8} />
           : <Typography variant="body2" color="text.secondary">Nenhuma competência informada.</Typography>}</Box>
-      <Box><Typography variant="subtitle2" color="text.secondary" gutterBottom>Disponibilidade e modalidades</Typography>
-        {profile.disponibilidades.length || profile.modalidades.length ? <Stack direction="row" spacing={.75} useFlexGap sx={{ flexWrap: "wrap" }}>
-          {profile.disponibilidades.map((item) => <Chip key={item} label={DISPONIBILIDADE_LABELS[item]} size="small" color="primary" variant="outlined" />)}
-          {profile.modalidades.map((item) => <Chip key={item} label={MODALIDADE_LABELS[item]} size="small" />)}
-        </Stack> : <Typography variant="body2" color="text.secondary">Não informado.</Typography>}</Box>
+      <Box><Typography variant="subtitle2" color="text.secondary" gutterBottom>O que busca</Typography>
+        <BuscaDetails busca={profile.busca} disponibilidades={profile.disponibilidades} modalidades={profile.modalidades} /></Box>
       <Button component={Link} href={`/recrutador/talentos/${profile.slug}`} variant="contained" endIcon={<ArrowForwardOutlined />} onClick={onClose} fullWidth>Ver perfil completo</Button>
     </Stack>
   );

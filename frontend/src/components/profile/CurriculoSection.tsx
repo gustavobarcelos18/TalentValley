@@ -170,7 +170,7 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
                   p: 2,
                   border: 1,
                   borderColor: surface.border,
-                  borderRadius: "12px",
+                  borderRadius: "4px",
                   bgcolor: surface.sunken,
                 };
               }}

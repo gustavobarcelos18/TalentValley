@@ -116,3 +116,10 @@ RPV validation:
 Audit:
 - chronological read-only list;
 - no advanced filters in MVP.
+
+Demonstration mode:
+- card "Demonstração" in `/admin` with a "Preparada"/"Não preparada" chip; when not prepared it shows only "Preparar demonstração"; when prepared it shows "Ver como Aluno", "Ver como Recrutador" and "Restaurar demonstração" (with confirmation); the card does not appear when `Demo:Enabled` is off;
+- sticky banner on every screen of a demo session ("Modo demonstração: você está vendo como {Aluno|Recrutador}. Dados fictícios.") with "Voltar ao Admin"; it shares one sticky container with the app bar, and `--demo-banner-height` moves the comparison bar down;
+- "Alterar senha" and "Excluir conta" are hidden in a demo session;
+- a demo session that ends (401) goes to `/login?sessao=demo`;
+- switching in or out reloads the whole page (`window.location.assign`).

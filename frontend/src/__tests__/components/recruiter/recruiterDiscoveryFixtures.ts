@@ -20,6 +20,12 @@ export function makeFilters(overrides: Partial<TalentSearchFilters> = {}): Talen
     rpvVerificado: false,
     disponibilidades: [],
     modalidades: [],
+    statusBusca: [],
+    areasInteresse: [],
+    aceitaViajar: false,
+    aceitaMudarDeCidade: false,
+    categoriasCnh: [],
+    interesseVagaPcd: false,
     ordenacao: null,
     ...overrides,
   };

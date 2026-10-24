@@ -13,8 +13,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
 }));
 
+const authState = vi.hoisted(() => ({ demo: false }));
+
 vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => ({ logout: logoutMock }),
+  useAuth: () => ({ user: { modoDemonstracao: authState.demo }, logout: logoutMock }),
 }));
 
 vi.mock("@/lib/student", () => ({
@@ -58,6 +60,7 @@ describe("ExclusaoSection", () => {
     vi.resetAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     logoutMock.mockResolvedValue(undefined);
+    authState.demo = false;
   });
 
   afterEach(() => {
@@ -71,6 +74,14 @@ describe("ExclusaoSection", () => {
     expect(screen.getByText(/Esta ação é irreversível/)).toBeTruthy();
     expect(screen.getByRole("button", { name: OPEN_BUTTON })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("is not offered in a demonstration session", () => {
+    authState.demo = true;
+    render(<ExclusaoSection />);
+
+    expect(screen.queryByRole("heading", { name: "Excluir conta" })).toBeNull();
+    expect(screen.queryByRole("button", { name: OPEN_BUTTON })).toBeNull();
   });
 
   it("opens the confirmation dialog with an empty password field", async () => {

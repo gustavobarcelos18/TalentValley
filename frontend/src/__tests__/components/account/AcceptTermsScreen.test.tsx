@@ -56,7 +56,7 @@ const CONSENT_LABEL = /Eu li e concordo/;
 const FAILURE = "Não foi possível registrar o aceite. Tente novamente.";
 
 function pendingUser(role: UserRole): UsuarioAutenticado {
-  return { id: "1", nome: "Ana", email: "ana@example.com", role, termosPendentes: true };
+  return { id: "1", nome: "Ana", email: "ana@example.com", role, termosPendentes: true, modoDemonstracao: false };
 }
 
 function setAuth(user: UsuarioAutenticado | null, error: string | null = null) {

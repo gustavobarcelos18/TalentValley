@@ -137,9 +137,10 @@ describe("RecruiterDashboardView", () => {
       expect(within(screen.getByRole("link", { name: /Maria Souza/ })).getByText(expected)).toBeTruthy();
     });
 
-    it("marks only the favorites with an RPV-verified main formation", async () => {
+    it("marks only the favorites with an RPV-verified formation", async () => {
       const verified = makeTalentListItem({
-        formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "IF Sudeste MG", rpvVerificado: true },
+        formacaoPrincipal: { tipo: "TECNICO", nome: "Informática", instituicao: "IF Sudeste MG", rpvVerificado: false },
+        rpvVerificado: true,
       });
       const unverified = makeTalentListItem({ id: "t2", slug: "joao-lima", nomeCompleto: "João Lima" });
       const withoutFormation = makeTalentListItem({ id: "t3", slug: "ana-reis", nomeCompleto: "Ana Reis", formacaoPrincipal: null });

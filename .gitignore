@@ -35,5 +35,6 @@ backend/TalentValley.Api/Database/*.db-wal
 *.db-shm
 *.db-wal
 
-# Local project brain (plans, reports, solved problems)
-.agents/brain/
+# Local project brain: only the plans are versioned on GitHub; the rest stays local
+.agents/brain/*
+!.agents/brain/plans/

@@ -12,7 +12,9 @@ import {
   makeAdminStudentDetail,
   makeEmptyAdminStudentDetail,
 } from "./adminDetailFixtures";
+import { makeTalentBusca } from "../recruiter/recruiterFixtures";
 import { deferred } from "./adminFixtures";
+import { stubMotionMedia } from "../auth/motion/motionMedia";
 
 vi.setConfig({ testTimeout: 15_000 });
 
@@ -142,8 +144,33 @@ describe("AdminStudentDetailView profile", () => {
     }
     expect(section("Currículo").getByText("Currículo não informado.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Abrir currículo" })).toBeNull();
-    const emptyLanguages = screen.getByRole("heading", { level: 2, name: "Idiomas e disponibilidade" }).closest("section");
-    expect(emptyLanguages?.textContent).toBe("Idiomas e disponibilidade");
+    expect(section("Idiomas").getByText("Nenhuma informação cadastrada.")).toBeTruthy();
+    expect(section("O que busca").getByText("Este talento ainda não informou o que busca.")).toBeTruthy();
+  });
+
+  it("shows what the student is looking for, including the PCD answers", async () => {
+    renderView(
+      makeAdminStudentDetail({
+        busca: makeTalentBusca({
+          status: "ABERTO_A_PROPOSTAS",
+          objetivo: "Estágio em desenvolvimento web",
+          areasInteresse: ["DesenvolvimentoFrontend"],
+          aceitaViajar: true,
+          categoriasCnh: ["B"],
+          pcd: { souPcd: true, interesseVagaPcd: true, tipos: ["AUDITIVA"] },
+        }),
+      }),
+    );
+    await findProfile();
+
+    const busca = section("O que busca");
+    expect(busca.getByText("Aberto a propostas")).toBeTruthy();
+    expect(busca.getByText("Estágio em desenvolvimento web")).toBeTruthy();
+    expect(busca.getByText("Desenvolvimento front-end")).toBeTruthy();
+    expect(busca.getByText("Aceita viajar a trabalho")).toBeTruthy();
+    expect(busca.getByText("CNH B")).toBeTruthy();
+    expect(busca.getByText("Pessoa com deficiência · auditiva")).toBeTruthy();
+    expect(busca.getByText("Interesse em vaga PCD")).toBeTruthy();
   });
 
   it("lists skills, languages, availability and work modes", async () => {
@@ -161,11 +188,11 @@ describe("AdminStudentDetailView profile", () => {
 
     expect(section("Competências").getByText("React")).toBeTruthy();
     expect(section("Competências").getByText("C#")).toBeTruthy();
-    const languages = section("Idiomas e disponibilidade");
-    expect(languages.getByText("Inglês · Intermediário")).toBeTruthy();
-    expect(languages.getByText("Estágio")).toBeTruthy();
-    expect(languages.getByText("CLT")).toBeTruthy();
-    expect(languages.getByText("Híbrido")).toBeTruthy();
+    expect(section("Idiomas").getByText("Inglês · Intermediário")).toBeTruthy();
+    const busca = section("O que busca");
+    expect(busca.getByText("Estágio")).toBeTruthy();
+    expect(busca.getByText("CLT")).toBeTruthy();
+    expect(busca.getByText("Híbrido")).toBeTruthy();
   });
 
   it("lists experiences with and without a description", async () => {
@@ -526,5 +553,28 @@ describe("AdminStudentDetailView RPV validation removal", () => {
 
     pending.resolve();
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+});
+
+describe("AdminStudentDetailView RPV highlight", () => {
+  it("shows the light sweep when the main formation is verified", async () => {
+    stubMotionMedia("pointer");
+    renderView(makeAdminStudentDetail({ formacoes: [VERIFIED_FORMATION] }));
+    await findProfile();
+    expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("shows the light sweep when a formation that is not the main one is verified", async () => {
+    stubMotionMedia("pointer");
+    renderView(makeAdminStudentDetail({ formacoes: [makeAdminFormation({ principal: true }), { ...VERIFIED_FORMATION, principal: false }] }));
+    await findProfile();
+    expect(screen.getByTestId("rpv-shine")).toBeTruthy();
+  });
+
+  it("does not highlight a student without a verified formation", async () => {
+    stubMotionMedia("pointer");
+    renderView(makeAdminStudentDetail({ formacoes: [makeAdminFormation()] }));
+    await findProfile();
+    expect(screen.queryByTestId("rpv-shine")).toBeNull();
   });
 });

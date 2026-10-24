@@ -9,6 +9,7 @@ import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
 import UpdateOutlined from "@mui/icons-material/UpdateOutlined";
 import VerifiedOutlined from "@mui/icons-material/VerifiedOutlined";
 import PsychologyOutlined from "@mui/icons-material/PsychologyOutlined";
+import { AdminDemoCard } from "@/components/demo/AdminDemoCard";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StatCard } from "@/components/common/StatCard";
 import { SurfaceCard } from "@/components/common/SurfaceCard";
@@ -99,6 +100,7 @@ export function AdminDashboardView() {
           />
         )}
       </SurfaceCard>
+      <AdminDemoCard index={indicators.length + 1} />
     </Page>
   );
 }

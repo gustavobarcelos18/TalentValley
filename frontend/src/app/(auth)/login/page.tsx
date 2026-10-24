@@ -72,7 +72,9 @@ function LoginContent() {
   const lastErrorFocus = useRef<"email" | "senha" | null>(null);
 
   const returnUrl = searchParams.get("returnUrl");
-  const sessionExpired = searchParams.get("sessao") === "expirada";
+  const sessionParam = searchParams.get("sessao");
+  const sessionExpired = sessionParam === "expirada";
+  const demoEnded = sessionParam === "demo";
 
   // After a failed submit, move focus to the first invalid field or, for
   // submission errors, to the error summary. The sequence id re-runs the
@@ -155,6 +157,12 @@ function LoginContent() {
       {sessionExpired && !error && (
         <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
           Sua sessão expirou. Entre novamente para continuar.
+        </Alert>
+      )}
+
+      {demoEnded && !error && (
+        <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
+          A sessão de demonstração terminou. Entre novamente como Admin.
         </Alert>
       )}
 

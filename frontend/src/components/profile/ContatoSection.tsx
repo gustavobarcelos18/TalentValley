@@ -56,7 +56,7 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
               className="flex size-9 shrink-0 items-center justify-center"
               sx={(theme) => {
                 const { primary, surface } = (theme.vars ?? theme).palette;
-                return { color: primary.main, backgroundColor: surface.sunken, borderRadius: "10px" };
+                return { color: primary.main, backgroundColor: surface.sunken, borderRadius: "4px" };
               }}
             >
               {item.icon}

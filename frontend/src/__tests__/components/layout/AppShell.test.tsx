@@ -546,6 +546,36 @@ describe("AppShell", () => {
     });
   });
 
+  describe("demonstration session", () => {
+    function signInAsDemo(role: "ALUNO" | "RECRUTADOR") {
+      signIn(role);
+      mocks.auth.user = { ...mocks.auth.user!, modoDemonstracao: true };
+    }
+
+    it("shows the fixed demonstration notice with the way back to the administrator", () => {
+      signInAsDemo("RECRUTADOR");
+      renderShell();
+
+      expect(screen.getByRole("region", { name: "Modo demonstração" }).textContent).toContain("vendo como Recrutador");
+      expect(screen.getByRole("button", { name: "Voltar ao Admin" })).not.toBeNull();
+    });
+
+    it("does not show the notice to a regular session", () => {
+      renderShell();
+
+      expect(screen.queryByRole("region", { name: "Modo demonstração" })).toBeNull();
+    });
+
+    it("hides change-password from the account menu but keeps logout", async () => {
+      signInAsDemo("ALUNO");
+      renderShell();
+      const { menu } = await openAccountMenu();
+
+      expect(within(menu).queryByRole("menuitem", { name: "Alterar senha" })).toBeNull();
+      expect(within(menu).getByRole("menuitem", { name: "Sair" })).not.toBeNull();
+    });
+  });
+
   describe("logout from the account menu", () => {
     it("logs out, closes the menu and redirects to the login page", async () => {
       renderShell();

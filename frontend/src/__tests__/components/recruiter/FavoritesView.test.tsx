@@ -108,6 +108,14 @@ describe("FavoritesView", () => {
     expect(nav.router.replace).not.toHaveBeenCalled();
   });
 
+  it("always shows the notice about how the PCD information may be used", async () => {
+    fetchFavoritesMock.mockResolvedValue(favorites([ANA]));
+    renderView();
+
+    expect(await screen.findByRole("heading", { name: "Ana Lima" })).toBeTruthy();
+    expect(screen.getByText(/Use-a somente para encontrar e contatar alunos/)).toBeTruthy();
+  });
+
   it("shows the empty state with a link to explore talents", async () => {
     fetchFavoritesMock.mockResolvedValue(favorites([]));
     renderView();

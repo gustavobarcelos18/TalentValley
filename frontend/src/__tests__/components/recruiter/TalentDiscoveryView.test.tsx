@@ -262,6 +262,16 @@ describe("TalentDiscoveryView", () => {
       chips.forEach((label) => expect(activeFilters().getByText(label)).toBeTruthy());
     });
 
+    it("counts and names the 'what the student is looking for' criteria", async () => {
+      await renderLoaded([MARIA], [
+        "statusBusca=NAO_BUSCANDO", "areasInteresse=DevOps", "aceitaViajar=true", "aceitaMudarDeCidade=true",
+        "categoriasCnh=B", "interesseVagaPcd=true",
+      ].join("&"));
+      expect(filterButtons().map((button) => button.textContent)).toEqual(["Filtros (6)", "Filtros (6)"]);
+      ["Não está buscando agora", "DevOps", "Aceita viajar a trabalho", "Aceita mudar de cidade", "CNH B", "Interesse em vaga PCD"]
+        .forEach((label) => expect(activeFilters().getByText(label)).toBeTruthy());
+    });
+
     it("uses the competency id as label until the catalog loads", async () => {
       const catalog = deferred<CatalogoCompetenciaResponse[]>();
       mocks.fetchRecruiterCompetencies.mockReturnValue(catalog.promise);
@@ -284,6 +294,21 @@ describe("TalentDiscoveryView", () => {
       expect(screen.getByText("Filtros ativos:")).toBeTruthy();
       await user.click(screen.getByRole("button", { name: CLEAR_FILTERS }));
       expect(mocks.push).toHaveBeenCalledWith(PATHNAME);
+    });
+  });
+
+  describe("PCD notice", () => {
+    const NOTICE = /Use-a somente para encontrar e contatar alunos/;
+
+    it("is always shown above the list, even when no card carries a PCD label", async () => {
+      await renderLoaded([MARIA, JOAO]);
+      expect(screen.getByText(NOTICE)).toBeTruthy();
+    });
+
+    it("is shown while the talents are still loading", () => {
+      mocks.fetchTalents.mockReturnValue(new Promise(() => {}));
+      renderView();
+      expect(screen.getByText(NOTICE)).toBeTruthy();
     });
   });
 

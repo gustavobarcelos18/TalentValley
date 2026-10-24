@@ -62,7 +62,8 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
             .Skip((request.Page - 1) * 10).Take(10)
             .Select(x => new AlunoListItem(x.UserId, x.Slug, x.User.NomeCompleto,
                 x.FotoStorageKey == null ? null : "/api/admin/alunos/" + x.UserId + "/foto",
-                x.Cidade, x.Uf, x.Ativo, x.AtualizadoEm)).ToListAsync();
+                x.Cidade, x.Uf, x.Ativo, x.AtualizadoEm,
+                x.Formacoes.Any(f => f.EhRioPombaValley && f.StatusValidacaoRpv == StatusValidacaoRpv.VERIFICADO))).ToListAsync();
         return new(items, request.Page, 10, total, (int)Math.Ceiling(total / 10d));
     }
 
@@ -102,6 +103,9 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
         .Include(x => x.Idiomas).ThenInclude(x => x.Idioma)
         .Include(x => x.Disponibilidades)
         .Include(x => x.Modalidades)
+        .Include(x => x.AreasInteresse)
+        .Include(x => x.CategoriasCnh)
+        .Include(x => x.TiposDeficiencia)
         .Include(x => x.Formacoes)
         .Include(x => x.Experiencias)
         .Include(x => x.Projetos).ThenInclude(x => x.Competencias).ThenInclude(x => x.Competencia);
@@ -131,6 +135,7 @@ public sealed class AdminAlunoService(AppDbContext database, AdminAccountService
             .Select(i => new AlunoIdiomaResponse(i.IdiomaId, i.Idioma.Nome, i.Nivel)).ToList(),
         x.Disponibilidades.OrderBy(d => d.Tipo).Select(d => d.Tipo).ToList(),
         x.Modalidades.OrderBy(m => m.Modalidade).Select(m => m.Modalidade).ToList(),
+        BuscaMapping.MapForRecruiter(x, DateTimeOffset.UtcNow),
         x.Formacoes.OrderByDescending(f => f.Principal).ThenByDescending(f => f.DataInicio).ThenBy(f => f.Id)
             .Select(f => new AdminFormacaoResponse(f.Id, f.Tipo, f.Nome, f.Instituicao, f.DataInicio, f.DataFim,
                 f.CargaHoraria, f.Status, f.Principal, f.EhRioPombaValley, f.StatusValidacaoRpv,

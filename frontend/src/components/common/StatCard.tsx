@@ -70,11 +70,11 @@ export function StatCard({ label, value, icon, attention = false, href, index = 
             aria-hidden="true"
             className="flex size-11 shrink-0 items-center justify-center"
             sx={(theme) => {
-              const tone = (theme.vars ?? theme).palette[attention ? "warning" : "primary"].main;
+              const { vivid, warning } = (theme.vars ?? theme).palette;
               return {
                 borderRadius: 3,
-                color: tone,
-                backgroundColor: `color-mix(in srgb, ${tone} 14%, transparent)`,
+                color: attention ? warning.contrastText : vivid.contrastText,
+                backgroundColor: attention ? warning.main : vivid.main,
                 opacity: quiet ? 0.6 : 1,
               };
             }}

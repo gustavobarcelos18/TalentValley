@@ -1,7 +1,7 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminDashboardView } from "@/components/admin/AdminDashboardView";
 import { adminApi } from "@/lib/admin";
 import { ApiError } from "@/lib/api";
@@ -11,9 +11,8 @@ import { deferred, makeAdminDashboard } from "./adminFixtures";
 vi.setConfig({ testTimeout: 15_000 });
 
 vi.mock("@/lib/admin", () => ({
-  adminApi: { dashboard: vi.fn() },
+  adminApi: { dashboard: vi.fn(), demoState: vi.fn() },
 }));
-
 const dashboardMock = vi.mocked(adminApi.dashboard);
 
 const LOAD_FALLBACK = "Não foi possível carregar os dados.";
@@ -26,8 +25,18 @@ function cardFor(label: string): HTMLElement {
   return card;
 }
 
+const demoStateMock = vi.mocked(adminApi.demoState);
+
+function demoIsOff() {
+  demoStateMock.mockResolvedValue({ habilitado: false, preparado: false });
+}
+
+beforeEach(demoIsOff);
+
 afterEach(() => {
   vi.resetAllMocks();
+  // The card mounts once the dashboard has loaded, which can be after the test ended: it must still find an answer.
+  demoIsOff();
 });
 
 describe("AdminDashboardView", () => {
@@ -131,6 +140,23 @@ describe("AdminDashboardView", () => {
     for (const href of ["/admin/solicitacoes", "/admin/alunos", "/admin/recrutadores", "/admin/validacoes-rpv"]) {
       expect(hrefs).toContain(href);
     }
+  });
+
+  it("shows nothing about the demonstration while it is off on the server", async () => {
+    dashboardMock.mockResolvedValue(makeAdminDashboard());
+    render(<AdminDashboardView />);
+    await screen.findByText(ACTIVE_STUDENTS);
+
+    await waitFor(() => expect(demoStateMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("heading", { name: "Demonstração" })).toBeNull();
+  });
+
+  it("shows the demonstration card when it is on on the server", async () => {
+    demoStateMock.mockResolvedValue({ habilitado: true, preparado: false });
+    dashboardMock.mockResolvedValue(makeAdminDashboard());
+    render(<AdminDashboardView />);
+
+    expect(await screen.findByRole("heading", { name: "Demonstração" })).toBeTruthy();
   });
 
   it("shows the API error message and retries", async () => {

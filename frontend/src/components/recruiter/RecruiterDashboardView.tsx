@@ -41,7 +41,7 @@ function RecentFavorites({ loading, favorites }: { loading: boolean; favorites: 
                   <ProtectedTalentPhoto path={talento.fotoUrl} name={talento.nomeCompleto} size={48} />
                   <Box sx={{ minWidth: 0, flex: 1 }}><Typography sx={{ fontWeight: 650 }} noWrap>{talento.nomeCompleto}</Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>{[talento.cidade, talento.uf].filter(Boolean).join(" / ") || "Localização não informada"}</Typography></Box>
-                  {talento.formacaoPrincipal?.rpvVerificado && <Chip size="small" color="success" icon={<VerifiedOutlined />} label="RPV verificado" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
+                  {talento.rpvVerificado && <Chip size="small" color="success" icon={<VerifiedOutlined />} label="RPV verificado" sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
                   <ArrowForwardOutlined color="action" />
                 </Stack>
               ))}

@@ -50,12 +50,13 @@ public sealed class RecrutadorListQuery
 public sealed record PaginatedResponse<T>(IReadOnlyCollection<T> Items, int Page, int PageSize, int TotalItems, int TotalPages);
 public sealed record AlunoCreatedResponse(Guid Id, string NomeCompleto, string Email, bool Ativo, bool ActivationSent);
 public sealed record AlunoListItem(Guid Id, string Slug, string NomeCompleto, string? FotoUrl,
-    string? Cidade, string? Uf, bool Ativo, DateTimeOffset AtualizadoEm);
+    string? Cidade, string? Uf, bool Ativo, DateTimeOffset AtualizadoEm, bool RpvVerificado);
 public sealed record AdminAlunoDetailResponse(
     Guid Id, string Slug, string NomeCompleto, bool Ativo, string? FotoUrl, string? Cidade, string? Uf,
     ContatoResponse Contato, string? Bio, IReadOnlyCollection<CompetenciaResponse> Competencias,
     IReadOnlyCollection<AlunoIdiomaResponse> Idiomas, IReadOnlyCollection<TipoDisponibilidade> Disponibilidades,
-    IReadOnlyCollection<ModalidadeTrabalho> Modalidades, IReadOnlyCollection<AdminFormacaoResponse> Formacoes,
+    IReadOnlyCollection<ModalidadeTrabalho> Modalidades, TalentBuscaResponse Busca,
+    IReadOnlyCollection<AdminFormacaoResponse> Formacoes,
     IReadOnlyCollection<ExperienciaResponse> Experiencias, IReadOnlyCollection<ProjetoResponse> Projetos,
     AdminCurriculoResponse Curriculo, DateTimeOffset AtualizadoEm);
 public sealed record AdminFormacaoResponse(Guid Id, TipoFormacao Tipo, string Nome, string Instituicao,

@@ -36,8 +36,9 @@ Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`. Lowerca
 |---|---|---|
 | Plan with a single phase | `<type>/<short-description>` | `feat/talent-filter-by-city` |
 | Plan split into phases | `<type>/<scope>-phase-<n>-<short-slug>` | `feat/recruiter-phase-2-talent-filters` |
+| PR group (several phases, one pull request) | `<type>/<scope>-phases-<first>-<last>-<short-slug>` | `feat/ux-aluno-phases-1-3-profile` |
 
-Each phase of a plan has its own branch, created from an up-to-date `origin/main` (`talent-valley-phased-delivery` section 2). If a phase needs code from a previous phase that is not in `main` yet, stop and ask.
+Each phase of a plan has its own branch, created from an up-to-date `origin/main` (`talent-valley-phased-delivery` section 2). The phases of a PR group share one branch. Only frontend-only phases with no migration and no authentication change may be grouped, and only when the approved plan says so. If a phase needs code from a previous phase that is not in `main` yet, stop and ask (phases of the same group are the exception).
 
 ## 3. Database migrations (one per pull request)
 
@@ -68,7 +69,7 @@ Then fix every finding on the same branch, re-run the checks, and ask for the re
 
 After the person approves the phase report (`talent-valley-phased-delivery` section 4 step 5):
 
-1. Commit on the phase branch using Conventional Commits (`feat: ...`, `fix: ...`, `docs: ...`), matching the repository history. Add only the files of the phase.
+1. Commit on the phase branch using Conventional Commits (`feat: ...`, `fix: ...`, `docs: ...`), matching the repository history. Add only the files of the phase. In a PR group, commit each phase after its approval, but do steps 2 to 6 only after the **last** phase of the group is approved.
 2. `git push -u origin <branch>`. Never push to `main`.
 3. Open a pull request **to `main`**. If the tool cannot open it, give the person the branch name and ask them to open it on GitHub, then wait.
 4. The pull request description states: what changed and why, which files, which migration (if any), and which checks ran with their real results.

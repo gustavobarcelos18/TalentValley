@@ -9,7 +9,7 @@ export interface AuthMock {
 }
 
 export function userWith(role: UserRole): UsuarioAutenticado {
-  return { id: "1", nome: "Ana", email: "ana@example.com", role, termosPendentes: false };
+  return { id: "1", nome: "Ana", email: "ana@example.com", role, termosPendentes: false, modoDemonstracao: false };
 }
 
 export function buildAuth(partial: Partial<AuthMock>): AuthMock {

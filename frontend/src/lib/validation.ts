@@ -176,6 +176,13 @@ export function sanitizeBio(value: string): string {
   return stripEmoji(value).slice(0, 1500);
 }
 
+export const OBJETIVO_MAX_LENGTH = 280;
+
+/** Professional goal is a single paragraph: no emoji and no control characters, line breaks included (the backend refuses them). */
+export function sanitizeObjetivo(value: string): string {
+  return stripEmoji(value).replace(/\p{Cc}+/gu, " ").slice(0, OBJETIVO_MAX_LENGTH);
+}
+
 /**
  * Paste guard: strips emoji characters from clipboard content before they
  * enter the field. If the pasted text contains no emoji, the paste proceeds

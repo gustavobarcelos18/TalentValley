@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api";
 import { addFavorite, fetchTalent, removeFavorite } from "@/lib/recruiter";
 import type { TalentProfile } from "@/types/recruiter";
 import { stubMotionMedia } from "../auth/motion/motionMedia";
-import { makeFormation, makeTalentProfile } from "./recruiterFixtures";
+import { makeFormation, makeTalentBusca, makeTalentProfile } from "./recruiterFixtures";
 import { renderThemed as render } from "./renderThemed";
 
 vi.mock("@/hooks/useProtectedFile", () => ({
@@ -109,6 +109,13 @@ describe("TalentPreviewDialog", () => {
     expect(within(screen.getByRole("dialog")).getByTestId("rpv-shine")).toBeTruthy();
   });
 
+  it("highlights the header when a formation that is not the main one is verified", async () => {
+    stubMotionMedia("pointer");
+    await renderLoaded(makeTalentProfile({ formacoes: [makeFormation(), makeFormation({ id: "f-2", principal: false, rpvVerificado: true })] }));
+
+    expect(within(screen.getByRole("dialog")).getByTestId("rpv-shine")).toBeTruthy();
+  });
+
   it("does not highlight the header without a verified formation", async () => {
     stubMotionMedia("pointer");
     await renderLoaded(makeTalentProfile({ formacoes: [makeFormation({ rpvVerificado: false })] }));
@@ -151,14 +158,43 @@ describe("TalentPreviewDialog", () => {
     expect(screen.queryByText("Sobre")).toBeNull();
     expect(screen.queryByText("Formação principal")).toBeNull();
     expect(screen.getByText("Nenhuma competência informada.")).toBeTruthy();
-    expect(screen.getByText("Não informado.")).toBeTruthy();
+    expect(screen.getByText("Este talento ainda não informou o que busca.")).toBeTruthy();
   });
 
   it("shows availability when only modalities are present", async () => {
     await renderLoaded(makeTalentProfile({ disponibilidades: [], modalidades: ["HIBRIDO"] }));
 
     expect(screen.getByText("Híbrido")).toBeTruthy();
-    expect(screen.queryByText("Não informado.")).toBeNull();
+    expect(screen.queryByText("Este talento ainda não informou o que busca.")).toBeNull();
+  });
+
+  it("shows what the student is looking for, with the PCD notice only when PCD data is shared", async () => {
+    await renderLoaded(
+      makeTalentProfile({
+        busca: makeTalentBusca({
+          status: "BUSCANDO_ATIVAMENTE",
+          objetivo: "Primeiro estágio",
+          areasInteresse: ["DevOps"],
+          cargaHoraria: "ATE_30H",
+          disponivelImediatamente: true,
+          pcd: { souPcd: true, interesseVagaPcd: true, tipos: ["FISICA"] },
+        }),
+      }),
+    );
+
+    expect(screen.getByText("Buscando ativamente")).toBeTruthy();
+    expect(screen.getByText("Primeiro estágio")).toBeTruthy();
+    expect(screen.getByText("DevOps")).toBeTruthy();
+    expect(screen.getByText("Até 30 horas por semana")).toBeTruthy();
+    expect(screen.getByText("Imediato")).toBeTruthy();
+    expect(screen.getByText("Pessoa com deficiência · física")).toBeTruthy();
+    expect(screen.getByText(/Use-a somente para encontrar e contatar alunos/)).toBeTruthy();
+  });
+
+  it("does not show the PCD notice when there is no PCD data", async () => {
+    await renderLoaded(makeTalentProfile({ busca: makeTalentBusca({ status: "ABERTO_A_PROPOSTAS" }) }));
+
+    expect(screen.queryByText(/Use-a somente para encontrar e contatar alunos/)).toBeNull();
   });
 
   it("limits the previewed competencies to eight", async () => {

@@ -5,6 +5,51 @@ export type TipoDisponibilidade = "ESTAGIO" | "CLT" | "PJ" | "FREELANCER" | "TRA
 
 export type ModalidadeTrabalho = "PRESENCIAL" | "HIBRIDO" | "REMOTO";
 
+export type StatusBusca = "BUSCANDO_ATIVAMENTE" | "ABERTO_A_PROPOSTAS" | "NAO_BUSCANDO";
+
+export type CargaHorariaSemanal = "ATE_20H" | "ATE_30H" | "ATE_40H";
+
+export type CategoriaCnh = "A" | "B" | "C" | "D" | "E";
+
+export type TipoDeficiencia = "FISICA" | "VISUAL" | "AUDITIVA" | "INTELECTUAL" | "MULTIPLA" | "TEA" | "OUTRA";
+
+export type AreaInteresse =
+  | "DesenvolvimentoBackend"
+  | "DesenvolvimentoFrontend"
+  | "DesenvolvimentoFullStack"
+  | "DesenvolvimentoMobile"
+  | "DesenvolvimentoJogos"
+  | "DadosAnalytics"
+  | "CienciaDadosIa"
+  | "BancoDeDados"
+  | "InfraestruturaNuvem"
+  | "DevOps"
+  | "SegurancaInformacao"
+  | "TestesQualidadeQa"
+  | "SuporteTecnico"
+  | "Redes"
+  | "AutomacaoIot"
+  | "GestaoProjetos"
+  | "Agilidade"
+  | "GestaoProduto"
+  | "AnaliseNegociosRequisitos"
+  | "ProcessosQualidade"
+  | "Inovacao"
+  | "EmpreendedorismoStartups"
+  | "Administracao"
+  | "FinancasContabilidade"
+  | "VendasComercial"
+  | "AtendimentoSucessoCliente"
+  | "PessoasRh"
+  | "LogisticaOperacoes"
+  | "ComprasSuprimentos"
+  | "MarketingDigital"
+  | "DesignInterfacesUiUx"
+  | "DesignGrafico"
+  | "ProducaoConteudoRedacao"
+  | "MidiasSociais"
+  | "Audiovisual";
+
 export type NivelIdioma = "BASICO" | "INTERMEDIARIO" | "AVANCADO" | "FLUENTE" | "NATIVO";
 
 // Trajectory enums are only used to type GET /api/alunos/me fully; their sections
@@ -160,6 +205,30 @@ export interface TrajetoriaItemResponse {
   experiencia: ExperienciaResponse | null;
 }
 
+export interface PcdResponse {
+  souPcd: boolean;
+  interesseVagaPcd: boolean;
+  tipos: TipoDeficiencia[];
+  consentimentoEm: string | null;
+}
+
+// "O que eu busco". statusDesatualizado is computed by the backend (not confirmed for over 30 days).
+export interface BuscaResponse {
+  status: StatusBusca | null;
+  statusConfirmadoEm: string | null;
+  statusDesatualizado: boolean;
+  objetivo: string | null;
+  areasInteresse: AreaInteresse[];
+  disponivelImediatamente: boolean;
+  disponivelAPartirDe: string | null;
+  cargaHoraria: CargaHorariaSemanal | null;
+  aceitaViajar: boolean;
+  aceitaMudarDeCidade: boolean;
+  categoriasCnh: CategoriaCnh[];
+  possuiVeiculoProprio: boolean;
+  pcd: PcdResponse;
+}
+
 export interface MeResponse {
   id: string;
   slug: string;
@@ -170,6 +239,7 @@ export interface MeResponse {
   idiomas: AlunoIdiomaResponse[];
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
+  busca: BuscaResponse;
   formacoes: FormacaoResponse[];
   experiencias: ExperienciaResponse[];
   projetos: ProjetoResponse[];
@@ -208,7 +278,22 @@ export interface UpdateIdiomasRequest {
   idiomas: ItemIdiomaRequest[];
 }
 
+// PUT /api/alunos/me/disponibilidade: the whole "O que eu busco" form, always a full replacement.
 export interface UpdateDisponibilidadeRequest {
   disponibilidades: TipoDisponibilidade[];
   modalidades: ModalidadeTrabalho[];
+  statusBusca: StatusBusca | null;
+  objetivoProfissional: string | null;
+  areasInteresse: AreaInteresse[];
+  disponivelImediatamente: boolean;
+  disponivelAPartirDe: string | null;
+  cargaHorariaSemanal: CargaHorariaSemanal | null;
+  aceitaViajar: boolean;
+  aceitaMudarDeCidade: boolean;
+  categoriasCnh: CategoriaCnh[];
+  possuiVeiculoProprio: boolean;
+  souPcd: boolean;
+  interesseVagaPcd: boolean;
+  tiposDeficiencia: TipoDeficiencia[];
+  consentimentoPcd: boolean;
 }

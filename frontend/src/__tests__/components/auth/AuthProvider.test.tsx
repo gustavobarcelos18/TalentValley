@@ -18,8 +18,8 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   setTermsPendingHandler: vi.fn(),
 }));
 
-const ANA: UsuarioAutenticado = { id: "1", nome: "Ana", email: "ana@example.com", role: "ALUNO", termosPendentes: false };
-const BIA: UsuarioAutenticado = { id: "2", nome: "Bia", email: "bia@example.com", role: "RECRUTADOR", termosPendentes: false };
+const ANA: UsuarioAutenticado = { id: "1", nome: "Ana", email: "ana@example.com", role: "ALUNO", termosPendentes: false, modoDemonstracao: false };
+const BIA: UsuarioAutenticado = { id: "2", nome: "Bia", email: "bia@example.com", role: "RECRUTADOR", termosPendentes: false, modoDemonstracao: false };
 const SESSION_ERROR = "Não foi possível verificar sua sessão. Tente novamente.";
 const EXPIRED_LOGIN = "/login?sessao=expirada";
 
@@ -246,6 +246,17 @@ describe("AuthProvider", () => {
       expect(refreshCsrfToken).toHaveBeenCalledTimes(1);
       expect(router.replace).toHaveBeenCalledTimes(1);
       expect(router.replace).toHaveBeenCalledWith(EXPIRED_LOGIN);
+    });
+
+    it("sends a demonstration session to the login with its own notice", async () => {
+      vi.mocked(fetchCurrentUser).mockResolvedValue({ ...ANA, modoDemonstracao: true });
+      const { result } = await renderSettled();
+
+      act(() => registeredHandler()());
+
+      expect(result.current.user).toBeNull();
+      expect(router.replace).toHaveBeenCalledTimes(1);
+      expect(router.replace).toHaveBeenCalledWith("/login?sessao=demo");
     });
 
     it("handles a session that was opened by loginCompleted", async () => {

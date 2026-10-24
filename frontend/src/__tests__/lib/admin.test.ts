@@ -21,6 +21,7 @@ describe("adminApi reads", () => {
     ["validations", () => adminApi.validations(3), "/api/admin/validacoes-rpv?page=3"],
     ["validation", () => adminApi.validation(ID), `/api/admin/validacoes-rpv/${ID}`],
     ["audit", () => adminApi.audit(2), "/api/admin/auditoria?page=2"],
+    ["demoState", () => adminApi.demoState(), "/api/admin/demo/estado"],
   ])("%s requests the expected path", (_name, call, path) => {
     call();
 
@@ -60,6 +61,8 @@ describe("adminApi mutations", () => {
     ["recruiterAction", () => adminApi.recruiterAction(ID, "reativar"), "POST", `/api/admin/recrutadores/${ID}/reativar`, undefined],
     ["resendActivation", () => adminApi.resendActivation(ID), "POST", `/api/admin/usuarios/${ID}/reenviar-ativacao`, undefined],
     ["validationAction", () => adminApi.validationAction(ID, "remover-validacao"), "POST", `/api/admin/validacoes-rpv/${ID}/remover-validacao`, undefined],
+    ["prepareDemo", () => adminApi.prepareDemo(), "POST", "/api/admin/demo/preparar", undefined],
+    ["restoreDemo", () => adminApi.restoreDemo(), "POST", "/api/admin/demo/restaurar", undefined],
   ])("%s", (_name, call, method, path, body) => {
     call();
 

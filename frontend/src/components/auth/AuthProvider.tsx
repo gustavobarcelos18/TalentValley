@@ -51,10 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       if (!userRef.current) return;
+      // A demonstration session also ends when the demo accounts are restored, so it gets its own notice.
+      const reason = userRef.current.modoDemonstracao ? "demo" : "expirada";
       userRef.current = null;
       setState({ user: null, loading: false, error: null });
       void refreshCsrfToken();
-      router.replace("/login?sessao=expirada");
+      router.replace(`/login?sessao=${reason}`);
     });
     return () => setUnauthorizedHandler(null);
   }, [router]);
