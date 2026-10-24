@@ -21,15 +21,26 @@ public sealed class AlunoProfileAvailabilityTests : IDisposable
         return client;
     }
 
+    // The yes/no fields are required by the API, so every payload sends them (all false here).
+    private static object Payload(string[] disponibilidades, string[] modalidades) => new
+    {
+        disponibilidades,
+        modalidades,
+        disponivelImediatamente = false,
+        aceitaViajar = false,
+        aceitaMudarDeCidade = false,
+        possuiVeiculoProprio = false,
+        souPcd = false,
+        interesseVagaPcd = false,
+        consentimentoPcd = false
+    };
+
     [Fact]
     public async Task UpdateDisponibilidade_full_replacement_works()
     {
         using var client = await StudentClientAsync();
-        var response = await client.PutAsJsonAsync("/api/alunos/me/disponibilidade", new
-        {
-            disponibilidades = new[] { "ESTAGIO", "CLT" },
-            modalidades = new[] { "REMOTO", "HIBRIDO" }
-        });
+        var response = await client.PutAsJsonAsync("/api/alunos/me/disponibilidade",
+            Payload(["ESTAGIO", "CLT"], ["REMOTO", "HIBRIDO"]));
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         var profile = await client.GetFromJsonAsync<MeResponse>("/api/alunos/me", ApiFactory.JsonOptions);
@@ -41,11 +52,8 @@ public sealed class AlunoProfileAvailabilityTests : IDisposable
     public async Task UpdateDisponibilidade_invalid_enum_returns_400()
     {
         using var client = await StudentClientAsync();
-        var response = await client.PutAsJsonAsync("/api/alunos/me/disponibilidade", new
-        {
-            disponibilidades = new[] { "INVALID" },
-            modalidades = new[] { "REMOTO" }
-        });
+        var response = await client.PutAsJsonAsync("/api/alunos/me/disponibilidade",
+            Payload(["INVALID"], ["REMOTO"]));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -53,11 +61,7 @@ public sealed class AlunoProfileAvailabilityTests : IDisposable
     public async Task UpdateDisponibilidade_idempotent_request()
     {
         using var client = await StudentClientAsync();
-        var payload = new
-        {
-            disponibilidades = new[] { "PJ", "FREELANCER" },
-            modalidades = new[] { "PRESENCIAL" }
-        };
+        var payload = Payload(["PJ", "FREELANCER"], ["PRESENCIAL"]);
         await client.PutAsJsonAsync("/api/alunos/me/disponibilidade", payload);
         var response = await client.PutAsJsonAsync("/api/alunos/me/disponibilidade", payload);
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);

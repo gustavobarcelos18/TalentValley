@@ -353,7 +353,7 @@ public sealed class AlunoProfileSearchTests : IDisposable
     }
 
     [Fact]
-    public async Task Old_two_field_payload_still_works_but_clears_the_new_fields()
+    public async Task Old_two_field_payload_is_rejected_and_keeps_the_saved_search()
     {
         using var client = await StudentClientAsync();
         await SaveAsync(client, Form());
@@ -363,15 +363,31 @@ public sealed class AlunoProfileSearchTests : IDisposable
             disponibilidades = new[] { "CLT" },
             modalidades = new[] { "HIBRIDO" }
         });
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         var busca = await BuscaAsync(client);
-        Assert.Null(busca.Status);
-        Assert.Null(busca.Objetivo);
-        Assert.Empty(busca.AreasInteresse);
-        Assert.Empty(busca.CategoriasCnh);
-        Assert.False(busca.AceitaViajar);
-        Assert.False(busca.PossuiVeiculoProprio);
+        Assert.NotNull(busca.Status);
+        Assert.NotNull(busca.Objetivo);
+        Assert.NotEmpty(busca.AreasInteresse);
+        Assert.NotEmpty(busca.CategoriasCnh);
+        Assert.True(busca.AceitaViajar);
+        Assert.True(busca.PossuiVeiculoProprio);
+    }
+
+    [Theory]
+    [InlineData("disponivelImediatamente")]
+    [InlineData("aceitaViajar")]
+    [InlineData("aceitaMudarDeCidade")]
+    [InlineData("possuiVeiculoProprio")]
+    [InlineData("souPcd")]
+    [InlineData("interesseVagaPcd")]
+    [InlineData("consentimentoPcd")]
+    public async Task Payload_without_a_required_yes_no_field_is_rejected(string field)
+    {
+        using var client = await StudentClientAsync();
+        Assert.Equal(HttpStatusCode.NoContent, (await SaveAsync(client, Form())).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await SaveAsync(client, Form(f => f.Remove(field)))).StatusCode);
     }
 
     [Fact]
