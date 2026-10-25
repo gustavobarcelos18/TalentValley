@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Stack, TextField, Typography } from "@mui/material";
+import { Stack, TextField } from "@mui/material";
 import { CityStateFields } from "@/components/registration/CityStateFields";
 import { getApiErrorMessage } from "@/lib/api";
 import {
@@ -16,46 +16,6 @@ import {
 import { updateDadosBasicos } from "@/lib/student";
 import type { DadosBasicosResponse } from "@/types/student";
 import { FormDialog } from "./FormDialog";
-import { SectionCard } from "./SectionCard";
-import type { SectionProps } from "./sectionProps";
-
-export function DadosBasicosSection({
-  profile,
-  onChanged,
-  notify,
-}: SectionProps) {
-  const [open, setOpen] = useState(false);
-  const dados = profile.dadosBasicos;
-
-  return (
-    <SectionCard
-      title="Dados básicos"
-      editLabel="Editar dados básicos"
-      onEdit={() => setOpen(true)}
-    >
-      <Stack spacing={0.5}>
-        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-          {dados.nomeCompleto}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {[dados.cidade, dados.uf].filter(Boolean).join(" - ") ||
-            "Localização não informada"}
-        </Typography>
-      </Stack>
-      {open && (
-        <DadosBasicosForm
-          dados={dados}
-          onClose={() => setOpen(false)}
-          onSaved={() => {
-            setOpen(false);
-            onChanged();
-            notify("Dados básicos atualizados.");
-          }}
-        />
-      )}
-    </SectionCard>
-  );
-}
 
 interface DadosBasicosFormProps {
   dados: DadosBasicosResponse;
@@ -63,7 +23,8 @@ interface DadosBasicosFormProps {
   onSaved: () => void;
 }
 
-function DadosBasicosForm({ dados, onClose, onSaved }: DadosBasicosFormProps) {
+// Name and location dialog, opened by the "Editar" button of the profile header.
+export function DadosBasicosForm({ dados, onClose, onSaved }: Readonly<DadosBasicosFormProps>) {
   const [nome, setNome] = useState(() =>
     sanitizePersonName(dados.nomeCompleto),
   );

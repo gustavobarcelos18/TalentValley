@@ -27,6 +27,7 @@ export function PublicHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState("hero");
+  const headerElement = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const dark = (mode === "system" ? systemMode : mode) !== "light";
 
@@ -68,7 +69,20 @@ export function PublicHeader() {
     return () => { observer?.disconnect(); window.removeEventListener("resize", observe); };
   }, []);
 
-  return <header className={`landing-header ${scrolled || menuOpen ? "is-elevated" : ""}`} onKeyDown={event => { if (event.key === "Escape" && menuOpen) { setMenuOpen(false); menuButton.current?.focus(); } }}>
+  // Escape closes the open menu from anywhere inside the header and returns focus to the toggle.
+  useEffect(() => {
+    const header = headerElement.current;
+    if (!header || !menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    header.addEventListener("keydown", onKeyDown);
+    return () => header.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
+  return <header ref={headerElement} className={`landing-header ${scrolled || menuOpen ? "is-elevated" : ""}`}>
       <div className="nav-inner entrance" style={entrance(0.08)}>
         <Link href="#hero" className="brand-link" aria-label="Talent Valley — início" onClick={() => setMenuOpen(false)}><Brand /></Link>
         <nav id="public-navigation" aria-label="Navegação principal" className={`public-nav ${menuOpen ? "is-open" : ""}`}>

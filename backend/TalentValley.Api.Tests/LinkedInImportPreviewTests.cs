@@ -516,12 +516,14 @@ public sealed class LinkedInImportPreviewTests : IDisposable
         await Post(client, "/api/alunos/me/formacoes", new
         {
             tipo = "TECNICO", nome = "Técnico em Informática", instituicao = "Instituto Exemplo",
-            dataInicio = "2021-02-10", dataFim = "2024-12-01", status = "CONCLUIDO"
+            dataInicio = "2021-02-10", dataFim = "2024-12-01", status = "CONCLUIDO",
+            principal = false, ehRioPombaValley = false
         });
         await Post(client, "/api/alunos/me/formacoes", new
         {
             tipo = "CURSO_LIVRE", nome = "Curso de Excel", instituicao = "Escola Fictícia",
-            dataInicio = "2023-03-20", dataFim = "2023-03-20", status = "CONCLUIDO"
+            dataInicio = "2023-03-20", dataFim = "2023-03-20", status = "CONCLUIDO",
+            principal = false, ehRioPombaValley = false
         });
         await Post(client, "/api/alunos/me/projetos", new
         {

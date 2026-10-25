@@ -6,17 +6,16 @@ Login → `/meu-perfil`.
 
 No student dashboard in MVP.
 
-Single profile page with sections:
-- header/photo/name/location;
-- About;
-- Contact;
-- Formation and certifications;
-- Experience;
-- Competencies;
-- Languages;
-- Availability;
-- Projects;
-- CV.
+Single profile page: a header, then the sections in three titled blocks, with an index to jump between them.
+
+Header: photo, name, city/UF, last update, and one "Editar" button for name and location (the only place where they are edited).
+
+Blocks and sections, in this order:
+- Presentation: About; Contact;
+- Formation and experience: Trajectory (formation, certificates and experience); Competencies; Languages;
+- For recruiters: What I am looking for; Projects; CV.
+
+Index: a sticky side list on very wide screens (from `xl`), sticky chips under the top bar on smaller ones. Plain links to the section anchors (`secao-<id>`, see `profileSections.ts`), the visible section marked with `aria-current`.
 
 Edit each section using focused MUI dialogs/modals.
 

@@ -349,6 +349,27 @@ public sealed class StudentTrajectoryTests : IDisposable
         return request;
     }
 
+    [Theory]
+    [InlineData("formacoes", "principal")]
+    [InlineData("formacoes", "ehRioPombaValley")]
+    [InlineData("experiencias", "atual")]
+    [InlineData("projetos", "emAndamento")]
+    public async Task Request_without_a_required_yes_no_field_is_rejected(string section, string field)
+    {
+        var (client, _) = await StudentAsync();
+        using var ownerClient = client;
+        var request = Request(section);
+        if (field == "atual")
+        {
+            // Start from a valid past experience: without the field it would still be valid (atual defaults to false).
+            request["atual"] = false;
+            request["dataFim"] = "2025-06-01";
+        }
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(Root + section, request)).StatusCode);
+        request.Remove(field);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(Root + section, request)).StatusCode);
+    }
+
     [Fact]
     public async Task Experience_that_is_not_current_requires_end_date()
     {

@@ -177,6 +177,6 @@ app.UseMiddleware<ApiAntiforgeryMiddleware>();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 public partial class Program;

@@ -16,6 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import EditOutlined from "@mui/icons-material/EditOutlined";
 import PhotoCameraOutlined from "@mui/icons-material/PhotoCameraOutlined";
 import PlaceOutlined from "@mui/icons-material/PlaceOutlined";
 import { Reveal } from "@/components/common/Reveal";
@@ -29,6 +30,7 @@ import {
   uploadStudentPhoto,
 } from "@/lib/student";
 import { notifyPhotoChange } from "@/lib/photoSync";
+import { DadosBasicosForm } from "./DadosBasicosForm";
 import type { SectionProps } from "./sectionProps";
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -72,7 +74,8 @@ async function validatePhoto(file: File): Promise<string | null> {
 }
 
 // Profile header: protected photo (fetched with credentials and rendered as an
-// object URL), identity and last update. Photo upload/replace/remove live here.
+// object URL), identity and last update. Photo upload/replace/remove and the
+// edit of name and location live here.
 export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
   const dados = profile.dadosBasicos;
   const { url, loading, reload, error: loadError } = useProtectedFile(dados.fotoUrl);
@@ -80,6 +83,7 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function pickFile() {
@@ -221,6 +225,16 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
           <Typography variant="caption" color="text.secondary">
             Perfil atualizado em {formatUpdatedAt(profile.atualizadoEm)}
           </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setEditOpen(true)}
+            aria-label="Editar nome e localização"
+            startIcon={<EditOutlined />}
+            sx={{ alignSelf: { xs: "center", sm: "flex-start" } }}
+          >
+            Editar
+          </Button>
           {dados.fotoUrl && (
             <Button
               size="small"
@@ -256,6 +270,18 @@ export function ProfileHeader({ profile, onChanged, notify }: SectionProps) {
         hidden
         aria-label="Selecionar foto de perfil"
       />
+
+      {editOpen && (
+        <DadosBasicosForm
+          dados={dados}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false);
+            onChanged();
+            notify("Dados básicos atualizados.");
+          }}
+        />
+      )}
 
       <Dialog
         open={confirmOpen}

@@ -3,8 +3,9 @@ import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { municipioCache } from "@/components/registration/location";
 import { notifyPhotoChange } from "@/lib/photoSync";
-import { deleteStudentPhoto, uploadStudentPhoto } from "@/lib/student";
+import { deleteStudentPhoto, updateDadosBasicos, uploadStudentPhoto } from "@/lib/student";
 import { makeSectionProps } from "./profileFixtures";
 import { stubMotionMedia } from "../auth/motion/motionMedia";
 import type { FormacaoResponse } from "@/types/student";
@@ -30,6 +31,7 @@ vi.mock("@/hooks/useProtectedFile", () => ({
 vi.mock("@/lib/student", () => ({
   uploadStudentPhoto: vi.fn(),
   deleteStudentPhoto: vi.fn(),
+  updateDadosBasicos: vi.fn(),
 }));
 
 vi.mock("@/lib/photoSync", () => ({
@@ -163,6 +165,50 @@ describe("ProfileHeader", () => {
       withPhoto();
 
       expect(screen.getByRole("alert").textContent).toBe("Não foi possível carregar o arquivo.");
+    });
+  });
+
+  describe("editing name and location", () => {
+    const updateMock = vi.mocked(updateDadosBasicos);
+
+    beforeEach(() => {
+      municipioCache.clear();
+      municipioCache.set("MG", [{ id: 3153004, nome: "Rio Pomba" }]);
+    });
+
+    it("opens the basic data dialog, prefilled, from the Editar button", async () => {
+      renderHeader();
+
+      await userEvent.click(screen.getByRole("button", { name: "Editar nome e localização" }));
+
+      const dialog = await screen.findByRole("dialog", { name: "Editar dados básicos" });
+      expect((within(dialog).getByLabelText(/^Nome completo/) as HTMLInputElement).value).toBe("Maria Souza");
+    });
+
+    it("closes the dialog with Cancelar without saving", async () => {
+      renderHeader();
+      await userEvent.click(screen.getByRole("button", { name: "Editar nome e localização" }));
+      await screen.findByRole("dialog");
+
+      await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      expect(updateMock).not.toHaveBeenCalled();
+    });
+
+    it("saves, closes the dialog, refreshes the profile and notifies", async () => {
+      updateMock.mockResolvedValue(undefined);
+      const props = renderHeader();
+      await userEvent.click(screen.getByRole("button", { name: "Editar nome e localização" }));
+      await screen.findByRole("dialog");
+      fireEvent.change(screen.getByLabelText(/^Nome completo/), { target: { value: "Maria Souza Lima" } });
+
+      fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+      await waitFor(() => expect(props.notify).toHaveBeenCalledWith("Dados básicos atualizados."));
+      expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ nomeCompleto: "Maria Souza Lima" }));
+      expect(props.onChanged).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     });
   });
 

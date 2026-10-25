@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderThemed as render } from "../recruiter/renderThemed";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -36,7 +36,6 @@ const stubs = vi.hoisted(() => {
 });
 
 vi.mock("@/components/profile/ProfileHeader", () => ({ ProfileHeader: stubs.createStub("Header") }));
-vi.mock("@/components/profile/DadosBasicosSection", () => ({ DadosBasicosSection: stubs.createStub("DadosBasicos") }));
 vi.mock("@/components/profile/SobreSection", () => ({ SobreSection: stubs.createStub("Sobre") }));
 vi.mock("@/components/profile/ContatoSection", () => ({ ContatoSection: stubs.createStub("Contato") }));
 vi.mock("@/components/profile/TrajetoriaSection", () => ({ TrajetoriaSection: stubs.createStub("Trajetoria") }));
@@ -55,7 +54,6 @@ const refreshMock = vi.fn<() => Promise<void>>();
 
 const SECTION_ORDER = [
   "Header",
-  "DadosBasicos",
   "Sobre",
   "Contato",
   "Trajetoria",
@@ -81,6 +79,35 @@ function renderedSections(): string[] {
   return Array.from(document.querySelectorAll("section[data-profile-id]")).map(
     (node) => node.getAttribute("data-testid") ?? ""
   );
+}
+
+function getIndex(): HTMLElement {
+  return screen.getByRole("navigation", { name: "Seções do perfil" });
+}
+
+interface FakeObserver {
+  callback: IntersectionObserverCallback;
+  targets: Element[];
+}
+
+// jsdom has no IntersectionObserver: this one records what is observed and lets the test fire its callback.
+function stubIntersectionObserver(): FakeObserver {
+  const fake: FakeObserver = { callback: () => undefined, targets: [] };
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        fake.callback = callback;
+      }
+      observe(target: Element) {
+        fake.targets.push(target);
+      }
+      disconnect() {
+        fake.targets = [];
+      }
+    },
+  );
+  return fake;
 }
 
 describe("StudentProfile", () => {
@@ -174,6 +201,116 @@ describe("StudentProfile", () => {
       await userEvent.click(screen.getByRole("button", { name: RETRY_LABEL }));
 
       expect(refreshMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("blocks and index", () => {
+    const BLOCKS = [
+      ["Apresentação", ["Sobre", "Contato"]],
+      ["Formação e experiência", ["Trajetoria", "Competencias", "Idiomas"]],
+      ["Para os recrutadores", ["Disponibilidade", "Projetos", "Curriculo"]],
+    ] as const;
+    const ANCHORS = ["sobre", "contato", "trajetoria", "competencias", "idiomas", "busca", "projetos", "curriculo"];
+
+    beforeEach(() => {
+      mockHook({ profile: makeProfile(), loading: false, error: null });
+    });
+
+    it.each(BLOCKS)("groups the %s sections in one titled block", (title, names) => {
+      render(<StudentProfile />);
+
+      const block = screen.getByRole("group", { name: title });
+
+      expect(names.map((name) => within(block).getByTestId(name))).toHaveLength(names.length);
+      expect(within(block).getAllByTestId(/.+/)).toHaveLength(names.length);
+    });
+
+    it("keeps the header out of the blocks and no longer repeats the basic data card", () => {
+      render(<StudentProfile />);
+
+      expect(screen.queryByTestId("DadosBasicos")).toBeNull();
+      for (const group of screen.getAllByRole("group")) {
+        expect(within(group).queryByTestId("Header")).toBeNull();
+      }
+    });
+
+    it("gives each section an anchor and links to it from the index", () => {
+      render(<StudentProfile />);
+
+      const index = getIndex();
+      const hrefs = within(index).getAllByRole("link").map((link) => link.getAttribute("href"));
+
+      expect(hrefs).toEqual(ANCHORS.map((id) => `#secao-${id}`));
+      for (const id of ANCHORS) expect(document.getElementById(`secao-${id}`)).not.toBeNull();
+    });
+
+    it("names the search section 'O que eu busco' in the index", () => {
+      render(<StudentProfile />);
+
+      const index = getIndex();
+
+      expect(within(index).getByRole("link", { name: "O que eu busco" }).getAttribute("href")).toBe("#secao-busca");
+    });
+
+    it("marks the first section as the current one before any scroll", () => {
+      render(<StudentProfile />);
+
+      const index = getIndex();
+
+      expect(within(index).getByRole("link", { name: "Sobre" }).getAttribute("aria-current")).toBe("location");
+      expect(within(index).getAllByRole("link").filter((link) => link.hasAttribute("aria-current"))).toHaveLength(1);
+    });
+
+    it("marks the clicked section as the current one", async () => {
+      render(<StudentProfile />);
+      const index = getIndex();
+
+      await userEvent.click(within(index).getByRole("link", { name: "Projetos" }));
+
+      expect(within(index).getByRole("link", { name: "Projetos" }).getAttribute("aria-current")).toBe("location");
+      expect(within(index).getByRole("link", { name: "Sobre" }).hasAttribute("aria-current")).toBe(false);
+    });
+
+    describe("with scroll tracking", () => {
+      let observer: FakeObserver;
+
+      beforeEach(() => {
+        observer = stubIntersectionObserver();
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      function scrollInto(sectionId: string) {
+        const target = observer.targets.find((element) => element.id === `secao-${sectionId}`) as Element;
+        act(() => observer.callback([{ target, isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+      }
+
+      it("follows the section that crosses the reading band while scrolling", () => {
+        render(<StudentProfile />);
+        expect(observer.targets.map((target) => target.id)).toEqual(ANCHORS.map((id) => `secao-${id}`));
+
+        scrollInto("idiomas");
+
+        expect(within(getIndex()).getByRole("link", { name: "Idiomas" }).getAttribute("aria-current")).toBe("location");
+      });
+
+      it.each(["wheel", "touchmove", "pointerdown", "keydown"])(
+        "lets go of the clicked section on the first %s, so the index follows the reading again",
+        async (eventName) => {
+          render(<StudentProfile />);
+          await userEvent.click(within(getIndex()).getByRole("link", { name: "Projetos" }));
+          scrollInto("idiomas");
+          expect(within(getIndex()).getByRole("link", { name: "Projetos" }).getAttribute("aria-current")).toBe("location");
+
+          act(() => {
+            globalThis.dispatchEvent(new Event(eventName));
+          });
+
+          expect(within(getIndex()).getByRole("link", { name: "Idiomas" }).getAttribute("aria-current")).toBe("location");
+        },
+      );
     });
   });
 

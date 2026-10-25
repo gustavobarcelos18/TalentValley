@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (initialCheckDone.current) return;
     initialCheckDone.current = true;
 
-    refreshUser();
+    void refreshUser();
   }, [refreshUser]);
 
   const loginCompleted = useCallback((user: UsuarioAutenticado) => {

@@ -114,17 +114,17 @@ public sealed class UpdateDisponibilidadeRequest : IValidatableObject
     [StringLength(280, ErrorMessage = "O texto deve ter no máximo 280 caracteres."), NoEmoji, NoControlCharacters]
     public string? ObjetivoProfissional { get => objetivoProfissional; init => objetivoProfissional = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
     public IReadOnlyCollection<AreaInteresse> AreasInteresse { get; init; } = [];
-    public bool DisponivelImediatamente { get; init; }
+    [JsonRequired] public bool DisponivelImediatamente { get; init; }
     [DateYearRange] public DateOnly? DisponivelAPartirDe { get; init; }
     [EnumDataType(typeof(CargaHorariaSemanal))] public CargaHorariaSemanal? CargaHorariaSemanal { get; init; }
-    public bool AceitaViajar { get; init; }
-    public bool AceitaMudarDeCidade { get; init; }
+    [JsonRequired] public bool AceitaViajar { get; init; }
+    [JsonRequired] public bool AceitaMudarDeCidade { get; init; }
     public IReadOnlyCollection<CategoriaCnh> CategoriasCnh { get; init; } = [];
-    public bool PossuiVeiculoProprio { get; init; }
-    public bool SouPcd { get; init; }
-    public bool InteresseVagaPcd { get; init; }
+    [JsonRequired] public bool PossuiVeiculoProprio { get; init; }
+    [JsonRequired] public bool SouPcd { get; init; }
+    [JsonRequired] public bool InteresseVagaPcd { get; init; }
     public IReadOnlyCollection<TipoDeficiencia> TiposDeficiencia { get; init; } = [];
-    public bool ConsentimentoPcd { get; init; }
+    [JsonRequired] public bool ConsentimentoPcd { get; init; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

@@ -15,7 +15,7 @@ export function useShake<T extends HTMLElement>(trigger: number) {
   useEffect(() => {
     if (trigger === 0 || !moves || !scope.current) return;
     const element = scope.current;
-    animate(element, { transform: shakeKeyframes }, { duration: duration.slow, ease: ease.inOut }).then(() => {
+    void animate(element, { transform: shakeKeyframes }, { duration: duration.slow, ease: ease.inOut }).then(() => {
       // Framer leaves the last frame inline; a resting transform would still make a containing block.
       element.style.transform = "";
     });

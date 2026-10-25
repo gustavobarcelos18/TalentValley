@@ -18,8 +18,8 @@ public sealed class FormacaoRequest : IValidatableObject
     [DateYearRange] public DateOnly? DataFim { get; init; }
     [Range(1, 10000)] public int? CargaHoraria { get; init; }
     [Required, EnumDataType(typeof(StatusFormacao))] public StatusFormacao? Status { get; init; }
-    public bool Principal { get; init; }
-    public bool EhRioPombaValley { get; init; }
+    [JsonRequired] public bool Principal { get; init; }
+    [JsonRequired] public bool EhRioPombaValley { get; init; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -44,7 +44,7 @@ public sealed class ExperienciaRequest : IValidatableObject
     [Required, EnumDataType(typeof(TipoExperiencia))] public TipoExperiencia? Tipo { get; init; }
     [Required, DateYearRange] public DateOnly? DataInicio { get; init; }
     [DateYearRange] public DateOnly? DataFim { get; init; }
-    public bool Atual { get; init; }
+    [JsonRequired] public bool Atual { get; init; }
     [StringLength(2000, ErrorMessage = "O texto deve ter no máximo 2000 caracteres."), NoEmoji, NoControlCharacters(AllowLineBreaks = true)]
     public string? Descricao { get => descricao; init => descricao = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
 
@@ -69,7 +69,7 @@ public sealed class ProjetoRequest : IValidatableObject
     public string Nome { get => nome; init => nome = value?.Trim() ?? string.Empty; }
     [Required, DateYearRange] public DateOnly? DataInicio { get; init; }
     [DateYearRange] public DateOnly? DataFim { get; init; }
-    public bool EmAndamento { get; init; }
+    [JsonRequired] public bool EmAndamento { get; init; }
     [Required, StringLength(1000, ErrorMessage = "O texto deve ter no máximo 1000 caracteres."), NoEmoji, NoControlCharacters(AllowLineBreaks = true)]
     public string Descricao { get => descricao; init => descricao = value?.Trim() ?? string.Empty; }
     [StringLength(2048), SafeHttpUrl, NoEmoji]

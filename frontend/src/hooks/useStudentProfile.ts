@@ -39,7 +39,7 @@ export function useStudentProfile() {
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const refresh = useCallback(async () => {
