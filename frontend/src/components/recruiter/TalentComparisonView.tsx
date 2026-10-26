@@ -16,6 +16,7 @@ import { fetchTalentComparison } from "@/lib/recruiter";
 import { AREA_INTERESSE_LABELS, CATEGORIA_CNH_LABELS, DISPONIBILIDADE_LABELS, MODALIDADE_LABELS, NIVEL_IDIOMA_LABELS, TIPO_FORMACAO_LABELS } from "@/lib/labels";
 import { normalizePhone, validateBrazilianPhone, validateEmail, validateHttpUrl } from "@/lib/validation";
 import type { TalentCommon, TalentCompetency, TalentProfile, TalentComparison } from "@/types/recruiter";
+import { ComparisonViewTabs } from "./ComparisonViewTabs";
 import { ProtectedFileButton } from "./ProtectedFileButton";
 import { ProtectedTalentPhoto } from "./ProtectedTalentPhoto";
 import { BuscaDetails } from "./TalentBusca";
@@ -45,6 +46,7 @@ export function TalentComparisonView() {
   if (error || !comparison) return <Container maxWidth="md" sx={{ py: 5 }}><Alert severity="error" action={<Button color="inherit" onClick={retry}>Tentar novamente</Button>}>{error ?? "Não foi possível carregar a comparação."}</Alert></Container>;
   return <Container maxWidth={false} sx={{ maxWidth: CONTENT_MAX_WIDTH, py: { xs: 3, md: 4 } }}><Stack spacing={2.5}>
     <Button component={Link} href="/recrutador/talentos" startIcon={<ArrowBackOutlined />} sx={{ alignSelf: "flex-start" }}>Voltar para talentos</Button>
+    <ComparisonViewTabs slugs={slugs} active="atual" />
     <PageHeader title="Comparar talentos" description="Informações apresentadas lado a lado, sem ranking ou recomendação." />
     <Box className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <Reveal index={1}><ComparisonSide label="Aluno A" profile={comparison.talentoA} exclusiveCompetencies={exclusiveCompetencies(comparison.talentoA, comparison.emComum)} /></Reveal>

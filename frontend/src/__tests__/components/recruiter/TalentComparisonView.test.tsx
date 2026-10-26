@@ -93,6 +93,34 @@ describe("TalentComparisonView", () => {
     });
   });
 
+  describe("view tabs", () => {
+    it("offers the table view next to the current one and keeps both talents in the links", async () => {
+      await renderComparison();
+
+      const current = screen.getByRole("tab", { name: "Comparação atual" });
+      const table = screen.getByRole("tab", { name: "Tabela de currículos" });
+      expect(current.getAttribute("aria-current")).toBe("page");
+      expect(table.getAttribute("aria-current")).toBeNull();
+      expect(current.getAttribute("href")).toBe(`/recrutador/comparar?slugs=${SLUG_A}&slugs=${SLUG_B}`);
+      expect(table.getAttribute("href")).toBe(`/recrutador/comparar/tabela?slugs=${SLUG_A}&slugs=${SLUG_B}`);
+    });
+
+    it("keeps the side-by-side experience: two articles around the in-common block", async () => {
+      await renderComparison();
+
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+      expect(screen.getByRole("heading", { level: 2, name: "Em comum" })).toBeTruthy();
+      expect(screen.getByText("Informações apresentadas lado a lado, sem ranking ou recomendação.")).toBeTruthy();
+    });
+
+    it("does not show the tabs when the selection is invalid", () => {
+      setSlugs(SLUG_A);
+      render(<TalentComparisonView />);
+
+      expect(screen.queryByRole("tab", { name: "Tabela de currículos" })).toBeNull();
+    });
+  });
+
   describe("loading", () => {
     it("shows skeletons while the comparison is loading", () => {
       setSlugs(SLUG_A, SLUG_B);
