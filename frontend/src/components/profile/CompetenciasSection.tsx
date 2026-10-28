@@ -27,10 +27,12 @@ export function CompetenciasSection({ profile, onChanged, notify }: SectionProps
   return (
     <SectionCard
       title="Competências"
+      help="Os recrutadores filtram a busca por elas."
       editLabel="Editar competências"
       onEdit={() => setOpen(true)}
       isEmpty={competencias.length === 0}
-      emptyMessage="Selecione as competências que representam suas habilidades."
+      emptyMessage="Mostre suas habilidades"
+      emptyDescription="Selecione as competências que representam suas habilidades."
       emptyActionLabel="Adicionar competências"
       emptyIcon={<PsychologyOutlined />}
     >

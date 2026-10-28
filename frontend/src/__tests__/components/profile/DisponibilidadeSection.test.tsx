@@ -80,6 +80,12 @@ describe("DisponibilidadeSection display", () => {
     mockConfirm.mockResolvedValue(undefined);
   });
 
+  it("shows the help line under the title", () => {
+    renderSection();
+
+    expect(screen.getByText("Diz o que você procura agora. Evita contato que não combina com você.")).toBeTruthy();
+  });
+
   it("shows a chip for each job type and work mode", () => {
     renderSection({ disponibilidades: ["ESTAGIO", "CLT"], modalidades: ["REMOTO", "HIBRIDO"] });
 

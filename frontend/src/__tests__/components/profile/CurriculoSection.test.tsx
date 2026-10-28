@@ -71,6 +71,13 @@ describe("CurriculoSection", () => {
     expect(screen.queryByRole("button", { name: "Excluir" })).toBeNull();
   });
 
+  it("says who can download the PDF and invites the student to send one", () => {
+    renderSection(false);
+
+    expect(screen.getByText("Seu PDF fica disponível para os recrutadores autorizados baixarem.")).toBeTruthy();
+    expect(screen.getByText("Envie seu currículo")).toBeTruthy();
+  });
+
   it("shows download, replace and delete actions when a curriculum exists", () => {
     renderSection(true);
 

@@ -19,10 +19,12 @@ export function SobreSection({ profile, onChanged, notify }: SectionProps) {
   return (
     <SectionCard
       title="Sobre"
+      help="Seu resumo profissional. É o texto de apresentação que os recrutadores leem no seu perfil."
       editLabel="Editar sobre"
       onEdit={() => setOpen(true)}
       isEmpty={!bio}
-      emptyMessage="Conte um pouco sobre você, sua experiência e objetivos profissionais."
+      emptyMessage="Apresente-se"
+      emptyDescription="Conte um pouco sobre você, sua experiência e objetivos profissionais."
       emptyActionLabel="Escrever sobre"
       emptyIcon={<ArticleOutlined />}
     >

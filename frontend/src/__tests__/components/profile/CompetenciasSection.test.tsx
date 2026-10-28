@@ -62,6 +62,13 @@ describe("CompetenciasSection", () => {
     expect(screen.queryByRole("button", { name: ADD_LABEL })).toBeNull();
   });
 
+  it("says that recruiters filter the search by competencies and invites the student when empty", () => {
+    renderSection([]);
+
+    expect(screen.getByText("Os recrutadores filtram a busca por elas.")).toBeTruthy();
+    expect(screen.getByText("Mostre suas habilidades")).toBeTruthy();
+  });
+
   it("shows the empty prompt with an add action when there are no competencies", () => {
     renderSection([]);
 

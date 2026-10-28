@@ -18,6 +18,7 @@ import { ContatoSection } from "./ContatoSection";
 import { DisponibilidadeSection } from "./DisponibilidadeSection";
 import { CurriculoSection } from "./CurriculoSection";
 import { IdiomasSection } from "./IdiomasSection";
+import { PrivacyNotice } from "./PrivacyNotice";
 import { ProfileHeader } from "./ProfileHeader";
 import { SECTION_SCROLL_MARGIN, ProfileIndex } from "./ProfileIndex";
 import { PROFILE_BLOCKS, profileSectionAnchor, type ProfileSectionId } from "./profileSections";
@@ -82,6 +83,7 @@ export function StudentProfile() {
             </Alert>
           )}
           <ProfileHeader profile={profile} onChanged={refresh} notify={notify} />
+          <PrivacyNotice />
           <Box
             sx={{
               // Below xl the index is a bar that must stick over the whole page, so it needs a plain block, not a grid row.

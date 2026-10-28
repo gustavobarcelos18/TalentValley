@@ -182,6 +182,17 @@ describe("StudentProfile", () => {
       expect(screen.queryByRole("status")).toBeNull();
     });
 
+    it("shows the private profile notice once, after the header", () => {
+      mockHook({ profile: makeProfile(), loading: false, error: null });
+
+      render(<StudentProfile />);
+
+      const notice = screen.getAllByText("Perfil privado: só recrutadores aprovados veem.");
+      expect(notice).toHaveLength(1);
+      const header = screen.getByTestId("Header");
+      expect(header.compareDocumentPosition(notice[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it("passes refresh to the sections as onChanged", async () => {
       mockHook({ profile: makeProfile(), loading: false, error: null });
       render(<StudentProfile />);
