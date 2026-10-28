@@ -299,7 +299,23 @@ describe("required, names and e-mail", () => {
     expect(validateEmail("ana@exemplo.com")).toBeNull();
     expect(validateEmail("")).toBe("Informe seu e-mail.");
     expect(validateEmail("", false)).toBeNull();
-    for (const invalid of ["semarroba", "a b@exemplo.com", "a@b", "a😀@exemplo.com", `${"a".repeat(250)}@b.co`]) {
+    for (const valid of ["a@b.c", "ana.silva+vagas@sub.exemplo.com.br", "a@b..c"]) {
+      expect(validateEmail(valid)).toBeNull();
+    }
+    for (const invalid of [
+      "semarroba",
+      "a b@exemplo.com",
+      "a@b",
+      "a😀@exemplo.com",
+      `${"a".repeat(250)}@b.co`,
+      "@exemplo.com",
+      "a@",
+      "a@@exemplo.com",
+      "a@b@exemplo.com",
+      "a@.com",
+      "a@exemplo.",
+      "a@..",
+    ]) {
       expect(validateEmail(invalid)).toBe("Informe um e-mail válido.");
     }
   });
