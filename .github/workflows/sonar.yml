@@ -57,7 +57,7 @@ jobs:
           /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
           /d:sonar.javascript.lcov.reportPaths="frontend/coverage/lcov.info"
           /d:sonar.test.inclusions="frontend/src/__tests__/**"
-          /d:sonar.coverage.exclusions="frontend/vitest.config.mts,frontend/vitest.setup.ts"
+          /d:sonar.coverage.exclusions="frontend/vitest.config.mts,frontend/vitest.setup.ts,frontend/next.config.ts"
 
       - name: Compilar o backend
         run: dotnet build backend/TalentValley.slnx
