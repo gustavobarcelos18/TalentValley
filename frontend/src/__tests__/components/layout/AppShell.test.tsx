@@ -51,7 +51,7 @@ const SWITCH_TO_DARK = "Ativar modo escuro";
 const ACCOUNT_TRIGGER = `Menu da conta de ${USER_NAME}`;
 
 const NAV_LABELS: Record<UserRole, string[]> = {
-  ALUNO: ["Meu perfil"],
+  ALUNO: ["Meu perfil", "Minha conta"],
   RECRUTADOR: ["Visão geral", "Explorar talentos", "Favoritos"],
   ADMIN: ["Visão geral", "Solicitações", "Alunos", "Recrutadores", "Validações RPV", "Auditoria"],
 };
@@ -345,6 +345,15 @@ describe("AppShell", () => {
       renderShell();
 
       expect(isSelected(navLink("Meu perfil"))).toBe(true);
+    });
+
+    it("links the student's Minha conta item to /conta and marks it only there", () => {
+      signIn("ALUNO", "/conta");
+      renderShell();
+
+      expect(navLink("Minha conta").getAttribute("href")).toBe("/conta");
+      expect(isSelected(navLink("Minha conta"))).toBe(true);
+      expect(isSelected(navLink("Meu perfil"))).toBe(false);
     });
 
     it("keeps navigation items at their own height instead of stretching them to fill the menu", () => {

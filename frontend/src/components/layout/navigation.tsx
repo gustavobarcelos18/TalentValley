@@ -4,6 +4,7 @@ import DashboardOutlined from "@mui/icons-material/DashboardOutlined";
 import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
 import FavoriteBorderOutlined from "@mui/icons-material/FavoriteBorderOutlined";
 import InboxOutlined from "@mui/icons-material/InboxOutlined";
+import ManageAccountsOutlined from "@mui/icons-material/ManageAccountsOutlined";
 import PeopleAltOutlined from "@mui/icons-material/PeopleAltOutlined";
 import PersonOutlineOutlined from "@mui/icons-material/PersonOutlineOutlined";
 import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
@@ -17,7 +18,10 @@ export interface NavItem {
 }
 
 export const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
-  ALUNO: [{ label: "Meu perfil", href: "/meu-perfil", icon: <PersonOutlineOutlined /> }],
+  ALUNO: [
+    { label: "Meu perfil", href: "/meu-perfil", icon: <PersonOutlineOutlined /> },
+    { label: "Minha conta", href: "/conta", icon: <ManageAccountsOutlined /> },
+  ],
   RECRUTADOR: [
     { label: "Visão geral", href: "/recrutador", icon: <DashboardOutlined /> },
     { label: "Explorar talentos", href: "/recrutador/talentos", icon: <PeopleAltOutlined /> },
@@ -34,7 +38,7 @@ export const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
 };
 
 export const CHANGE_PASSWORD_HREF = "/conta/senha";
-// Recruiters only: students have the same section inside "Meu perfil".
+// Recruiters only: students have the same section inside "Minha conta" (/conta).
 export const PRIVACY_HREF = "/conta/privacidade";
 
 /** The overview routes match only themselves; every other item also owns its nested routes. */
