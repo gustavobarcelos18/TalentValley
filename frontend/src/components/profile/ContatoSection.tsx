@@ -40,10 +40,12 @@ export function ContatoSection({ profile, onChanged, notify }: SectionProps) {
   return (
     <SectionCard
       title="Contato"
+      help="É por aqui que os recrutadores falam com você, fora da plataforma."
       editLabel="Editar contato"
       onEdit={() => setOpen(true)}
       isEmpty={filledItems.length === 0}
-      emptyMessage="Informe como recrutadores podem falar com você."
+      emptyMessage="Diga como falar com você"
+      emptyDescription="Informe como recrutadores podem falar com você."
       emptyActionLabel="Adicionar contato"
       emptyIcon={<ContactPhoneOutlined />}
     >

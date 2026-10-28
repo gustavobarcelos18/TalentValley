@@ -31,10 +31,12 @@ export function IdiomasSection({ profile, onChanged, notify }: SectionProps) {
   return (
     <SectionCard
       title="Idiomas"
+      help="Aparecem no seu perfil para os recrutadores, mas não entram nos filtros da busca."
       editLabel="Editar idiomas"
       onEdit={() => setOpen(true)}
       isEmpty={idiomas.length === 0}
-      emptyMessage="Informe os idiomas que você fala e o nível de cada um."
+      emptyMessage="Conte quais idiomas você fala"
+      emptyDescription="Informe os idiomas que você fala e o nível de cada um."
       emptyActionLabel="Adicionar idiomas"
       emptyIcon={<TranslateOutlined />}
     >

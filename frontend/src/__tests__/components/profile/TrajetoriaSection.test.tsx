@@ -254,6 +254,23 @@ describe("TrajetoriaSection loading and listing", () => {
     expect(screen.getByRole("button", { name: ADD_EXPERIENCE })).toBeTruthy();
   });
 
+  it("explains what recruiters use and invites the student with a short title in each empty group", async () => {
+    await renderSection([]);
+
+    expect(screen.getByText(/Os recrutadores filtram a busca pelo tipo, nome e situação da formação/)).toBeTruthy();
+    expect(screen.getByText("Adicione sua formação")).toBeTruthy();
+    expect(screen.getByText("Adicione sua experiência")).toBeTruthy();
+  });
+
+  it("edits and deletes each item with buttons that show their text", async () => {
+    await renderSection([formationItem()]);
+
+    const edit = screen.getByRole("button", { name: `Editar ${FORMATION_NAME}` });
+    const remove = screen.getByRole("button", { name: `Excluir ${FORMATION_NAME}` });
+    expect(edit.textContent).toBe("Editar");
+    expect(remove.textContent).toBe("Excluir");
+  });
+
   it("splits items into formation and experience groups with dates and descriptions", async () => {
     await renderSection([
       formationItem(),
@@ -282,7 +299,9 @@ describe("TrajetoriaSection loading and listing", () => {
     await renderSection([formationItem(makeFormation({ principal: true }))]);
 
     expect(screen.getByText("Principal")).toBeTruthy();
-    expect(screen.queryByText(/Rio Pomba Valley/)).toBeNull();
+    // The section help line also mentions Rio Pomba Valley, so look for the chip labels only.
+    expect(screen.queryByText("Verificado pelo Rio Pomba Valley")).toBeNull();
+    expect(screen.queryByText("Validação não aprovada")).toBeNull();
     expect(screen.queryByText("Aguardando validação")).toBeNull();
   });
 
@@ -583,6 +602,16 @@ describe("TrajetoriaSection formation form", () => {
     fireEvent.change(field(label), { target: { value: "Texto" + EMOJI + "limpo" } });
 
     expect(field(label).value).toBe("Textolimpo");
+  });
+
+  it("explains the Rio Pomba Valley validation and the certificate inside the formation form", async () => {
+    const user = userEvent.setup();
+    await renderSection([]);
+    const dialog = await openFormationAdd(user);
+
+    const note = within(dialog).getByText(/Um administrador do Instituto confere essa formação/);
+    expect(note.textContent).toContain("certificado em PDF");
+    expect(note.textContent).toContain("volta a aguardar validação");
   });
 
   it.each(["Nome", "Instituição"])("removes emoji from text pasted into %s", async (label) => {

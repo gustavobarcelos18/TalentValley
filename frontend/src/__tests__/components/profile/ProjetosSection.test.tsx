@@ -138,6 +138,13 @@ describe("ProjetosSection loading and listing", () => {
     expect((screen.getByRole("button", { name: ADD_LABEL }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("says what recruiters see and invites the student when there are no projects", async () => {
+    await renderSection([]);
+
+    expect(screen.getByText(/Os recrutadores veem a descrição, as tecnologias e os links/)).toBeTruthy();
+    expect(screen.getByText("Destaque seus projetos")).toBeTruthy();
+  });
+
   it("shows the empty prompt when there are no projects", async () => {
     await renderSection([]);
 

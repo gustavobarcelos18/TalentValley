@@ -152,6 +152,9 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
   return (
     <SurfaceCard title="Currículo">
       <Stack spacing={2}>
+        <Typography variant="body2" color="text.secondary">
+          Seu PDF fica disponível para os recrutadores autorizados baixarem.
+        </Typography>
         {error && (
           <Alert severity="error" role="alert">
             {error}
@@ -226,7 +229,8 @@ export function CurriculoSection({ profile, onChanged, notify }: SectionProps) {
         ) : (
           <EmptyState
             icon={<PictureAsPdfOutlined />}
-            title="Nenhum currículo enviado ainda. Envie seu PDF (máx. 10 MB)."
+            title="Envie seu currículo"
+            description="Nenhum currículo enviado ainda. Envie seu PDF (máx. 10 MB)."
             action={
               <Button
                 variant="outlined"

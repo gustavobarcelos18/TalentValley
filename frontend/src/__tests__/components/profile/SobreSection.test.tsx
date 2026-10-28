@@ -37,6 +37,14 @@ describe("SobreSection", () => {
     vi.resetAllMocks();
   });
 
+  it("explains what the section is for and invites the student to write when empty", () => {
+    renderSection(null);
+
+    expect(screen.getByText(/texto de apresentação que os recrutadores leem/)).toBeTruthy();
+    expect(screen.getByText("Apresente-se")).toBeTruthy();
+    expect(screen.getByText(EMPTY_MESSAGE)).toBeTruthy();
+  });
+
   it("shows the bio and no empty state when the student has a bio", () => {
     renderSection(BIO);
 

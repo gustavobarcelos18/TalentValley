@@ -81,6 +81,13 @@ describe("IdiomasSection display", () => {
     expect(screen.queryByText(EMPTY_MESSAGE)).toBeNull();
   });
 
+  it("says that languages are shown but are not search filters, and invites the student when empty", () => {
+    renderSection([]);
+
+    expect(screen.getByText(/não entram nos filtros da busca/)).toBeTruthy();
+    expect(screen.getByText("Conte quais idiomas você fala")).toBeTruthy();
+  });
+
   it("shows the empty state when there are no languages", () => {
     renderSection([]);
 

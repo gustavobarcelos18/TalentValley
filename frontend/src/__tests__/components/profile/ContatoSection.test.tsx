@@ -77,6 +77,14 @@ describe("ContatoSection display", () => {
     mockUpdate.mockReset();
   });
 
+  it("explains how recruiters use the contacts and invites the student when empty", () => {
+    renderEmpty();
+
+    expect(screen.getByText(/os recrutadores falam com você, fora da plataforma/)).toBeTruthy();
+    expect(screen.getByText("Diga como falar com você")).toBeTruthy();
+    expect(screen.getByText(EMPTY_MESSAGE)).toBeTruthy();
+  });
+
   it("renders every contact as an actionable link with the right target", () => {
     renderSection({ telefone: "5532999998888" });
 

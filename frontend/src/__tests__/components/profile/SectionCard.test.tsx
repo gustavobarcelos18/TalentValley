@@ -49,6 +49,30 @@ describe("SectionCard", () => {
     expect(getComputedStyle(contentWrapper()).display).not.toBe("none");
   });
 
+  it("shows the help line under the title only when one is given", () => {
+    const { unmount } = render(
+      <SectionCard title={TITLE} help="Para que serve." editLabel={EDIT_LABEL} onEdit={vi.fn()}>
+        <p>{CONTENT}</p>
+      </SectionCard>
+    );
+    expect(screen.getByText("Para que serve.")).toBeTruthy();
+    unmount();
+
+    renderCard();
+    expect(screen.queryByText("Para que serve.")).toBeNull();
+  });
+
+  it("shows the empty description under the empty title", () => {
+    render(
+      <SectionCard title={TITLE} editLabel={EDIT_LABEL} onEdit={vi.fn()} isEmpty emptyMessage={EMPTY_MESSAGE} emptyDescription="Conte mais aqui.">
+        <p>{CONTENT}</p>
+      </SectionCard>
+    );
+
+    expect(screen.getByText(EMPTY_MESSAGE)).toBeTruthy();
+    expect(screen.getByText("Conte mais aqui.")).toBeTruthy();
+  });
+
   it("calls onEdit from the edit icon button", async () => {
     const { onEdit } = renderCard();
 

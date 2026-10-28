@@ -131,6 +131,7 @@ export function DisponibilidadeSection({ profile, onChanged, notify }: Readonly<
   return (
     <SectionCard
       title="O que eu busco"
+      help="Diz o que você procura agora. Evita contato que não combina com você."
       editLabel="Editar o que eu busco"
       onEdit={() => setOpen(true)}
       isEmpty={buscaEstaVazia(busca, disponibilidades, modalidades)}

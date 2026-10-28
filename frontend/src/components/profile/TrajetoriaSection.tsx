@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, InputAdornment, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
@@ -66,21 +66,22 @@ export function TrajetoriaSection({ onChanged, notify }: SectionProps) {
   const openEditor = (item: TrajetoriaItemResponse) =>
     setEditor(item.formacao ? { kind: "formation", item: item.formacao } : { kind: "experience", item: item.experiencia! });
   return <SurfaceCard title="Trajetória">
-    <Typography variant="body2" color="text.secondary">Formações e experiências em ordem profissional.</Typography>
+    <Typography variant="body2" color="text.secondary">Formações e experiências em ordem profissional. Os recrutadores filtram a busca pelo tipo, nome e situação da formação, e também por formação do Rio Pomba Valley verificada. A experiência só aparece no perfil.</Typography>
     {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
     {items === null && !error && <Box sx={{ mt: 2 }}><LoadingSkeleton count={2} height={110} /></Box>}{items !== null && <Stack spacing={4} sx={{ mt: 2 }}>
-      <TrajectoryGroup title="Formação e certificados" icon={<SchoolOutlined />} emptyMessage="Adicione formações acadêmicas, cursos e certificados para destacar seu preparo." actionLabel="Adicionar formação" items={formations} onAdd={() => setEditor({ kind: "formation" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
-      <TrajectoryGroup title="Experiência" icon={<BusinessCenterOutlined />} emptyMessage="Adicione experiências profissionais ou estágios para mostrar sua trajetória." actionLabel="Adicionar experiência" items={experiences} onAdd={() => setEditor({ kind: "experience" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
+      <TrajectoryGroup title="Formação e certificados" icon={<SchoolOutlined />} emptyMessage="Adicione sua formação" emptyDescription="Adicione formações acadêmicas, cursos e certificados para destacar seu preparo." actionLabel="Adicionar formação" items={formations} onAdd={() => setEditor({ kind: "formation" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
+      <TrajectoryGroup title="Experiência" icon={<BusinessCenterOutlined />} emptyMessage="Adicione sua experiência" emptyDescription="Adicione experiências profissionais ou estágios para mostrar sua trajetória." actionLabel="Adicionar experiência" items={experiences} onAdd={() => setEditor({ kind: "experience" })} onEdit={openEditor} onDelete={setRemoving} onChanged={changed} />
     </Stack>}
     {editor?.kind === "formation" ? <FormationForm item={editor.item} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void changed(editor.item ? "Formação atualizada." : "Formação adicionada."); }} /> : editor?.kind === "experience" ? <ExperienceForm item={editor.item} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void changed(editor.item ? "Experiência atualizada." : "Experiência adicionada."); }} /> : null}
     <DeleteDialog item={removing} onClose={() => setRemoving(null)} onDeleted={() => { setRemoving(null); void changed("Item removido da trajetória."); }} />
   </SurfaceCard>;
 }
 
-function TrajectoryGroup({ title, icon, emptyMessage, actionLabel, items, onAdd, onEdit, onDelete, onChanged }: {
+function TrajectoryGroup({ title, icon, emptyMessage, emptyDescription, actionLabel, items, onAdd, onEdit, onDelete, onChanged }: {
   title: string;
   icon: ReactNode;
   emptyMessage: string;
+  emptyDescription: string;
   actionLabel: string;
   items: TrajetoriaItemResponse[];
   onAdd: () => void;
@@ -93,7 +94,7 @@ function TrajectoryGroup({ title, icon, emptyMessage, actionLabel, items, onAdd,
       <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
       {items.length > 0 && <Button size="small" startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button>}
     </Stack>
-    {items.length === 0 ? <Box sx={{ mt: 2 }}><EmptyState icon={icon} title={emptyMessage} action={<Button startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button>} /></Box> : <Stack component="ol" role="list" spacing={3} sx={(theme) => ({
+    {items.length === 0 ? <Box sx={{ mt: 2 }}><EmptyState icon={icon} title={emptyMessage} description={emptyDescription} action={<Button startIcon={<AddOutlined />} onClick={onAdd}>{actionLabel}</Button>} /></Box> : <Stack component="ol" role="list" spacing={3} sx={(theme) => ({
       listStyle: "none", m: 0, mt: 2, p: 0, position: "relative",
       "&::before": { content: "\"\"", position: "absolute", left: 17, top: 18, bottom: 18, width: 2, backgroundColor: (theme.vars ?? theme).palette.divider },
     })}>{items.map((item) => <TimelineItem key={`${item.tipoItem}-${item.id}`} item={item} onEdit={() => onEdit(item)} onDelete={() => onDelete(item)} onChanged={onChanged} />)}</Stack>}
@@ -106,7 +107,7 @@ function TimelineItem({ item, onEdit, onDelete, onChanged }: { item: TrajetoriaI
     const { primary, secondary, surface } = (theme.vars ?? theme).palette;
     const color = formation ? primary.main : secondary.main;
     return { position: "absolute", left: 0, top: 0, borderRadius: "50%", color, backgroundColor: surface.raised, border: 2, borderColor: color };
-  }}>{formation ? <SchoolOutlined fontSize="small" /> : <BusinessCenterOutlined fontSize="small" />}</Box><Stack spacing={.75} sx={{ minWidth: 0 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}><Typography sx={{ fontWeight: 700 }}>{item.titulo}</Typography>{formation?.principal && <Chip label="Principal" size="small" color="primary" />}{formation && <RpvChip formation={formation} />}</Stack><Typography variant="body2" color="text.secondary">{item.subtitulo} · {formatTrajectoryDate(item.dataInicio)} — {item.atual ? "Atual" : formatTrajectoryDate(item.dataFim)}</Typography>{formation ? <FormationCertificate formation={formation} onChanged={onChanged} /> : item.experiencia?.descricao && <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.experiencia.descricao}</Typography>}<Stack direction="row" spacing={.5}><IconButton size="small" aria-label={`Editar ${item.titulo}`} onClick={onEdit}><EditOutlined fontSize="small" /></IconButton><IconButton size="small" color="error" aria-label={`Excluir ${item.titulo}`} onClick={onDelete}><DeleteOutlined fontSize="small" /></IconButton></Stack></Stack></Box>;
+  }}>{formation ? <SchoolOutlined fontSize="small" /> : <BusinessCenterOutlined fontSize="small" />}</Box><Stack spacing={.75} sx={{ minWidth: 0 }}><Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}><Typography sx={{ fontWeight: 700 }}>{item.titulo}</Typography>{formation?.principal && <Chip label="Principal" size="small" color="primary" />}{formation && <RpvChip formation={formation} />}</Stack><Typography variant="body2" color="text.secondary">{item.subtitulo} · {formatTrajectoryDate(item.dataInicio)} — {item.atual ? "Atual" : formatTrajectoryDate(item.dataFim)}</Typography>{formation ? <FormationCertificate formation={formation} onChanged={onChanged} /> : item.experiencia?.descricao && <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.experiencia.descricao}</Typography>}<Stack direction="row" spacing={1}><Button size="small" startIcon={<EditOutlined />} aria-label={`Editar ${item.titulo}`} onClick={onEdit}>Editar</Button><Button size="small" color="error" startIcon={<DeleteOutlined />} aria-label={`Excluir ${item.titulo}`} onClick={onDelete}>Excluir</Button></Stack></Stack></Box>;
 }
 
 function RpvChip({ formation }: { formation: FormacaoResponse }) { if (!formation.ehRioPombaValley) return null; const labels = { PENDENTE: "Aguardando validação", VERIFICADO: "Verificado pelo Rio Pomba Valley", REJEITADO: "Validação não aprovada" }; return <Chip size="small" variant="outlined" color={formation.statusValidacaoRpv === "VERIFICADO" ? "success" : formation.statusValidacaoRpv === "REJEITADO" ? "error" : "warning"} label={formation.statusValidacaoRpv ? labels[formation.statusValidacaoRpv] : "Aguardando validação"} />; }
@@ -190,6 +191,7 @@ function FormationForm({ item, onClose, onSaved }: { item?: FormacaoResponse; on
     <TextField select label="Status" value={data.status} onChange={(e) => { const status = e.target.value as StatusFormacao; setData((p) => ({ ...p, status, dataFim: status === "EM_ANDAMENTO" ? null : p.dataFim })); }}>{Object.entries(formationStatus).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField>
     <FormControlLabel control={<Switch checked={data.principal} onChange={(e) => set("principal", e.target.checked)} />} label="Formação principal" />
     <FormControlLabel control={<Switch checked={data.ehRioPombaValley} onChange={(e) => set("ehRioPombaValley", e.target.checked)} />} label="Formação no Rio Pomba Valley" />
+    <Typography variant="caption" color="text.secondary">Marque se você estudou no Rio Pomba Valley. Um administrador do Instituto confere essa formação, e ela só fica verificada com o certificado em PDF, que você envia depois de salvar. Se mudar os dados ou o certificado de uma formação já conferida, ela volta a aguardar validação.</Typography>
   </Stack></FormDialog>;
 }
 
