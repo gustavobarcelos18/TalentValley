@@ -234,6 +234,15 @@ export function validateCityName(value: string): string | null {
   return null;
 }
 
+// Exactly one "@", a non-empty local part and a domain with a dot that has
+// at least one character before and after it. Spaces are rejected by the caller.
+function hasEmailShape(email: string): boolean {
+  const parts = email.split("@");
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  return local.length > 0 && domain.slice(1, -1).includes(".");
+}
+
 export function validateEmail(value: string, required = true): string | null {
   const email = value.trim();
   if (!email) return required ? "Informe seu e-mail." : null;
@@ -241,7 +250,7 @@ export function validateEmail(value: string, required = true): string | null {
     email.length > 254 ||
     /\s/.test(email) ||
     hasForbiddenText(email) ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    !hasEmailShape(email)
   ) {
     return "Informe um e-mail válido.";
   }
