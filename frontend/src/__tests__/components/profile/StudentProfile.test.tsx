@@ -44,8 +44,6 @@ vi.mock("@/components/profile/IdiomasSection", () => ({ IdiomasSection: stubs.cr
 vi.mock("@/components/profile/DisponibilidadeSection", () => ({ DisponibilidadeSection: stubs.createStub("Disponibilidade") }));
 vi.mock("@/components/profile/ProjetosSection", () => ({ ProjetosSection: stubs.createStub("Projetos") }));
 vi.mock("@/components/profile/CurriculoSection", () => ({ CurriculoSection: stubs.createStub("Curriculo") }));
-vi.mock("@/components/profile/ExclusaoSection", () => ({ ExclusaoSection: stubs.createStub("Exclusao") }));
-vi.mock("@/components/account/PrivacidadeSection", () => ({ PrivacidadeSection: stubs.createStub("Privacidade") }));
 
 type HookResult = ReturnType<typeof useStudentProfile>;
 
@@ -62,10 +60,7 @@ const SECTION_ORDER = [
   "Disponibilidade",
   "Projetos",
   "Curriculo",
-  "Privacidade",
-  "Exclusao",
 ];
-const NOTIFYING_SECTIONS = SECTION_ORDER.filter((name) => name !== "Privacidade" && name !== "Exclusao");
 const LOAD_ERROR = "Não foi possível carregar seu perfil. Tente novamente.";
 const REFRESH_ERROR = "Não foi possível atualizar o perfil. Tente novamente.";
 const RETRY_LABEL = "Tentar novamente";
@@ -174,12 +169,22 @@ describe("StudentProfile", () => {
       render(<StudentProfile />);
 
       expect(renderedSections()).toEqual(SECTION_ORDER);
-      const withProfile = NOTIFYING_SECTIONS.map((name) =>
+      const withProfile = SECTION_ORDER.map((name) =>
         screen.getByTestId(name).getAttribute("data-profile-id")
       );
-      expect(withProfile).toEqual(NOTIFYING_SECTIONS.map(() => "aluno-42"));
+      expect(withProfile).toEqual(SECTION_ORDER.map(() => "aluno-42"));
       expect(screen.queryByRole("alert")).toBeNull();
       expect(screen.queryByRole("status")).toBeNull();
+    });
+
+    it("keeps privacy and account deletion out of the profile, they live in Minha conta", () => {
+      mockHook({ profile: makeProfile(), loading: false, error: null });
+
+      render(<StudentProfile />);
+
+      expect(screen.queryByRole("heading", { name: "Privacidade" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Excluir conta" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Excluir minha conta" })).toBeNull();
     });
 
     it("shows the private profile notice once, after the header", () => {
@@ -336,7 +341,7 @@ describe("StudentProfile", () => {
       expect(screen.queryByText(/aviso de/)).toBeNull();
     });
 
-    it.each(NOTIFYING_SECTIONS)("shows the message notified by the %s section", async (name) => {
+    it.each(SECTION_ORDER)("shows the message notified by the %s section", async (name) => {
       render(<StudentProfile />);
 
       await userEvent.click(screen.getByRole("button", { name: `notificar ${name}` }));

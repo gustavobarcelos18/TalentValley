@@ -26,9 +26,6 @@ import type { SectionProps } from "./sectionProps";
 import { SobreSection } from "./SobreSection";
 import { TrajetoriaSection } from "./TrajetoriaSection";
 import { ProjetosSection } from "./ProjetosSection";
-import { ExclusaoSection } from "./ExclusaoSection";
-import { PrivacidadeSection } from "@/components/account/PrivacidadeSection";
-import { fetchMyDataExport, fetchMyNewsletter, saveMyNewsletter } from "@/lib/student";
 
 const SECTION_COMPONENTS: Record<ProfileSectionId, ComponentType<SectionProps>> = {
   sobre: SobreSection,
@@ -111,12 +108,6 @@ export function StudentProfile() {
               ))}
             </Stack>
           </Box>
-          <PrivacidadeSection
-            fetchData={fetchMyDataExport}
-            fetchNewsletter={fetchMyNewsletter}
-            saveNewsletter={saveMyNewsletter}
-          />
-          <ExclusaoSection />
         </Stack>
       )}
 

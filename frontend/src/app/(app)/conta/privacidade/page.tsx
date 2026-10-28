@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { CONTENT_MAX_WIDTH } from "@/components/layout/contentWidth";
 import { fetchMyDataExport, fetchMyNewsletter, saveMyNewsletter } from "@/lib/recruiter";
 
-// Students reach the same section inside "Meu perfil"; recruiters have no profile page, so it lives here.
+// Students reach the same section inside "Minha conta" (/conta); recruiters have no profile page, so it lives here.
 export default function PrivacyPage() {
   return (
     <ProtectedRoute allowedRoles={["RECRUTADOR"]}>

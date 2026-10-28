@@ -36,7 +36,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     title: "5. Direitos do Titular",
     paragraphs: [
       "Nos termos da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), você pode confirmar a existência de tratamento, acessar, corrigir e solicitar a exclusão dos seus dados, além de revogar o consentimento.",
-      "Alunos podem corrigir seus dados e excluir a conta diretamente em Meu perfil. Para os demais direitos, utilize o contato informado abaixo.",
+      "Alunos podem corrigir seus dados em Meu perfil e excluir a conta em Minha conta. Para os demais direitos, utilize o contato informado abaixo.",
     ],
   },
   {
@@ -77,7 +77,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
   {
     title: "5. Suspensão e Exclusão",
     paragraphs: [
-      "A instituição pode bloquear ou encerrar contas que violem estes termos. Alunos podem excluir a conta a qualquer momento em Meu perfil, de forma definitiva e irreversível.",
+      "A instituição pode bloquear ou encerrar contas que violem estes termos. Alunos podem excluir a conta a qualquer momento em Minha conta, de forma definitiva e irreversível.",
     ],
   },
   {
