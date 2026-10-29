@@ -101,7 +101,7 @@ public sealed class DemoSessionTests : IDisposable
         var entered = await EnterAs(admin.Client, AppRoles.Student);
         Assert.Equal(HttpStatusCode.OK, entered.StatusCode);
         var body = (await entered.Content.ReadFromJsonAsync<LoginResponse>(ApiFactory.JsonOptions))!;
-        Assert.Equal("/meu-perfil", body.DestinoInicial);
+        Assert.Equal("/inicio", body.DestinoInicial);
         Assert.Equal(AppRoles.Student, body.Usuario.Role);
         Assert.True(body.Usuario.ModoDemonstracao);
         var cookie = Assert.Single(entered.Headers.GetValues("Set-Cookie"), x => x.StartsWith("tv_access="));

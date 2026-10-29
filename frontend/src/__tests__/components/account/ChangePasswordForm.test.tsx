@@ -86,7 +86,7 @@ describe("ChangePasswordForm", () => {
     });
 
     it.each([
-      ["ALUNO", "/meu-perfil"],
+      ["ALUNO", "/inicio"],
       ["RECRUTADOR", "/recrutador"],
       ["ADMIN", "/admin"],
     ] as const)("links back to the area of the %s role", (role, href) => {

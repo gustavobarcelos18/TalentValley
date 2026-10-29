@@ -61,7 +61,7 @@ PUBLIC REQUEST → ADMIN APPROVAL → ACCOUNT CREATION → ACTIVATION → LOGIN
 Other account features: forgot/reset password by email, change password while signed in (`/conta/senha`), resend activation, logout.
 
 ### For students (`ALUNO`)
-Login goes straight to **`/meu-perfil`**, where the student owns and edits only their own profile:
+Login goes to the student home (**`/inicio`**), with the next steps and a link to **`/meu-perfil`**, where the student owns and edits only their own profile:
 
 - photo (JPEG, PNG or WebP, up to 5 MB);
 - full name, city, state (UF), phone, professional email, optional LinkedIn / GitHub / portfolio links;
@@ -100,7 +100,7 @@ There are exactly three roles:
 
 | Role | Who | Lands on |
 | --- | --- | --- |
-| `ALUNO` | Student / talent | `/meu-perfil` |
+| `ALUNO` | Student / talent | `/inicio` |
 | `RECRUTADOR` | Recruiter approved by the Institute | `/recrutador` |
 | `ADMIN` | The Institute | `/admin` |
 
@@ -190,7 +190,7 @@ TalentValley/
         └── theme/                 Talent Valley MUI theme
 ```
 
-Frontend routes: `/` (landing), `/login`, `/cadastro` (+ `/aluno`, `/recrutador`), `/ativar-conta`, `/esqueci-senha`, `/redefinir-senha`, `/reenviar-ativacao`, `/privacidade`, `/termos`, `/meu-perfil`, `/conta/senha`, `/recrutador` (+ `/talentos`, `/talentos/[slug]`, `/favoritos`, `/comparar`), `/admin` (+ `/solicitacoes`, `/alunos`, `/alunos/[id]`, `/recrutadores`, `/validacoes-rpv`, `/auditoria`).
+Frontend routes: `/` (landing), `/login`, `/cadastro` (+ `/aluno`, `/recrutador`), `/ativar-conta`, `/esqueci-senha`, `/redefinir-senha`, `/reenviar-ativacao`, `/privacidade`, `/termos`, `/inicio`, `/meu-perfil`, `/conta/senha`, `/recrutador` (+ `/talentos`, `/talentos/[slug]`, `/favoritos`, `/comparar`), `/admin` (+ `/solicitacoes`, `/alunos`, `/alunos/[id]`, `/recrutadores`, `/validacoes-rpv`, `/auditoria`).
 
 ## 8. Running locally
 
@@ -419,7 +419,7 @@ PEDIDO PÚBLICO → APROVAÇÃO DO ADMIN → CRIAÇÃO DA CONTA → ATIVAÇÃO �
 Outras funções de conta: esqueci/redefinir senha por e-mail, alterar senha estando logado (`/conta/senha`), reenviar ativação e sair (logout).
 
 ### Para estudantes (`ALUNO`)
-O login leva direto para **`/meu-perfil`**, onde o estudante é dono e edita somente o próprio perfil:
+O login leva à página de início do estudante (**`/inicio`**), com os próximos passos e um link para **`/meu-perfil`**, onde o estudante é dono e edita somente o próprio perfil:
 
 - foto (JPEG, PNG ou WebP, até 5 MB);
 - nome completo, cidade, UF, telefone, e-mail profissional e links opcionais de LinkedIn / GitHub / portfólio;
@@ -458,7 +458,7 @@ Existem exatamente três papéis:
 
 | Papel | Quem é | Destino após o login |
 | --- | --- | --- |
-| `ALUNO` | Estudante / talento | `/meu-perfil` |
+| `ALUNO` | Estudante / talento | `/inicio` |
 | `RECRUTADOR` | Recrutador aprovado pelo Instituto | `/recrutador` |
 | `ADMIN` | O Instituto | `/admin` |
 
@@ -548,7 +548,7 @@ TalentValley/
         └── theme/                 Tema MUI do Talent Valley
 ```
 
-Rotas do frontend: `/` (landing), `/login`, `/cadastro` (+ `/aluno`, `/recrutador`), `/ativar-conta`, `/esqueci-senha`, `/redefinir-senha`, `/reenviar-ativacao`, `/privacidade`, `/termos`, `/meu-perfil`, `/conta/senha`, `/recrutador` (+ `/talentos`, `/talentos/[slug]`, `/favoritos`, `/comparar`), `/admin` (+ `/solicitacoes`, `/alunos`, `/alunos/[id]`, `/recrutadores`, `/validacoes-rpv`, `/auditoria`).
+Rotas do frontend: `/` (landing), `/login`, `/cadastro` (+ `/aluno`, `/recrutador`), `/ativar-conta`, `/esqueci-senha`, `/redefinir-senha`, `/reenviar-ativacao`, `/privacidade`, `/termos`, `/inicio`, `/meu-perfil`, `/conta/senha`, `/recrutador` (+ `/talentos`, `/talentos/[slug]`, `/favoritos`, `/comparar`), `/admin` (+ `/solicitacoes`, `/alunos`, `/alunos/[id]`, `/recrutadores`, `/validacoes-rpv`, `/auditoria`).
 
 ## 8. Rodando localmente
 

@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/inicio/:path*",
     "/meu-perfil/:path*",
     "/recrutador/:path*",
     "/admin/:path*",

@@ -113,6 +113,53 @@ describe("StudentProfile", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    // Clicking an index link changes the address; it must not leak into the next test.
+    window.history.replaceState(null, "", "/");
+  });
+
+  describe("address with a section anchor", () => {
+    const scrollIntoView = vi.fn();
+    // jsdom has no scrollIntoView: keep whatever is there to put it back after each test.
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+    beforeEach(() => {
+      scrollIntoView.mockClear();
+      Element.prototype.scrollIntoView = scrollIntoView;
+    });
+
+    afterEach(() => {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    });
+
+    it("scrolls to the section of the address once the profile has loaded", () => {
+      window.history.replaceState(null, "", "/meu-perfil#secao-busca");
+      mockHook({ profile: makeProfile(), loading: false, error: null });
+
+      render(<StudentProfile />);
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("secao-busca"));
+    });
+
+    it("does not scroll while the profile is still loading", () => {
+      window.history.replaceState(null, "", "/meu-perfil#secao-busca");
+      mockHook({ profile: null, loading: true, error: null });
+
+      render(<StudentProfile />);
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it("does not scroll when the address has no anchor or an unknown one", () => {
+      mockHook({ profile: makeProfile(), loading: false, error: null });
+      const { unmount } = render(<StudentProfile />);
+      unmount();
+      window.history.replaceState(null, "", "/meu-perfil#nao-existe");
+
+      render(<StudentProfile />);
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
   });
 
   describe("loading state", () => {

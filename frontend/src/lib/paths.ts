@@ -1,7 +1,7 @@
 import type { UserRole } from "@/types/auth";
 
 export const AppPaths = {
-  protected: ["/meu-perfil", "/recrutador", "/admin", "/conta", "/aceitar-termos"],
+  protected: ["/inicio", "/meu-perfil", "/recrutador", "/admin", "/conta", "/aceitar-termos"],
   guestOnly: ["/login", "/esqueci-senha", "/redefinir-senha", "/ativar-conta", "/reenviar-ativacao", "/cadastro", "/cadastro/aluno", "/cadastro/recrutador"],
 } as const;
 
@@ -13,7 +13,7 @@ export const TERMS_ACCEPTANCE_PATH = "/aceitar-termos";
 export function getRoleDestination(role: UserRole): string {
   switch (role) {
     case "ALUNO":
-      return "/meu-perfil";
+      return "/inicio";
     case "RECRUTADOR":
       return "/recrutador";
     case "ADMIN":

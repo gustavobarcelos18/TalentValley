@@ -20,7 +20,7 @@ const PREPARE = "Preparar demonstração";
 const RESTORE = "Restaurar demonstração";
 const VIEW_STUDENT = "Ver como Aluno";
 const VIEW_RECRUITER = "Ver como Recrutador";
-const DESTINATION = { ALUNO: "/meu-perfil", RECRUTADOR: "/recrutador" } as const;
+const DESTINATION = { ALUNO: "/inicio", RECRUTADOR: "/recrutador" } as const;
 const assignMock = vi.fn();
 
 function stateIs(habilitado: boolean, preparado: boolean) {

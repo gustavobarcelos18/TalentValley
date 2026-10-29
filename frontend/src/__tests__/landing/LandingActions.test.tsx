@@ -70,7 +70,7 @@ describe("landing actions", () => {
     it("sends a signed-in user to their own area", () => {
       auth.user = { role: "ALUNO" };
       render(<HeroActions />);
-      expect(hrefOf(AREA)).toBe("/meu-perfil");
+      expect(hrefOf(AREA)).toBe("/inicio");
       expect(screen.getAllByRole("link")).toHaveLength(1);
     });
   });

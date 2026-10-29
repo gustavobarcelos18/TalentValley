@@ -4,7 +4,7 @@ import { stubMotionMedia } from "./motion/motionMedia";
 import { AccessDenied } from "@/components/auth/AccessDenied";
 import type { UserRole } from "@/types/auth";
 
-const HOME: Record<UserRole, string> = { ALUNO: "/meu-perfil", RECRUTADOR: "/recrutador", ADMIN: "/admin" };
+const HOME: Record<UserRole, string> = { ALUNO: "/inicio", RECRUTADOR: "/recrutador", ADMIN: "/admin" };
 
 describe("AccessDenied", () => {
   beforeEach(() => stubMotionMedia("reduced"));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import {
   Alert,
   Box,
@@ -42,6 +42,15 @@ const SECTION_COMPONENTS: Record<ProfileSectionId, ComponentType<SectionProps>> 
 export function StudentProfile() {
   const { profile, loading, error, refresh } = useStudentProfile();
   const [message, setMessage] = useState<string | null>(null);
+  const profileLoaded = profile !== null;
+
+  // The sections only exist once the profile has loaded, so the browser and Next cannot scroll to an
+  // address like /meu-perfil#secao-busca (the links of the student home) by themselves.
+  useEffect(() => {
+    if (!profileLoaded) return;
+    const anchor = window.location.hash.slice(1);
+    if (anchor) document.getElementById(anchor)?.scrollIntoView();
+  }, [profileLoaded]);
 
   const notify = useCallback((text: string) => setMessage(text), []);
   const closeMessage = useCallback((_event?: unknown, reason?: string) => {
