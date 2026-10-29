@@ -267,6 +267,30 @@ public sealed class StudentFileTests
         Assert.Equal(HttpStatusCode.Forbidden, (await student.GetAsync("/api/alunos/me/foto")).StatusCode);
     }
 
+    [Fact]
+    public async Task Lattes_url_saved_by_the_student_is_visible_on_the_recruiter_profile()
+    {
+        using var factory = new ApiFactory();
+        var studentEmail = $"{Guid.NewGuid():N}@example.test";
+        var studentId = await factory.CreateUserAsync(studentEmail);
+        using var student = factory.Client();
+        await ApiFactory.LoginAsync(student, studentEmail);
+        await ApiFactory.SetCsrfAsync(student);
+        const string url = "https://lattes.cnpq.br/9876543210987654";
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await student.PutAsJsonAsync("/api/alunos/me/curriculo/lattes", new { lattesUrl = url })).StatusCode);
+        string slug = "";
+        await factory.InScopeAsync(async p => slug =
+            (await p.GetRequiredService<AppDbContext>().Alunos.SingleAsync(x => x.UserId == studentId)).Slug);
+
+        var recruiterEmail = $"{Guid.NewGuid():N}@example.test";
+        await factory.CreateUserAsync(recruiterEmail, AppRoles.Recruiter);
+        using var recruiter = factory.Client();
+        await ApiFactory.LoginAsync(recruiter, recruiterEmail);
+        var profile = await recruiter.GetFromJsonAsync<TalentProfileResponse>($"/api/talentos/{slug}", ApiFactory.JsonOptions);
+        Assert.Equal(url, profile!.Curriculo.LattesUrl);
+    }
+
     private static async Task<HttpResponseMessage> UploadAsync(HttpClient client, string endpoint,
         string filename, string mime, byte[] bytes)
     {

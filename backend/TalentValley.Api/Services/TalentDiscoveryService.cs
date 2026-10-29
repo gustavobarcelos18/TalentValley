@@ -351,7 +351,7 @@ public sealed class TalentDiscoveryService(AppDbContext database)
                 p.DataFim, p.EmAndamento, p.Descricao, p.DemoUrl, p.RepositorioUrl,
                 p.Competencias.OrderBy(c => c.Competencia.NomeBusca).ThenBy(c => c.CompetenciaId)
                     .Select(c => new TalentCompetencyResponse(c.CompetenciaId, c.Competencia.Nome, c.Competencia.Categoria.Tipo())).ToList())).ToList(),
-        new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : CurriculumUrl(x)),
+        new(x.CurriculoStorageKey is not null, x.CurriculoStorageKey is null ? null : CurriculumUrl(x), x.LattesUrl),
         favorite,
         x.AtualizadoEm);
 
