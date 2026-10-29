@@ -3,6 +3,7 @@ import BusinessCenterOutlined from "@mui/icons-material/BusinessCenterOutlined";
 import DashboardOutlined from "@mui/icons-material/DashboardOutlined";
 import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
 import FavoriteBorderOutlined from "@mui/icons-material/FavoriteBorderOutlined";
+import HomeOutlined from "@mui/icons-material/HomeOutlined";
 import InboxOutlined from "@mui/icons-material/InboxOutlined";
 import ManageAccountsOutlined from "@mui/icons-material/ManageAccountsOutlined";
 import PeopleAltOutlined from "@mui/icons-material/PeopleAltOutlined";
@@ -19,6 +20,7 @@ export interface NavItem {
 
 export const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   ALUNO: [
+    { label: "Início", href: "/inicio", icon: <HomeOutlined /> },
     { label: "Meu perfil", href: "/meu-perfil", icon: <PersonOutlineOutlined /> },
     { label: "Minha conta", href: "/conta", icon: <ManageAccountsOutlined /> },
   ],

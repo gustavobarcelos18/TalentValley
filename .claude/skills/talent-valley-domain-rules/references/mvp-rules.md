@@ -56,7 +56,7 @@ Contains:
 - uploaded CV PDF.
 
 No generated CV PDF in MVP.
-No student dashboard in MVP; login goes directly to `/meu-perfil`.
+The student has a simple home at `/inicio` and login goes to it: a done/pending list of profile steps, no percentage, no metrics, no dashboard of numbers. The profile stays at `/meu-perfil`.
 
 ## Competencies
 

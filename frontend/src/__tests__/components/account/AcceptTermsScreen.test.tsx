@@ -162,7 +162,7 @@ describe("AcceptTermsScreen", () => {
   });
 
   it.each<[UserRole, string]>([
-    ["ALUNO", "/meu-perfil"],
+    ["ALUNO", "/inicio"],
     ["RECRUTADOR", "/recrutador"],
     ["ADMIN", "/admin"],
   ])("sends a %s with nothing pending to their own area and renders nothing", (role, destination) => {

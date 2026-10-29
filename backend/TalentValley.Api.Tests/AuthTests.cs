@@ -19,7 +19,7 @@ public sealed class AuthTests : IDisposable
     private readonly ApiFactory factory = new();
 
     [Theory]
-    [InlineData(AppRoles.Student, "/meu-perfil")]
+    [InlineData(AppRoles.Student, "/inicio")]
     [InlineData(AppRoles.Recruiter, "/recrutador")]
     [InlineData(AppRoles.Admin, "/admin")]
     public async Task Login_sets_cookie_small_jwt_user_destination_and_timestamps(string role, string destination)

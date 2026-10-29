@@ -41,7 +41,7 @@ public sealed class AuthService(UserManager<ApplicationUser> users, SignInManage
 
     public static string DestinationFor(string role) => role switch
     {
-        AppRoles.Student => "/meu-perfil",
+        AppRoles.Student => "/inicio",
         AppRoles.Recruiter => "/recrutador",
         AppRoles.Admin => "/admin",
         _ => throw new InvalidOperationException("Unsupported application role.")

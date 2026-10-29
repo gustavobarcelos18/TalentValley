@@ -8,7 +8,7 @@ function run(path: string, cookie?: string) {
 }
 
 describe("proxy", () => {
-  it.each(["/meu-perfil", "/recrutador/talentos", "/admin/alunos", "/conta/senha", "/aceitar-termos"])(
+  it.each(["/inicio", "/meu-perfil", "/recrutador/talentos", "/admin/alunos", "/conta/senha", "/aceitar-termos"])(
     "sends an anonymous visitor of %s to the login with the return url",
     (path) => {
       const response = run(path);
@@ -39,6 +39,6 @@ describe("proxy", () => {
   });
 
   it("declares a matcher for the protected areas", () => {
-    expect(config.matcher).toEqual(expect.arrayContaining(["/meu-perfil/:path*", "/recrutador/:path*", "/admin/:path*"]));
+    expect(config.matcher).toEqual(expect.arrayContaining(["/inicio/:path*", "/meu-perfil/:path*", "/recrutador/:path*", "/admin/:path*"]));
   });
 });

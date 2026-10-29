@@ -73,7 +73,7 @@ const OPEN_NAV = "is-open";
 const TALENTS = "Talentos";
 const HOW_IT_WORKS = "Como funciona";
 const SECTION_IDS = navigation.map(([id]) => id);
-const ROLE_HOME: Record<UserRole, string> = { ALUNO: "/meu-perfil", RECRUTADOR: "/recrutador", ADMIN: "/admin" };
+const ROLE_HOME: Record<UserRole, string> = { ALUNO: "/inicio", RECRUTADOR: "/recrutador", ADMIN: "/admin" };
 
 function stubSystemColorScheme(prefersDark: boolean) {
   vi.stubGlobal("matchMedia", (query: string) => ({

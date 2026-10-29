@@ -4,7 +4,7 @@ import type { UserRole } from "@/types/auth";
 
 describe("getRoleDestination", () => {
   it.each([
-    ["ALUNO", "/meu-perfil"],
+    ["ALUNO", "/inicio"],
     ["RECRUTADOR", "/recrutador"],
     ["ADMIN", "/admin"],
     ["DESCONHECIDO", "/login"],

@@ -2,9 +2,9 @@
 
 ## Student
 
-Login → `/meu-perfil`.
+Login → `/inicio` (the student home).
 
-No student dashboard in MVP.
+Student home (`/inicio`): greeting, the privacy notice, "Próximos passos" as a done/pending list with one step per profile section (each pending step links to its section anchor), a short text on how recruiters find the student, and the last update date. No percentage, progress bar, counter or metrics; no "view as recruiter" preview. The profile stays at `/meu-perfil`.
 
 Single profile page: a header, then the sections in three titled blocks, with an index to jump between them.
 

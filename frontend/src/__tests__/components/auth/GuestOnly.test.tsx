@@ -76,7 +76,7 @@ describe("GuestOnly", () => {
     });
 
     it.each<[UserRole, string]>([
-      ["ALUNO", "/meu-perfil"],
+      ["ALUNO", "/inicio"],
       ["RECRUTADOR", "/recrutador"],
       ["ADMIN", "/admin"],
     ])("sends a %s to %s", (role, destination) => {
